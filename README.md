@@ -155,6 +155,9 @@ Understudy.xcodeproj
 PROTOCOL.md                        Authoritative wire format docs
 QUICKSTART.md                      How to run the whole stack on a LAN
 OSC.md                             OSC bridge output protocol (→ QLab etc.)
+HANDOFF_TESTFLIGHT.md              Browser-side steps for TestFlight setup
+TESTFLIGHT_COPY.md                 Drafts for App Store Connect metadata
+PRIVACY.md                         Privacy policy (required by TestFlight)
 ```
 
 ### Architecture at a glance
@@ -204,7 +207,17 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] Android Audience mode + camera marks
 - [ ] DMX direct output (sACN / Art-Net)
 - [ ] Lens/sensor pickers with real-world presets (ARRI, RED, Sony FX, cine primes)
-- [ ] TestFlight
+- [ ] `HANDOFF_GOOGLE_PLAY.md` — Android internal-testing track (parallel to `HANDOFF_TESTFLIGHT.md`). Needs release keystore + Play Console click-through.
+
+### v0.19 · TestFlight distribution pipeline
+Everything scriptable is scripted. The browser steps that App Store Connect requires a human to click through are documented in `HANDOFF_TESTFLIGHT.md`.
+
+- **`scripts/ship-testflight.sh`** — archive Release config → export `.ipa` with App Store distribution signing → upload via `xcrun altool --upload-app` using an App Store Connect API key. One command per platform: `scripts/ship-testflight.sh` (iOS) or `scripts/ship-testflight.sh --platform visionos`. `--dry-run` archives + exports without uploading.
+- **`scripts/bump-version.sh`** — single-command version bump across iOS + visionOS (`project.pbxproj`) AND Android (`build.gradle.kts` — `versionCode`, `versionName`, `APP_VERSION`, `APP_BUILD`). Default bumps build only; `--marketing X.Y` bumps marketing version too. Kills the "edit 7 places" chore I've been doing manually every ship.
+- **`HANDOFF_TESTFLIGHT.md`** — exact browser steps for (1) creating the App Store Connect record with iOS + visionOS support, (2) generating an API key + stashing it under `~/.appstoreconnect/private_keys/`, (3) Export Compliance + Beta App Information + Internal Testers under the TestFlight tab. Every gotcha I've hit before is listed inline.
+- **`TESTFLIGHT_COPY.md`** — draft app subtitle, beta description, "what to test" notes, screenshot checklist, 60-second App Preview shot suggestion.
+- **`PRIVACY.md`** — required by App Store Connect. Documents what data the app touches (on-device AR + speech, peer-broadcast pose + blocking, optional OSC / Mission Control out) and explicitly what we don't do (no analytics, no accounts, no crash reporters, no server-side storage).
+- Everything in this commit leaves Understudy at **v0.19 (20)** and ready to run `scripts/ship-testflight.sh` the moment the App Store Connect record + API key are in place.
 
 ### v0.18 · Google AI Glasses companion — teleprompter on your face
 Android phone stays the controller (voice recognition, auto-scroll, controls); the paired Android XR AI Glasses show a pixel-tight 480×480 teleprompter canvas at the bottom of your left eye. Pattern borrowed directly from Alex's Gemini-Live-ToDo `TeleprompterControlActivity` + `TeleprompterActivity` — same APK, two `ComponentActivity`s, shared state via a Kotlin `object` singleton.
@@ -357,7 +370,7 @@ Completes the v0.9 LiDAR story. The scan was capturable and visible, but not ali
 
 ## Project rules
 
-- The version number is shown in every top bar (`AppVersion.formatted`) and must match `MARKETING_VERSION` + `CURRENT_PROJECT_VERSION` in `project.pbxproj` (and `versionName` / `versionCode` / `APP_VERSION` / `APP_BUILD` on Android). Every build push bumps the version. No exceptions.
+- The version number is shown in every top bar (`AppVersion.formatted`) and must match `MARKETING_VERSION` + `CURRENT_PROJECT_VERSION` in `project.pbxproj` (and `versionName` / `versionCode` / `APP_VERSION` / `APP_BUILD` on Android). Every build push bumps the version. No exceptions. Use `scripts/bump-version.sh` to propagate across all four places in one command.
 - `PROTOCOL.md` is authoritative. If you change a wire message, regenerate fixtures with `test-fixtures/regenerate.sh` and update the Kotlin adapter in lockstep.
 
 ## License
