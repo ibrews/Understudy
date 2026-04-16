@@ -79,6 +79,16 @@ public final class CueFXEngine {
     /// also sent out over UDP to a listening host (QLab, TouchDesigner, etc.).
     public let osc = OSCBridge()
 
+    /// Optional DMX output — when configured + enabled, `.light` cues also
+    /// emit sACN (E1.31) frames so real fixtures respond alongside the
+    /// on-screen flash. Parallel to `osc`, uses its own UDP socket.
+    public let dmx = DMXOutput()
+
+    /// Mapping from abstract `Cue.light` to concrete DMX channels. Public
+    /// so callers can swap the fixture rig at runtime (e.g. load a patch
+    /// from JSON). Default is 4 RGBW pars at 1/6/11/16.
+    public var dmxMapping = DMXCueMapping()
+
     /// Inbound OSC receiver. When a stage manager sends `/understudy/go`
     /// from QLab, we fire the next mark's cues as though a performer had
     /// just walked onto it. Gives stage management control of pacing
@@ -117,6 +127,25 @@ public final class CueFXEngine {
         } else {
             oscIn.stop()
         }
+    }
+
+    /// Convenience wrapper — mirrors `osc.configure(host:port:enabled:)`.
+    /// Called from Settings when the DMX toggle / universe / destination
+    /// fields change.
+    public func configureDMX(
+        enabled: Bool,
+        universe: Int,
+        destinationKind: String,
+        destinationIp: String
+    ) {
+        let dest: DMXDestination
+        let trimmed = destinationIp.trimmingCharacters(in: .whitespaces)
+        if destinationKind == "unicast", !trimmed.isEmpty {
+            dest = .unicast(ip: trimmed)
+        } else {
+            dest = .multicast
+        }
+        dmx.configure(universe: universe, destination: dest, enabled: enabled)
     }
 
     private func handleOSCInbound(_ msg: OSCReceiver.Message) {
@@ -341,6 +370,12 @@ public final class CueFXEngine {
             fadeDuration: 0.5
         )
         currentFlash = state
+        // Fire the same cue out over sACN to any real fixtures on the rig.
+        // No-op if DMX is disabled or the universe hasn't been configured.
+        if dmx.enabled {
+            let frame = dmxMapping.frame(for: color, intensity: intensity)
+            dmx.send(channels: frame)
+        }
         flashClearTask?.cancel()
         flashClearTask = Task { [weak self, cueID = state.cueID] in
             let total = state.holdDuration + state.fadeDuration

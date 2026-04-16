@@ -412,6 +412,10 @@ struct SettingsSheet: View {
     @AppStorage("oscPort") private var oscPortStr: String = "53000"
     @AppStorage("oscReceiveEnabled") private var oscReceiveEnabled: Bool = false
     @AppStorage("oscReceivePort") private var oscReceivePortStr: String = "53001"
+    @AppStorage("dmxEnabled") private var dmxEnabled: Bool = false
+    @AppStorage("dmxUniverse") private var dmxUniverseStr: String = "1"
+    @AppStorage("dmxDestinationKind") private var dmxDestinationKind: String = "multicast"
+    @AppStorage("dmxDestinationIp") private var dmxDestinationIp: String = ""
     @State private var showingQRTarget: Bool = false
 
     private var appMode: AppMode {
@@ -510,6 +514,37 @@ struct SettingsSheet: View {
                 } header: { Text("Stage Manager (inbound)") }
 
                 Section {
+                    Toggle("Send DMX (sACN) to lighting rig", isOn: $dmxEnabled)
+                        .onChange(of: dmxEnabled) { _, _ in applyDMX() }
+                    if dmxEnabled {
+                        TextField("Universe (1–63999)", text: $dmxUniverseStr)
+                            .keyboardType(.numberPad)
+                            .onSubmit { applyDMX() }
+                        Picker("Destination", selection: $dmxDestinationKind) {
+                            Text("Multicast (239.255.x.y)").tag("multicast")
+                            Text("Unicast to IP").tag("unicast")
+                        }
+                        .onChange(of: dmxDestinationKind) { _, _ in applyDMX() }
+                        if dmxDestinationKind == "unicast" {
+                            TextField("Node IP (e.g. 192.168.1.80)", text: $dmxDestinationIp)
+                                .autocorrectionDisabled()
+                                .textInputAutocapitalization(.never)
+                                .keyboardType(.numbersAndPunctuation)
+                                .onSubmit { applyDMX() }
+                        }
+                        Text("Fires real DMX channels when `.light` cues trigger. Point a sACN-aware console or USB-DMX gateway (QLC+, xLights, ETC Nomad, Enttec) at universe \(dmxUniverseStr).")
+                            .font(.caption).foregroundStyle(.secondary)
+                        Button("Send test wash (warm @ 80%)") {
+                            let frame = fx.dmxMapping.frame(for: .warm, intensity: 0.8)
+                            fx.dmx.send(channels: frame)
+                        }
+                    }
+                } header: { Text("DMX Output (sACN)") } footer: {
+                    Text("Default patch: 4 × RGBW+dim pars at DMX addresses 1, 6, 11, 16. Edit DMXCueMapping.defaultFixtures to match your rig.")
+                        .font(.caption)
+                }
+
+                Section {
                     Button {
                         showingQRTarget = true
                     } label: {
@@ -532,6 +567,7 @@ struct SettingsSheet: View {
                         applyName()
                         applyOSC()
                         applyOSCReceive()
+                        applyDMX()
                         dismiss()
                     }
                 }
@@ -554,6 +590,16 @@ struct SettingsSheet: View {
     private func applyOSCReceive() {
         let port = UInt16(oscReceivePortStr) ?? 53001
         fx.configureOSCReceive(port: port, enabled: oscReceiveEnabled)
+    }
+
+    private func applyDMX() {
+        let uni = Int(dmxUniverseStr) ?? 1
+        fx.configureDMX(
+            enabled: dmxEnabled,
+            universe: uni,
+            destinationKind: dmxDestinationKind,
+            destinationIp: dmxDestinationIp
+        )
     }
 
     private func applyName() {
