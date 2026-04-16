@@ -71,6 +71,7 @@ fun TeleprompterScreen(
     store: BlockingStore,
     onDismiss: () -> Unit,
     fx: CueFXEngine? = null,
+    autoAdvanceOnLastLine: Boolean = false,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -165,8 +166,8 @@ fun TeleprompterScreen(
         handler.post(runnable)
     }
 
-    // Wire speech → voice matcher → scroll + auto-fire.
-    LaunchedEffect(isVoiceMode, isAutoFire) {
+    // Wire speech → voice matcher → scroll + auto-fire + (optional) auto-advance.
+    LaunchedEffect(isVoiceMode, isAutoFire, autoAdvanceOnLastLine) {
         if (!isVoiceMode) return@LaunchedEffect
         speech.onHeard = { transcript ->
             lastHeard = transcript.takeLast(64)
@@ -178,11 +179,23 @@ fun TeleprompterScreen(
             if (matched != null && matched > scrollProgress) {
                 val oldProgress = scrollProgress
                 scrollProgress = matched.coerceIn(0.0, 1.0)
+                val finished = document.linesFinishedBetween(oldProgress, scrollProgress)
                 // Mirrors iOS TeleprompterView.startVoiceMode auto-fire branch.
                 if (isAutoFire && fx != null) {
-                    val finished = document.linesFinishedBetween(oldProgress, scrollProgress)
                     for (marker in finished) {
                         fx.voiceLineFinished(cueID = marker.cueId, onMarkID = marker.markId)
+                    }
+                }
+                // Auto-advance to next mark — pref-gated. Independent of
+                // auto-fire: the performer may want the next mark's cues to
+                // be "armed" for voice firing without actually firing current
+                // mark's light/sound cues themselves. advanceIfLastLine is a
+                // no-op unless the finished cue is the LAST Line on its mark,
+                // that mark is the performer's current mark, and a next mark
+                // exists — so it's safe to call for every crossed line.
+                if (autoAdvanceOnLastLine) {
+                    for (marker in finished) {
+                        store.advanceIfLastLine(cueID = marker.cueId, onMarkID = marker.markId)
                     }
                 }
             }

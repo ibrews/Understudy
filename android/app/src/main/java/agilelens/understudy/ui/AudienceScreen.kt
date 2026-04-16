@@ -2,6 +2,8 @@ package agilelens.understudy.ui
 
 import agilelens.understudy.BuildConfig
 import agilelens.understudy.ar.ArPoseProvider
+import agilelens.understudy.cuefx.CueFXEngine
+import agilelens.understudy.cuefx.FlashOverlay
 import agilelens.understudy.model.Blocking
 import agilelens.understudy.model.Cue
 import agilelens.understudy.model.Id
@@ -46,6 +48,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -90,7 +93,14 @@ fun AudienceScreen(
     onOpenSettings: () -> Unit,
     arProvider: ArPoseProvider? = null,
     showArStage: Boolean = true,
+    fx: CueFXEngine? = null,
 ) {
+    // Mirror PerformerScreen: pull engine state so we can render flash + hold.
+    // Audience walkers get the same light/hold feedback the performer does
+    // when they step onto a mark whose cues fire through the engine.
+    val flash = fx?.flashState?.collectAsState()?.value
+    val hold = fx?.holdState?.collectAsState()?.value
+
     val ordered: List<Mark> = remember(blocking.marks) {
         blocking.marks.filter { it.sequenceIndex >= 0 }.sortedBy { it.sequenceIndex }
     }
@@ -168,6 +178,36 @@ fun AudienceScreen(
                     lastFiredMarkID = null
                 }
             )
+        }
+
+        // Lighting flash overlay — same treatment as PerformerScreen. Hit-test
+        // transparent so it never swallows taps on the Begin button or AR stage.
+        FlashOverlay(flash = flash, modifier = Modifier.fillMaxSize())
+
+        // Wait/hold badge mirrors PerformerScreen — a walker glancing at their
+        // phone sees the remaining hold time on a Wait cue they've triggered.
+        if (hold != null) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(top = 64.dp),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFFFF9800).copy(alpha = 0.9f))
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = "HOLD  %.1f s".format(hold),
+                        color = Color.Black,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+            }
         }
     }
 }
