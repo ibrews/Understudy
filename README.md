@@ -193,6 +193,9 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 *(Latest first. Every version shipped is a real commit + push; the "Next up" list is intentional future work.)*
 
 ### Next up
+- [ ] **Voice-driven cue advance.** Inspired by Alex's Gemini-Live-ToDo AI Glasses teleprompter: use on-device `SFSpeechRecognizer` (iOS) / `SpeechRecognizer` (Android) to listen to the performer reading their line, substring-match the last 1-3 spoken words against the script within a small forward window, and auto-advance the cue cursor when the match lands. Closes the loop — no stage manager, no OSC GO, the show just fires itself off the actor's voice. Alex's implementation is at `ai-samples/samples/gemini-live-todo/.../teleprompter/TeleprompterControlActivity.kt` (see `processSpokenText`).
+- [ ] **Active reading window on the teleprompter.** Same inspiration source: 3-color rendering (past / active / future) where the "active" 30-char window is cyan and stays anchored at the visual center via `TextLayoutResult`. Small change, huge legibility win during rehearsal.
+- [ ] Google AI Glasses companion mode — paired to an iPhone, 480×480 glasses canvas shows current mark's line cues only. Same wire protocol, much tighter UI.
 - [ ] Migrate Monitoring code to AgileLensMultiplayer SPM dependency (currently copied in)
 - [ ] Gestural rotation on visionOS 2.0 target — v0.12 translates via drag but rotates via ±15° buttons (1.0 has no `RotateGesture3D`). Uniform scale still unbuilt — add when there's a use case beyond "1:1 scale is what I want."
 - [ ] Android LiDAR pass-through (ARCore Depth API on supported devices)
@@ -200,10 +203,8 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] QR-code anchor as a more precise alternative to the "stand here, face upstage" calibration ceremony
 - [ ] Android floating script panels (feature parity with visionOS)
 - [ ] Android Audience mode + camera marks
-- [ ] OSC receiver (bi-directional: listen for `/understudy/go` etc.)
 - [ ] DMX direct output (sACN / Art-Net)
 - [ ] Lens/sensor pickers with real-world presets (ARRI, RED, Sony FX, cine primes)
-- [ ] Public-domain Chekhov + Beckett in the Script Browser
 - [ ] TestFlight
 
 ### v0.12 · Align the scouted room to the rehearsal room
