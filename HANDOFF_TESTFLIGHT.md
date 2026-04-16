@@ -9,8 +9,9 @@ Everything scriptable is scripted. The steps below are the browser-only bits I c
 ## Prereqs
 
 - Apple Developer Program membership on team `C624J4S2F8` ✓ (already signed on this machine)
-- Xcode 26.1.1+ ✓
+- Xcode 26.4 (Build 17E192) per fleet convention — see `~/knowledge/departments/engineering/ios-distribution.md`
 - This repo pulled + up to date
+- `dev-control-center` repo checked out alongside this one (for the existing `testflight-add-testers.sh` that `ship-testflight.sh` chains into)
 
 ---
 
@@ -48,10 +49,11 @@ Open https://appstoreconnect.apple.com/access/integrations/api
    mkdir -p ~/.appstoreconnect/private_keys
    mv ~/Downloads/AuthKey_*.p8 ~/.appstoreconnect/private_keys/
    ```
-8. Export the credentials for the ship script (add to `~/.zshrc` for permanence):
+8. Export the credentials for the ship script (add to `~/.zshrc` for permanence). This matches the convention the fleet's `testflight-add-testers.sh` already uses:
    ```bash
    export ASC_KEY_ID=ABCD123456
    export ASC_ISSUER_ID=11111111-2222-3333-4444-555555555555
+   export ASC_KEY_PATH=$HOME/.appstoreconnect/private_keys/AuthKey_ABCD123456.p8
    ```
 
 ---
@@ -93,16 +95,18 @@ Under **TestFlight → Test Information**:
 - **Marketing URL**: `https://github.com/ibrews/Understudy` (or wherever you want testers to land)
 - **Privacy Policy**: required. Shortest path: write a one-pager on the repo wiki that says "Understudy runs all AR tracking and speech recognition on-device. Pose updates and blocking data are broadcast only to devices you choose to join your session. No analytics, no accounts, no server-side storage." Link to it here.
 
-### 4c. Internal Testers
-Under **TestFlight → Internal Testing**:
-1. **Create New Group** → name it `Team`.
-2. **Builds**: add the build you just uploaded.
-3. **Testers**: add anyone in your App Store Connect team (Kevin, Henry, etc.). Up to 100 internal testers, no review needed.
+### 4c. Testers — automatic via the fleet's add-testers script
+The ship script automatically chains into `dev-control-center/scripts/testflight-add-testers.sh` after upload. That script:
+- Creates a **"Dev Team"** external beta group (fleet convention — same name across every Agile Lens app)
+- Adds `alex@agilelens.com`, `info@agilelens.com`, `crew@agilelens.com` as testers
+- Does NOT toggle **Automatic Distribution** — that's a one-time click-through you have to do the first time, under TestFlight → Dev Team → Settings → Automatic Distribution. After that, every `scripts/ship-testflight.sh` run auto-delivers to the group.
 
-Internal testers receive an email → open TestFlight → install.
+If you want different testers or a different group, run the add-testers script with `--no-testers` on the ship command and do it manually. Or edit the `TESTERS` array at the top of `dev-control-center/scripts/testflight-add-testers.sh`.
 
-### 4d. External testers (optional, later)
-If you want to invite people outside the team (actors, directors you know), create an **External Group** instead. Apple requires a short beta review for each *major* version (build 1 of each `MARKETING_VERSION`); usually clears in 24-48 hours. After that, point releases don't re-review.
+**First-upload edge case**: the external beta group needs the build to finish processing (~5-30 min post-upload) before it can be attached, and external groups require a one-time Apple beta-review that takes 24-48 hours. Internal testers (anyone in the App Store Connect team) can install the moment processing finishes — add them under **TestFlight → Internal Testing → App Store Connect Users**.
+
+### 4d. One-time: enable Automatic Distribution on the Dev Team group
+After the first `ship-testflight.sh` run creates the group, open App Store Connect → your app → TestFlight → **Dev Team** → Settings → toggle **Automatic Distribution** ON. From that point forward every uploaded build auto-ships to the Dev Team without further clicks.
 
 ---
 
@@ -135,7 +139,12 @@ Android's internal distribution is **Google Play Console → Internal testing tr
 
 ## File inventory
 
-- `scripts/ship-testflight.sh` — archive + export + upload (this doc's Step 3)
+- `scripts/ship-testflight.sh` — archive + export + upload + chain into tester-add (this doc's Step 3)
 - `scripts/bump-version.sh` — single-command version increment
 - `TESTFLIGHT_COPY.md` — draft beta description + what's-new notes
 - `HANDOFF_TESTFLIGHT.md` — this file
+- `PRIVACY.md` — privacy policy, linked from the App Store Connect Beta App Information form
+
+Fleet-shared (lives in `dev-control-center` alongside this repo):
+- `scripts/testflight-add-testers.sh` — App Store Connect API → Dev Team beta group + standard testers. Ship script calls this automatically.
+- `~/knowledge/departments/engineering/ios-distribution.md` — Agile Lens rules for TestFlight uploads (distribution method, export compliance, Xcode version).

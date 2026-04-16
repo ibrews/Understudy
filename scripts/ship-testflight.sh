@@ -2,40 +2,51 @@
 #
 # ship-testflight.sh — archive Understudy and upload to TestFlight.
 #
-# Idempotent(ish). Archives for iOS by default; pass `--platform visionos`
-# for the visionOS archive. Uploads via `xcrun altool --upload-app` with an
-# App Store Connect API key (2FA-compatible; no username/password).
+# Aligns with the fleet convention documented in
+# `~/knowledge/departments/engineering/ios-distribution.md`:
+#   - App Store Connect distribution (not Internal Testing only)
+#   - ITSAppUsesNonExemptEncryption = NO already in pbxproj
+#   - ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_PATH env vars (same as the
+#     existing `dev-control-center/scripts/testflight-add-testers.sh`).
+#
+# Archives for iOS by default; pass `--platform visionos` for the
+# visionOS archive. Uploads via `xcrun altool --upload-app`.
 #
 # Prereqs (one-time):
 #   1. App Store Connect record exists for bundle `agilelens.Understudy`.
 #      See HANDOFF_TESTFLIGHT.md for the browser steps.
 #   2. App Store Connect API key created + downloaded:
 #      https://appstoreconnect.apple.com/access/integrations/api
-#      Save AuthKey_XXXXXXXXXX.p8 under ~/.appstoreconnect/private_keys/.
-#   3. Export the key id + issuer id via env vars, OR pass them on
-#      the command line. The script will read:
+#   3. Export env vars (same convention as the fleet):
 #         ASC_KEY_ID           (e.g. "ABCD123456")
 #         ASC_ISSUER_ID        (UUID from the API Keys page)
-#         ASC_KEY_PATH         (optional — auto-discovered under ~/.appstoreconnect/private_keys)
+#         ASC_KEY_PATH         (absolute path to AuthKey_XXXXXXXXXX.p8)
 #
 # Run:
 #   bash scripts/ship-testflight.sh                  # iOS
 #   bash scripts/ship-testflight.sh --platform visionos
 #   bash scripts/ship-testflight.sh --dry-run        # archive + export, no upload
+#   bash scripts/ship-testflight.sh --no-testers     # skip Dev Team auto-add
 #
-# The script assumes the repo root is two levels above this file.
+# On successful upload, this script chains into
+# `dev-control-center/scripts/testflight-add-testers.sh` (if present) to
+# add alex@ / info@ / crew@agilelens.com to the Dev Team beta group with
+# auto-distribution. Skip with --no-testers for manual handling.
 
 set -euo pipefail
 
 PLATFORM="ios"
 DRY_RUN=false
+ADD_TESTERS=true
+BUNDLE_ID="agilelens.Understudy"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --platform) PLATFORM="$2"; shift 2 ;;
     --dry-run)  DRY_RUN=true;  shift ;;
+    --no-testers) ADD_TESTERS=false; shift ;;
     -h|--help)
-      sed -n '2,30p' "$0"
+      sed -n '2,40p' "$0"
       exit 0
       ;;
     *) echo "Unknown flag: $1" >&2; exit 1 ;;
@@ -133,21 +144,26 @@ if [[ "$DRY_RUN" == "true" ]]; then
 fi
 
 # ─── Credentials sanity check ─────────────────────────────────────────────
-if [[ -z "${ASC_KEY_ID:-}" || -z "${ASC_ISSUER_ID:-}" ]]; then
+if [[ -z "${ASC_KEY_ID:-}" || -z "${ASC_ISSUER_ID:-}" || -z "${ASC_KEY_PATH:-}" ]]; then
   cat <<MSG >&2
 ✗ Missing App Store Connect API key credentials.
 
-  Set these environment variables before re-running:
+  Set these environment variables before re-running (fleet convention from
+  ~/knowledge/departments/engineering/ios-distribution.md):
+
     export ASC_KEY_ID=ABCD123456
     export ASC_ISSUER_ID=11111111-2222-3333-4444-555555555555
+    export ASC_KEY_PATH=/absolute/path/to/AuthKey_ABCD123456.p8
 
   See HANDOFF_TESTFLIGHT.md for how to create the API key.
 MSG
   exit 3
 fi
 
-# ASC_KEY_PATH is optional — altool will look in ~/.appstoreconnect/private_keys
-# automatically if the filename matches AuthKey_<KEY_ID>.p8.
+if [[ ! -f "$ASC_KEY_PATH" ]]; then
+  echo "✗ ASC_KEY_PATH points to a missing file: $ASC_KEY_PATH" >&2
+  exit 3
+fi
 
 # ─── Upload ───────────────────────────────────────────────────────────────
 echo
@@ -162,5 +178,22 @@ echo
 echo "✓ Uploaded. It takes ~5-30 minutes for App Store Connect to process."
 echo "  Watch progress at:"
 echo "    https://appstoreconnect.apple.com/apps"
-echo
-echo "  Once processing finishes, add testers under TestFlight → Internal Testing."
+
+# ─── Chain into tester auto-add ───────────────────────────────────────────
+TESTERS_SCRIPT="$REPO_ROOT/../dev-control-center/scripts/testflight-add-testers.sh"
+if [[ "$ADD_TESTERS" == "true" && -x "$TESTERS_SCRIPT" ]]; then
+  echo
+  echo "▶ Running fleet tester-add script (Dev Team beta group)…"
+  if "$TESTERS_SCRIPT" "$BUNDLE_ID"; then
+    echo "✓ Testers ensured in Dev Team group with auto-distribution."
+  else
+    echo "⚠ testflight-add-testers.sh exited non-zero — processing may still"
+    echo "  be running on App Store Connect's side. Re-run after ~5 min:"
+    echo "    $TESTERS_SCRIPT $BUNDLE_ID"
+  fi
+elif [[ "$ADD_TESTERS" == "true" ]]; then
+  echo
+  echo "⚠ Could not find $TESTERS_SCRIPT — skipping auto-tester-add."
+  echo "  Add testers manually under TestFlight → Internal Testing, or check"
+  echo "  out dev-control-center alongside this repo."
+fi
