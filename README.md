@@ -193,9 +193,9 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 *(Latest first. Every version shipped is a real commit + push; the "Next up" list is intentional future work.)*
 
 ### Next up
-- [ ] **Voice-driven cue *firing*** — v0.13 added voice-driven teleprompter *scrolling*; next step is wiring the match against line-cue boundaries so finishing a line auto-fires its mark's subsequent SFX/light/wait cues. Closes the whole loop: no stage manager, no OSC GO, the show runs itself off the actor's voice.
 - [ ] Google AI Glasses companion mode — paired to an iPhone, 480×480 glasses canvas shows the current mark's line cues only. Same wire protocol, same `TeleprompterView` rendering, tighter UI. Alex's reference implementation at `ai-samples/samples/gemini-live-todo/.../teleprompter/`.
 - [ ] Android voice mode — port `VoiceMatcher` to Kotlin (trivial — algorithm is pure) and wire to Android's `SpeechRecognizer` (Alex already has this working in the Gemini Live teleprompter).
+- [ ] Next-mark auto-advance — right now voice auto-fire handles sub-mark cues; the performer still has to physically walk to advance marks. Optional toggle: when the last line on a mark finishes via voice AND the performer is within N seconds of walking, pre-advance the cue cursor.
 - [ ] Migrate Monitoring code to AgileLensMultiplayer SPM dependency (currently copied in)
 - [ ] Gestural rotation on visionOS 2.0 target — v0.12 translates via drag but rotates via ±15° buttons (1.0 has no `RotateGesture3D`). Uniform scale still unbuilt — add when there's a use case beyond "1:1 scale is what I want."
 - [ ] Android LiDAR pass-through (ARCore Depth API on supported devices)
@@ -206,6 +206,17 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] DMX direct output (sACN / Art-Net)
 - [ ] Lens/sensor pickers with real-world presets (ARRI, RED, Sony FX, cine primes)
 - [ ] TestFlight
+
+### v0.14 · The show runs itself — voice-driven cue firing
+v0.13 shipped a voice-following teleprompter; v0.14 closes the real loop. When the actor finishes speaking a line, the mark's subsequent SFX / light / wait cues fire automatically. No stage manager. No OSC GO. No taps.
+
+- **Per-line-cue character ranges** — `TeleprompterDocument` now tracks every `.line` cue's `(markID, cueID, endOffset)` in the flowing script text. `linesFinishedBetween(oldProgress:newProgress:)` returns the line markers that fall strictly inside a voice-induced jump.
+- **`CueFXEngine.voiceLineFinished(cueID:on:)`** — given a line that just ended, fires every subsequent non-line cue on that mark (SFX, light, wait) up to the next line or end of mark. Pulls from the same `cueQueue` path as a real walk-on so the teleprompter, outbound OSC, and Mission Control all see the cues identically. `voiceFiredCueIDs: Set<ID>` prevents double-fires if voice scroll bounces.
+- **Auto-fire toggle** — a 🔥 flame button appears next to 🎤 in the teleprompter controls. Enabled by default when voice mode is on; disable to get voice-scroll-only behavior. Flame is orange when hot, grey when cold.
+- **"🔥 3 cues fired" flash** — a 2-second pill appears above the controls whenever auto-fire lands, so you can see exactly when and how many things fired.
+- **Reset clears the fired-set** — the back-to-top button also calls `resetVoiceFiredCues()`, so re-reading the scene from the top fires everything again.
+
+The demo: walk to the Ghost's mark, open the teleprompter (📜), turn on voice (🎤) and auto-fire (🔥), say *"Look where it comes again"* — thunder, blue light, beat, blackout — all automatic, all driven off what you said.
 
 ### v0.13 · Teleprompter with voice-driven karaoke scroll
 Inspired by Alex's Gemini-Live-ToDo AI Glasses teleprompter (the `processSpokenText` algorithm in `TeleprompterControlActivity.kt`). Before today the teleprompter was per-mark cue cards; now there's a unified full-script view that scrolls four ways.

@@ -30,6 +30,10 @@ public final class TeleprompterState {
     /// the local performer's currentMarkID changes. On by default; turns
     /// off when the user manually scrolls.
     public var isMarkFollowEnabled: Bool = true
+    /// When voice mode is on AND this is true, finishing a line cue via
+    /// voice auto-fires the mark's subsequent non-line cues (SFX, light,
+    /// wait). The show runs itself off the actor's voice.
+    public var isAutoFireEnabled: Bool = true
     /// Font size for the teleprompter body text, in points. Stage-readable
     /// defaults to fairly large.
     public var textSize: Double = 28
@@ -41,7 +45,7 @@ public final class TeleprompterState {
     public var lastUserOverrideAt: Date? = nil
     /// The currently-displayed document — derived from the Blocking.
     public var document: TeleprompterDocument = TeleprompterDocument(
-        text: "", markOffsets: [], lowercasedText: "", dialogueRanges: []
+        text: "", markOffsets: [], lowercasedText: "", dialogueRanges: [], lineCueEnds: []
     )
 
     public init() {}

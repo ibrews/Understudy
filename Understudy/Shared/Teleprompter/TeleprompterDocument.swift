@@ -38,6 +38,11 @@ nonisolated public struct TeleprompterDocument: Equatable {
     /// matching only searches inside these ranges, so character-name headers
     /// or "Mark 3 —" banners don't confuse the matcher.
     public var dialogueRanges: [Range<Int>]
+    /// Per-line-cue metadata — (markID, cueID, endOffset) tuples. Used
+    /// for voice-driven cue firing: when scrollProgress crosses a line's
+    /// endOffset, the teleprompter reports it to the CueFXEngine which
+    /// then fires the remaining non-line cues on that mark.
+    public var lineCueEnds: [LineCueMarker]
 
     public struct MarkOffset: Equatable, Sendable {
         public let markID: ID
@@ -48,6 +53,14 @@ nonisolated public struct TeleprompterDocument: Equatable {
         /// For marks with no line cues, equals headerStart.
         public let firstLineStart: Int
         /// Offset just past this mark's last line.
+        public let endOffset: Int
+    }
+
+    public struct LineCueMarker: Equatable, Sendable {
+        public let markID: ID
+        public let cueID: ID
+        /// Character offset in `text` of the last character of this line's
+        /// dialogue. When scrollProgress passes this, the line is "said."
         public let endOffset: Int
     }
 
@@ -62,6 +75,7 @@ nonisolated public struct TeleprompterDocument: Equatable {
         var builder = ""
         var markOffsets: [MarkOffset] = []
         var dialogueRanges: [Range<Int>] = []
+        var lineCueEnds: [LineCueMarker] = []
 
         for (i, mark) in ordered.enumerated() {
             let headerStart = builder.count
@@ -70,8 +84,7 @@ nonisolated public struct TeleprompterDocument: Equatable {
 
             let beforeLines = builder.count
             for cue in mark.cues {
-                guard case .line(_, let text, let character) = cue else { continue }
-                let dialogueStart = builder.count
+                guard case .line(let cueID, let text, let character) = cue else { continue }
                 // Character label on its own line, uppercased.
                 if let character, !character.isEmpty {
                     builder += "\n\(character.uppercased())\n"
@@ -82,8 +95,12 @@ nonisolated public struct TeleprompterDocument: Equatable {
                 builder += text
                 let spokenEnd = builder.count
                 dialogueRanges.append(spokenStart..<spokenEnd)
+                lineCueEnds.append(LineCueMarker(
+                    markID: mark.id,
+                    cueID: cueID,
+                    endOffset: spokenEnd
+                ))
                 builder += "\n"
-                _ = dialogueStart // reserved in case we need per-line offsets later
             }
             // Blank line between marks.
             if i < ordered.count - 1 { builder += "\n" }
@@ -101,8 +118,20 @@ nonisolated public struct TeleprompterDocument: Equatable {
             text: builder,
             markOffsets: markOffsets,
             lowercasedText: builder.lowercased(),
-            dialogueRanges: dialogueRanges
+            dialogueRanges: dialogueRanges,
+            lineCueEnds: lineCueEnds
         )
+    }
+
+    /// Given two scroll positions (old and new, both 0…1), return the line
+    /// cues whose endOffset lies strictly between them. Used by voice mode
+    /// to detect which lines the performer just finished speaking.
+    public func linesFinishedBetween(oldProgress: Double, newProgress: Double) -> [LineCueMarker] {
+        guard !text.isEmpty, newProgress > oldProgress else { return [] }
+        let total = Double(text.count)
+        let oldIdx = Int(oldProgress * total)
+        let newIdx = Int(newProgress * total)
+        return lineCueEnds.filter { $0.endOffset > oldIdx && $0.endOffset <= newIdx }
     }
 
     /// Given a scrollProgress (0...1), return the mark the user is currently

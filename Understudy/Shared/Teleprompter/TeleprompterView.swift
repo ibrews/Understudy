@@ -27,6 +27,7 @@ import Speech
 
 public struct TeleprompterView: View {
     @Environment(BlockingStore.self) private var store
+    @Environment(CueFXEngine.self) private var fx
     @Environment(\.dismiss) private var dismiss
     @State private var state = TeleprompterState()
     #if canImport(Speech)
@@ -35,6 +36,9 @@ public struct TeleprompterView: View {
     @State private var autoScrollTimer: Timer?
     @State private var lastMarkID: ID?
     @State private var voiceAuthRequested = false
+    /// Last count of auto-fired cues, for the "🔥 3 cues fired" feedback flash.
+    @State private var autoFireFlashCount: Int = 0
+    @State private var autoFireFlashAt: Date?
 
     public init() {}
 
@@ -186,6 +190,15 @@ public struct TeleprompterView: View {
 
     @ViewBuilder private var controls: some View {
         VStack(spacing: 10) {
+            if let flashAt = autoFireFlashAt,
+               Date().timeIntervalSince(flashAt) < 2.0 {
+                Text("🔥 \(autoFireFlashCount) cue\(autoFireFlashCount == 1 ? "" : "s") fired")
+                    .font(.caption.bold())
+                    .padding(.horizontal, 10).padding(.vertical, 4)
+                    .background(Color.orange.opacity(0.85), in: Capsule())
+                    .foregroundStyle(.black)
+                    .transition(.opacity.combined(with: .scale))
+            }
             if !state.lastHeardPhrase.isEmpty {
                 Text("heard: \(state.lastHeardPhrase)")
                     .font(.caption.monospaced())
@@ -197,6 +210,7 @@ public struct TeleprompterView: View {
                 Button {
                     state.scrollProgress = 0
                     state.lastUserOverrideAt = Date()
+                    fx.resetVoiceFiredCues()
                 } label: {
                     Image(systemName: "backward.end.fill")
                         .font(.title3)
@@ -241,6 +255,23 @@ public struct TeleprompterView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(state.isVoiceModeEnabled ? .red : .white.opacity(0.2))
+
+                // Auto-fire toggle — only meaningful when voice mode is on.
+                // Orange flame = the show runs itself; grey = voice just
+                // scrolls the teleprompter.
+                Button {
+                    state.isAutoFireEnabled.toggle()
+                } label: {
+                    Image(systemName: state.isAutoFireEnabled ? "flame.fill" : "flame")
+                        .font(.title2)
+                        .frame(width: 36)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(state.isAutoFireEnabled ? .orange : .white.opacity(0.2))
+                .disabled(!state.isVoiceModeEnabled)
+                .help(state.isAutoFireEnabled
+                      ? "Voice finishes a line → SFX/light/wait cues auto-fire"
+                      : "Voice only scrolls the teleprompter; cues stay manual")
                 #endif
             }
             .padding(.horizontal, 14).padding(.vertical, 10)
@@ -303,7 +334,24 @@ public struct TeleprompterView: View {
                     document: state.document,
                     currentProgress: state.scrollProgress
                 ) {
+                    let oldProgress = state.scrollProgress
                     state.applyVoiceMatch(p)
+                    // Auto-fire: check which line cues the jump crossed,
+                    // then ask the engine to fire their trailing SFX/light/wait.
+                    if state.isAutoFireEnabled {
+                        let finished = state.document.linesFinishedBetween(
+                            oldProgress: oldProgress,
+                            newProgress: state.scrollProgress
+                        )
+                        var total = 0
+                        for marker in finished {
+                            total += fx.voiceLineFinished(cueID: marker.cueID, on: marker.markID)
+                        }
+                        if total > 0 {
+                            autoFireFlashCount = total
+                            autoFireFlashAt = Date()
+                        }
+                    }
                 }
             }
         }

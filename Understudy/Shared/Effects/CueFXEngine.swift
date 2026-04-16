@@ -90,6 +90,10 @@ public final class CueFXEngine {
     /// across performer moves — purely driven by the inbound bus.
     public var goCursor: Int = -1
 
+    /// Cues fired by voice mode this run. Prevents a cue from firing
+    /// twice when scroll progress bounces. Cleared on reset().
+    private var voiceFiredCueIDs: Set<ID> = []
+
     public init() {}
 
     /// Attach the engine to a store. Safe to call once at app launch.
@@ -184,6 +188,47 @@ public final class CueFXEngine {
                 cue: cue, markName: mark.name, performerID: performer
             ))
         }
+    }
+
+    // MARK: - Voice-driven cue firing
+
+    /// Called by the teleprompter when voice mode detects the performer
+    /// just finished speaking a line. Fires all subsequent non-line cues
+    /// on the same mark, up to the next line (or end of mark). Already-
+    /// fired cues are skipped.
+    ///
+    /// Returns the number of cues fired, so the UI can show feedback.
+    @discardableResult
+    public func voiceLineFinished(cueID: ID, on markID: ID) -> Int {
+        guard let store else { return 0 }
+        guard let mark = store.blocking.marks.first(where: { $0.id == markID }) else {
+            return 0
+        }
+        guard let lineIdx = mark.cues.firstIndex(where: { $0.id == cueID }) else {
+            return 0
+        }
+        // Mark the line itself as "voice-handled" so we don't re-visit it.
+        voiceFiredCueIDs.insert(cueID)
+
+        let performer = store.localPerformer?.id ?? ID("voice")
+        var fired = 0
+        for cue in mark.cues.dropFirst(lineIdx + 1) {
+            // Stop at the next line — that's a future voice trigger.
+            if case .line = cue { break }
+            if voiceFiredCueIDs.contains(cue.id) { continue }
+            voiceFiredCueIDs.insert(cue.id)
+            store.cueQueue.append(BlockingStore.FiredCue(
+                cue: cue, markName: mark.name, performerID: performer
+            ))
+            fired += 1
+        }
+        return fired
+    }
+
+    /// Clear voice-fired memory. Called when the teleprompter resets to
+    /// the top so a second read of the script fires cues again.
+    public func resetVoiceFiredCues() {
+        voiceFiredCueIDs.removeAll()
     }
 
     public func detach() {
