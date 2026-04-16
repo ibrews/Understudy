@@ -3,15 +3,15 @@ package agilelens.understudy.teleprompter
 import agilelens.understudy.model.Blocking
 import agilelens.understudy.model.Cue
 import agilelens.understudy.model.Id
+import agilelens.understudy.model.MarkKind
 
 /**
  * Kotlin mirror of Swift's TeleprompterDocument. Flattens a Blocking into a
  * single flowing script with per-mark character offsets AND per-line-cue end
  * offsets, so voice matching + auto-fire can both operate on one coord system.
  *
- * Android's Mark doesn't carry `kind` (v0.8 film-mode types aren't ported),
- * so we include every mark with sequenceIndex >= 0 — same behavior for a
- * theater-only blocking as iOS.
+ * Matches Swift: only actor marks with sequenceIndex ≥ 0 enter the
+ * teleprompter flow. Camera marks (pre-viz, v0.8+) are excluded.
  */
 data class TeleprompterDocument(
     val text: String,
@@ -63,7 +63,7 @@ data class TeleprompterDocument(
     companion object {
         fun from(blocking: Blocking): TeleprompterDocument {
             val ordered = blocking.marks
-                .filter { it.sequenceIndex >= 0 }
+                .filter { it.kind == MarkKind.actor && it.sequenceIndex >= 0 }
                 .sortedBy { it.sequenceIndex }
 
             val builder = StringBuilder()

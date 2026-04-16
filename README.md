@@ -209,6 +209,16 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] Lens/sensor pickers with real-world presets (ARRI, RED, Sony FX, cine primes)
 - [ ] `HANDOFF_GOOGLE_PLAY.md` — Android internal-testing track (parallel to `HANDOFF_TESTFLIGHT.md`). Needs release keystore + Play Console click-through.
 
+### v0.20 · Android wire compat — Mark.kind, CameraSpec, Blocking.roomScan
+Closes a silent-data-loss path: iOS/visionOS were ahead of Android by two schema revisions Android was dropping on decode.
+
+- **`MarkKind` enum** + **`CameraSpec` data class** in `android/.../model/CoreModels.kt` — mirrors Swift's `MarkKind` (`actor` / `camera`) and `CameraSpec` (focal length, sensor dims, tripod height, tilt). `Mark` gains `kind: MarkKind = actor` + `camera: CameraSpec? = null` with defaults that decode older files unchanged.
+- **`RoomScan` data class** — same shape as Swift's: `positionsBase64`, `indicesBase64`, ISO-8601 `capturedAt`, name, `overlayOffset`. `Blocking` gains `roomScan: RoomScan? = null`. Android doesn't render the mesh yet (no ARCore wireframe ghost pipeline) but **round-trips it through decode + encode** so a scouted-room scan survives re-broadcast through an Android device in a mixed session.
+- **`TeleprompterDocument.kt`** now filters by `kind == actor` matching Swift — camera marks don't pollute the performer teleprompter flow.
+- **`WireCompatTest` unit tests** — new `app/src/test/java/.../WireCompatTest.kt` with 6 tests: every Swift-generated fixture under `/test-fixtures/` round-trips through the Kotlin decoder; v0.8 camera-mark + v0.9 room-scan encode/decode cleanly; legacy (pre-v0.8 / pre-v0.9) JSON without the new keys still parses. Added `junit:4.13.2` as the only test dependency. `./gradlew :app:testDebugUnitTest` runs in ~4s. **6 tests, 0 failures** as of this commit.
+
+Platform drift is now a failing test, not a runtime silent-data-loss during a real rehearsal.
+
 ### v0.19 · TestFlight distribution pipeline
 Everything scriptable is scripted. The browser steps that App Store Connect requires a human to click through are documented in `HANDOFF_TESTFLIGHT.md`.
 

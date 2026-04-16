@@ -13,14 +13,14 @@ android {
         applicationId = "agilelens.understudy"
         minSdk = 26
         targetSdk = 36
-        versionCode = 20
-        versionName = "0.19"
+        versionCode = 21
+        versionName = "0.20"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
 
-        buildConfigField("String", "APP_VERSION", "\"0.19\"")
-        buildConfigField("int", "APP_BUILD", "20")
+        buildConfigField("String", "APP_VERSION", "\"0.20\"")
+        buildConfigField("int", "APP_BUILD", "21")
     }
 
     buildTypes {
@@ -86,4 +86,8 @@ dependencies {
 
     // Android XR — projected display for AI Glasses companion
     implementation("androidx.xr.projected:projected:1.0.0-alpha03")
+
+    // Unit tests — round-trip the Swift-generated /test-fixtures/*.json
+    // through the Kotlin decoder so cross-platform drift fails CI.
+    testImplementation("junit:junit:4.13.2")
 }
