@@ -9,6 +9,7 @@ import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.opengl.Matrix
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -16,20 +17,28 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.viewinterop.AndroidView
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
+import kotlin.math.abs
 
 /**
  * AR stage background — live ARCore camera feed with floor-anchored glowing discs
  * for each Mark. If ARCore isn't rendering (e.g., session not ready), the camera
  * layer is black and only the discs show, which is still useful.
+ *
+ * When [onFloorTap] is non-null, taps on the stage area raycast against the
+ * y=0 floor plane using the latest view/projection matrices from [arProvider]
+ * and report the resulting (worldX, worldZ). Useful for Author mode to place
+ * marks by tapping on the live AR view (v0.22).
  *
  * Usage: wrap the teleprompter content in a Box, put this at the bottom:
  *   Box {
@@ -42,7 +51,8 @@ fun ArStageView(
     arProvider: ArPoseProvider,
     marks: List<Mark>,
     nextMarkId: Id?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onFloorTap: ((worldX: Float, worldZ: Float) -> Unit)? = null,
 ) {
     // Force recomposition at ~30Hz for the overlay.
     var tick by remember { mutableStateOf(0L) }
@@ -51,6 +61,10 @@ fun ArStageView(
             withFrameNanos { tick = it }
         }
     }
+
+    // Capture the latest tap callback so the pointerInput closure stays in sync
+    // without re-installing itself.
+    val tapCallback by rememberUpdatedState(onFloorTap)
 
     Box(modifier = modifier.fillMaxSize()) {
         AndroidView(
@@ -63,6 +77,33 @@ fun ArStageView(
         @Suppress("UNUSED_EXPRESSION") tick
         val viewMatrix = arProvider.lastViewMatrix
         val projMatrix = arProvider.lastProjectionMatrix
+
+        // Tap-to-place layer. Sits on top of the GL view but BELOW the app UI
+        // (which lives in a separate sibling Box). Any taps that reach here
+        // have already been ignored by the app chrome.
+        if (tapCallback != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectTapGestures { offset ->
+                            val w = size.width.toFloat()
+                            val h = size.height.toFloat()
+                            val hit = rayHitFloor(
+                                screenX = offset.x,
+                                screenY = offset.y,
+                                screenW = w,
+                                screenH = h,
+                                view = arProvider.lastViewMatrix,
+                                proj = arProvider.lastProjectionMatrix,
+                            )
+                            if (hit != null) {
+                                tapCallback?.invoke(hit.first, hit.second)
+                            }
+                        }
+                    }
+            )
+        }
 
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
@@ -106,6 +147,69 @@ fun ArStageView(
             }
         }
     }
+}
+
+/**
+ * Unproject a screen-space tap through the view+projection matrices and
+ * intersect the resulting ray with the world y=0 plane (the stage floor).
+ *
+ * Returns (worldX, worldZ) of the intersection, or null if the ray doesn't
+ * hit the floor (parallel / behind-camera / invalid matrices).
+ *
+ * This is a pure-math helper that lives alongside ArStageView because the
+ * ray math is tied to the overlay's view/projection convention.
+ */
+internal fun rayHitFloor(
+    screenX: Float,
+    screenY: Float,
+    screenW: Float,
+    screenH: Float,
+    view: FloatArray,
+    proj: FloatArray,
+): Pair<Float, Float>? {
+    if (screenW <= 0f || screenH <= 0f) return null
+
+    val vp = FloatArray(16)
+    Matrix.multiplyMM(vp, 0, proj, 0, view, 0)
+    val inv = FloatArray(16)
+    if (!Matrix.invertM(inv, 0, vp, 0)) return null
+
+    // Tap in normalized device coordinates. Screen Y goes down, NDC Y goes up.
+    val ndcX = (screenX / screenW) * 2f - 1f
+    val ndcY = 1f - (screenY / screenH) * 2f
+
+    val nearNdc = floatArrayOf(ndcX, ndcY, -1f, 1f)
+    val farNdc = floatArrayOf(ndcX, ndcY, 1f, 1f)
+    val nearW = FloatArray(4)
+    val farW = FloatArray(4)
+    Matrix.multiplyMV(nearW, 0, inv, 0, nearNdc, 0)
+    Matrix.multiplyMV(farW, 0, inv, 0, farNdc, 0)
+
+    if (abs(nearW[3]) < 1e-6f || abs(farW[3]) < 1e-6f) return null
+
+    val nx = nearW[0] / nearW[3]
+    val ny = nearW[1] / nearW[3]
+    val nz = nearW[2] / nearW[3]
+    val fx = farW[0] / farW[3]
+    val fy = farW[1] / farW[3]
+    val fz = farW[2] / farW[3]
+
+    val dx = fx - nx
+    val dy = fy - ny
+    val dz = fz - nz
+
+    if (abs(dy) < 1e-4f) return null  // ray parallel to floor
+
+    val t = -ny / dy
+    if (t < 0f) return null  // floor is behind camera
+
+    val hitX = nx + t * dx
+    val hitZ = nz + t * dz
+
+    // Reject absurdly far hits (camera pointed nearly at horizon, t huge).
+    if (abs(hitX) > 50f || abs(hitZ) > 50f) return null
+
+    return hitX to hitZ
 }
 
 /**

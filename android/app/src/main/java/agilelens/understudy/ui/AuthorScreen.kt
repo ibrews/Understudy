@@ -1,6 +1,7 @@
 package agilelens.understudy.ui
 
 import agilelens.understudy.BuildConfig
+import agilelens.understudy.ar.ArPoseProvider
 import agilelens.understudy.model.Blocking
 import agilelens.understudy.model.Id
 import agilelens.understudy.model.Mark
@@ -54,6 +55,12 @@ private val CurtainGradient = Brush.verticalGradient(colors = listOf(CurtainRed,
 /**
  * Author mode — list of marks + drop / export / import actions.
  * Mutations fan out through the callbacks; the Activity broadcasts them over the transport.
+ *
+ * v0.22 — when [arProvider] is supplied and [showArStage] is true, a live AR
+ * camera view sits behind the UI and taps outside the mark list / buttons
+ * raycast the y=0 floor plane, calling [onDropMarkAt] with the world-space
+ * hit coordinates. The "Drop mark here" button always drops at the performer's
+ * current pose as before.
  */
 @Composable
 fun AuthorScreen(
@@ -66,13 +73,34 @@ fun AuthorScreen(
     onExport: () -> Unit,
     onImport: () -> Unit,
     onOpenSettings: () -> Unit,
-    onOpenTeleprompter: () -> Unit = {}
+    onOpenTeleprompter: () -> Unit = {},
+    arProvider: ArPoseProvider? = null,
+    showArStage: Boolean = false,
+    onDropMarkAt: (worldX: Float, worldZ: Float) -> Unit = { _, _ -> },
 ) {
+    val nextMark: Mark? = blocking.marks.sortedBy { it.sequenceIndex }
+        .firstOrNull { it.id == local.currentMarkID }?.let { current ->
+            val idx = blocking.marks.sortedBy { it.sequenceIndex }.indexOf(current)
+            blocking.marks.sortedBy { it.sequenceIndex }.getOrNull(idx + 1)
+        }
+
     Box(
         Modifier
             .fillMaxSize()
             .background(CurtainGradient)
     ) {
+        // AR stage lives BEHIND the author UI so the mark list and buttons
+        // still work as usual. Taps that miss those elements will reach the
+        // ArStageView's tap layer and become floor-tap drops.
+        if (showArStage && arProvider != null) {
+            ArStageView(
+                arProvider = arProvider,
+                marks = blocking.marks,
+                nextMarkId = nextMark?.id,
+                modifier = Modifier.fillMaxSize(),
+                onFloorTap = onDropMarkAt,
+            )
+        }
         Column(
             Modifier
                 .fillMaxSize()
@@ -147,7 +175,10 @@ fun AuthorScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Tap \"Drop mark here\" to place your first mark at your current position.",
+                        text = if (showArStage && arProvider != null)
+                            "Tap the AR stage to place a mark on the floor, or tap \"Drop mark here\" to place at your current position."
+                        else
+                            "Tap \"Drop mark here\" to place your first mark at your current position.",
                         color = WhiteDim,
                         fontSize = 14.sp
                     )

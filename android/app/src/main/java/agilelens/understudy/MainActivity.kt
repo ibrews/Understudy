@@ -296,7 +296,32 @@ class MainActivity : ComponentActivity() {
                 onImport = {
                     openDocLauncher.launch(arrayOf("application/json", "text/*", "*/*"))
                 },
-                onOpenSettings = { showSettings = true }
+                onOpenSettings = { showSettings = true },
+                // v0.22 — tap the AR stage to drop a mark at the tapped floor point.
+                // Yaw inherits from the performer's facing so the new mark orients
+                // naturally. If AR isn't on, onDropMarkAt is never called.
+                arProvider = arProvider,
+                showArStage = snap.showArStage,
+                onDropMarkAt = { worldX, worldZ ->
+                    val localPose = app.store.localPerformer.value.pose
+                    val nextIndex = (blocking.marks.maxOfOrNull { it.sequenceIndex } ?: -1) + 1
+                    val newMark = Mark(
+                        id = Id(),
+                        name = "Mark ${nextIndex + 1}",
+                        pose = agilelens.understudy.model.Pose(
+                            x = worldX,
+                            y = 0f,
+                            z = worldZ,
+                            yaw = localPose.yaw,
+                        ),
+                        radius = 0.6f,
+                        cues = emptyList(),
+                        sequenceIndex = nextIndex
+                    )
+                    app.store.markAdded(newMark)
+                    app.transport.send(NetMessage.MarkAdded(newMark), app.localId)
+                    editingMarkId = newMark.id
+                },
             )
             AppMode.PERFORM, AppMode.UNSET -> PerformerScreen(
                 blocking = blocking,

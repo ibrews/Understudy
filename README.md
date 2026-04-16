@@ -209,6 +209,16 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] Lens/sensor pickers with real-world presets (ARRI, RED, Sony FX, cine primes)
 - [ ] `HANDOFF_GOOGLE_PLAY.md` — Android internal-testing track (parallel to `HANDOFF_TESTFLIGHT.md`). Needs release keystore + Play Console click-through.
 
+### v0.22 · Android tap-to-place on the AR stage
+Closes the last v0.21 Author-mode parity gap with iOS/visionOS. On iPhone, an author can aim the live AR view at any point in the room and tap the floor to place a mark there. Before v0.22 an Android author could only drop marks at the performer's *current* position, which meant walking to every intended mark. Now the floor tap does the walking for you.
+
+- **`ui/ArStageView.kt`** — gains an optional `onFloorTap: (worldX, worldZ) -> Unit` parameter. A Compose `Modifier.pointerInput { detectTapGestures { ... } }` layer sits on top of the GL surface but **below** the app chrome, so mark rows, "Drop mark here", and the toolbar still consume taps normally; only taps that miss the UI reach the AR floor layer.
+- **`rayHitFloor()` helper** — unprojects the tap through the cached `view * projection` matrix, intersects the resulting world-space ray with the `y = 0` stage floor plane, and returns `(x, z)` or `null` (parallel / behind-camera / &gt; 50 m away — degenerate cases get rejected). Uses the 10 Hz matrices `ArPoseProvider` already captures for the mark-disc overlay, so no GL-thread shenanigans required.
+- **`AuthorScreen`** — new `arProvider`, `showArStage`, and `onDropMarkAt` parameters. When AR is on the live camera feed renders behind the mark list; the empty-state placeholder text flips to *"Tap the AR stage to place a mark on the floor, or tap 'Drop mark here' to place at your current position."*
+- **`MainActivity`** — `onDropMarkAt(x, z)` builds a `Mark` at `(x, 0, z)` with yaw inherited from the performer's current pose, sequence-index-auto-incremented, broadcasts via `transport.send(NetMessage.MarkAdded(...))`, and opens the mark editor on the new mark — matching the flow for `onDropMarkHere`.
+
+Same JSON wire format as before; a floor-tapped mark from Android is indistinguishable from one tapped on iPhone or placed by a visionOS director.
+
 ### v0.21 · Android Script Browser + Drop Whole Scene
 Android Author mode grows the full script-picker UX that iOS + visionOS have had since v0.4/v0.5. A stage manager handed an Android phone can now tap Bernardo's "Who's there?" out of Hamlet just like they can on iPhone. One-tap Drop Whole Scene auto-lays out a zig-zag walk of marks with dialogue pre-populated.
 
