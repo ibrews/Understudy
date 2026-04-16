@@ -32,6 +32,8 @@ object Scripts {
         PlayRef("A Midsummer Night's Dream", "midsummer.json", "Shakespeare"),
         PlayRef("The Seagull", "seagull.json", "Chekhov"),
         PlayRef("The Importance of Being Earnest", "earnest.json", "Wilde"),
+        PlayRef("The Cherry Orchard", "cherry-orchard.json", "Chekhov"),
+        PlayRef("Three Sisters", "three-sisters.json", "Chekhov"),
     )
 
     private val cache = mutableMapOf<String, PlayScript>()
