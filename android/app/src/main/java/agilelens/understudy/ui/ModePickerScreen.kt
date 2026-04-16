@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
@@ -37,8 +38,8 @@ import androidx.compose.ui.unit.sp
 private val CurtainGradient = Brush.verticalGradient(colors = listOf(CurtainRed, CurtainBlack))
 
 /**
- * First-launch mode picker. Mirrors the iOS two-card layout.
- * Only Perform and Author are exposed on Android this round (Audience skipped).
+ * First-launch mode picker. Mirrors the iOS card layout —
+ * Perform, Author, and Audience (self-paced AR audio tour).
  */
 @Composable
 fun ModePickerScreen(
@@ -81,6 +82,13 @@ fun ModePickerScreen(
                 subtitle = "Drop marks, edit cues, share the blocking.",
                 icon = Icons.Filled.Edit,
                 onClick = { onPick(AppMode.AUTHOR) }
+            )
+            Spacer(Modifier.height(16.dp))
+            ModeCard(
+                title = "Audience",
+                subtitle = "Walk someone else's blocking.",
+                icon = Icons.Filled.DirectionsWalk,
+                onClick = { onPick(AppMode.AUDIENCE) }
             )
             Spacer(Modifier.height(24.dp))
             Text(
