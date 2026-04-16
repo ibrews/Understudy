@@ -2,8 +2,11 @@ package agilelens.understudy.ui
 
 import agilelens.understudy.ar.ArPoseProvider
 import agilelens.understudy.ar.BackgroundRenderer
+import agilelens.understudy.model.CameraSpec
 import agilelens.understudy.model.Id
 import agilelens.understudy.model.Mark
+import agilelens.understudy.model.MarkKind
+import agilelens.understudy.model.horizontalFOV
 import android.content.Context
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
@@ -23,12 +26,17 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.viewinterop.AndroidView
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.tan
 
 /**
  * AR stage background — live ARCore camera feed with floor-anchored glowing discs
@@ -127,7 +135,27 @@ fun ArStageView(
                 val pxRadius = (mark.radius * 250f / dist).coerceIn(8f, 160f)
 
                 val isNext = (mark.id == nextMarkId)
-                val base = if (isNext) Color(0xFFFFE06B) else Color(0xFFD2405A)
+                val isCamera = mark.kind == MarkKind.camera
+                val base = when {
+                    isCamera -> Color(0xFF4DD0E1)          // cyan — camera rigs
+                    isNext -> Color(0xFFFFE06B)            // yellow — next actor mark
+                    else -> Color(0xFFD2405A)              // red — actor marks
+                }
+
+                // FOV wedge — triangle-fan on the floor in front of a camera
+                // mark, widening with the lens' HFOV. Drawn BEFORE the disc so
+                // the disc reads on top of it.
+                if (isCamera) {
+                    drawCameraFovWedge(
+                        mark = mark,
+                        spec = mark.camera ?: CameraSpec(),
+                        vp = vp,
+                        canvasW = w,
+                        canvasH = h,
+                        color = base,
+                    )
+                }
+
                 drawCircle(
                     color = base.copy(alpha = 0.22f),
                     radius = pxRadius,
@@ -210,6 +238,77 @@ internal fun rayHitFloor(
     if (abs(hitX) > 50f || abs(hitZ) > 50f) return null
 
     return hitX to hitZ
+}
+
+/**
+ * Draw a floor-anchored FOV wedge for a camera mark by sampling N points
+ * along the far arc, projecting them through the view/projection matrix, and
+ * filling the resulting screen-space polygon.
+ *
+ * Mirrors the iOS RealityKit wedge (ARStageContainer.buildCameraMarkBundle):
+ * apex at the mark's floor position, wedge extends `fovLen` meters in the
+ * direction of the mark's yaw, spread by the lens' horizontal FOV.
+ *
+ * Coordinate convention matches the rest of the app: yaw=0 means facing -Z
+ * (ARCore / RealityKit camera-forward). Positive yaw rotates clockwise in
+ * the world when viewed from above +Y.
+ */
+private fun DrawScope.drawCameraFovWedge(
+    mark: Mark,
+    spec: CameraSpec,
+    vp: FloatArray,
+    canvasW: Float,
+    canvasH: Float,
+    color: Color,
+) {
+    val fovLen = 3.0f
+    val halfFov = spec.horizontalFOV / 2f
+    val halfW = tan(halfFov) * fovLen
+
+    // Build the wedge in local mark space (+Z back, -Z forward), then apply
+    // yaw + translation to get world coords. Sample the arc with 9 points for
+    // smoother edges at wide lenses.
+    val arcSamples = 9
+    val localPts = ArrayList<FloatArray>(arcSamples + 1)
+    // Apex at mark origin, 1 cm up so we sit above the floor and avoid
+    // z-fighting with actor discs.
+    localPts.add(floatArrayOf(0f, 0.01f, 0f, 1f))
+    for (i in 0 until arcSamples) {
+        val t = i.toFloat() / (arcSamples - 1)           // 0..1
+        val angle = -halfFov + t * (2f * halfFov)        // sweep across FOV
+        val lx = sin(angle) * fovLen
+        val lz = -cos(angle) * fovLen
+        localPts.add(floatArrayOf(lx, 0.01f, lz, 1f))
+    }
+
+    val yaw = mark.pose.yaw
+    val cy = cos(yaw)
+    val sy = sin(yaw)
+    val screenPts = ArrayList<Offset>(localPts.size)
+    for (p in localPts) {
+        // Yaw rotation about +Y (right-handed, matching Pose.yaw convention
+        // used elsewhere in the codebase — see Pose docs in CoreModels.kt).
+        val wx = p[0] * cy + p[2] * sy + mark.pose.x
+        val wz = -p[0] * sy + p[2] * cy + mark.pose.z
+        val world = floatArrayOf(wx, p[1], wz, 1f)
+        val clip = FloatArray(4)
+        Matrix.multiplyMV(clip, 0, vp, 0, world, 0)
+        if (clip[3] <= 0.0001f) return                   // any vertex behind camera — bail
+        val ndcX = clip[0] / clip[3]
+        val ndcY = clip[1] / clip[3]
+        val x = (ndcX * 0.5f + 0.5f) * canvasW
+        val y = (1f - (ndcY * 0.5f + 0.5f)) * canvasH
+        if (x.isNaN() || y.isNaN()) return
+        screenPts.add(Offset(x, y))
+    }
+
+    val path = Path().apply {
+        moveTo(screenPts[0].x, screenPts[0].y)
+        for (i in 1 until screenPts.size) lineTo(screenPts[i].x, screenPts[i].y)
+        close()
+    }
+    drawPath(path, color = color.copy(alpha = 0.18f))
+    drawPath(path, color = color.copy(alpha = 0.7f), style = Stroke(width = 2f))
 }
 
 /**

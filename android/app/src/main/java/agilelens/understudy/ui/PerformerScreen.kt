@@ -3,8 +3,10 @@ package agilelens.understudy.ui
 import agilelens.understudy.BuildConfig
 import agilelens.understudy.ar.ArPoseProvider
 import agilelens.understudy.model.Blocking
+import agilelens.understudy.model.CameraSpec
 import agilelens.understudy.model.Cue
 import agilelens.understudy.model.Mark
+import agilelens.understudy.model.MarkKind
 import agilelens.understudy.model.Performer
 import agilelens.understudy.ui.theme.CurtainBlack
 import agilelens.understudy.ui.theme.CurtainRed
@@ -92,6 +94,20 @@ fun PerformerScreen(
                 nextMarkId = nextMark?.id,
                 modifier = Modifier.fillMaxSize()
             )
+
+            // v0.23 — if the performer is standing on a CAMERA mark, overlay
+            // a viewfinder matching that lens. Director sees a live preview
+            // of how the shot would frame from here. Only rendered when AR
+            // stage is on (the overlay only makes sense over the live feed).
+            val cameraSpec: CameraSpec? = currentMark
+                ?.takeIf { it.kind == MarkKind.camera }
+                ?.camera
+            if (cameraSpec != null) {
+                ViewfinderOverlay(
+                    spec = cameraSpec,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         }
 
         Column(
