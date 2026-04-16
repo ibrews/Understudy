@@ -231,6 +231,9 @@ struct ARStageContainer: UIViewRepresentable {
         // MARK: - Building
 
         private func buildMarkBundle(_ mark: Mark, atPosition pos: SIMD3<Float>) -> MarkEntityBundle {
+            if mark.kind == .camera {
+                return buildCameraMarkBundle(mark, atPosition: pos)
+            }
             let root = Entity()
             root.name = "mark-\(mark.id.raw)"
             root.position = pos
@@ -252,6 +255,96 @@ struct ARStageContainer: UIViewRepresentable {
             )
             ring.position.y = 0.001
             root.addChild(ring)
+
+            return MarkEntityBundle(root: root, disc: disc, ring: ring, radius: mark.radius)
+        }
+
+        /// Camera marks render as:
+        ///   - a small tripod-height "camera body" (flat rounded rectangle) at `heightM`
+        ///   - a translucent wedge in front showing the horizontal FOV, drawn
+        ///     as a thin plane that spreads with lens width
+        /// The floor disc still lives under it so the mark is pickable /
+        /// walkable. We reuse the bundle shape (disc+ring) for that.
+        private func buildCameraMarkBundle(_ mark: Mark, atPosition pos: SIMD3<Float>) -> MarkEntityBundle {
+            let root = Entity()
+            root.name = "mark-\(mark.id.raw)"
+            root.position = pos
+
+            let spec = mark.camera ?? CameraSpec()
+            let floorRadius = max(0.25, mark.radius * 0.6)
+
+            // Small amber disc to mark the tripod point.
+            var floorMat = UnlitMaterial()
+            let floorColor = UIColor(red: 1.0, green: 0.75, blue: 0.25, alpha: 0.55)
+            floorMat.color = .init(tint: floorColor)
+            floorMat.blending = .transparent(opacity: .init(floatLiteral: 0.55))
+            let disc = ModelEntity(
+                mesh: .generatePlane(width: floorRadius * 2,
+                                     depth: floorRadius * 2,
+                                     cornerRadius: floorRadius),
+                materials: [floorMat]
+            )
+            disc.position.y = 0.003
+            root.addChild(disc)
+
+            // "Ring" marker — we reuse the field for the FOV wedge so the
+            // bundle.ring pulsing animation in `advance(elapsed:)` still has
+            // a target, without painting a second disc.
+            let ring = ModelEntity(
+                mesh: .generatePlane(width: 0.12, depth: 0.12, cornerRadius: 0.06),
+                materials: [floorMat]
+            )
+            ring.position = [0, 0.006, 0]
+            root.addChild(ring)
+
+            // Camera body — a small box at `heightM` pointing along -Z (yaw=0
+            // convention). Yaw of the mark rotates the whole root below.
+            var bodyMat = UnlitMaterial()
+            bodyMat.color = .init(tint: UIColor(red: 1.0, green: 0.85, blue: 0.45, alpha: 1.0))
+            let body = ModelEntity(
+                mesh: .generateBox(size: [0.18, 0.1, 0.22], cornerRadius: 0.02),
+                materials: [bodyMat]
+            )
+            body.position = [0, spec.heightM, 0]
+            // Tilt about X.
+            body.orientation = simd_quatf(angle: spec.tiltRadians, axis: [1, 0, 0])
+            root.addChild(body)
+
+            // Tripod — thin vertical bar from disc up to the body.
+            let tripod = ModelEntity(
+                mesh: .generateBox(size: [0.02, spec.heightM, 0.02]),
+                materials: [bodyMat]
+            )
+            tripod.position = [0, spec.heightM / 2, 0]
+            root.addChild(tripod)
+
+            // Field-of-view wedge — a flat quadrilateral on the ground plane
+            // in front of the camera, widening with horizontal FOV. Length
+            // 3 m so it's visible across a small room.
+            let fovLen: Float = 3.0
+            let halfW = tanf(spec.horizontalFOV / 2) * fovLen
+            let wedgeMesh: MeshResource = {
+                var d = MeshDescriptor(name: "fovWedge")
+                d.positions = MeshBuffers.Positions([
+                    SIMD3<Float>(0, 0, 0),
+                    SIMD3<Float>(halfW, 0, -fovLen),
+                    SIMD3<Float>(-halfW, 0, -fovLen),
+                ])
+                d.primitives = .triangles([0, 1, 2])
+                return (try? MeshResource.generate(from: [d]))
+                    ?? .generatePlane(width: 0.01, depth: 0.01)
+            }()
+            var wedgeMat = UnlitMaterial()
+            let wedgeColor = UIColor(red: 1.0, green: 0.8, blue: 0.3, alpha: 0.22)
+            wedgeMat.color = .init(tint: wedgeColor)
+            wedgeMat.blending = .transparent(opacity: .init(floatLiteral: 0.22))
+            let wedge = ModelEntity(mesh: wedgeMesh, materials: [wedgeMat])
+            wedge.position.y = 0.008
+            root.addChild(wedge)
+
+            // Yaw the entire rig — the +Z-forward convention for marks means
+            // yaw=0 faces -Z (like ARKit's camera forward).
+            root.orientation = simd_quatf(angle: mark.pose.yaw, axis: [0, 1, 0])
 
             return MarkEntityBundle(root: root, disc: disc, ring: ring, radius: mark.radius)
         }

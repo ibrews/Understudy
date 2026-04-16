@@ -80,6 +80,71 @@ nonisolated public enum LightColor: String, Codable, Hashable, Sendable, CaseIte
 
 // MARK: - Marks
 
+/// What this mark represents. Theater blockings are all `.actor`; film
+/// location scouts can mix in `.camera` marks with lens metadata.
+nonisolated public enum MarkKind: String, Codable, Hashable, Sendable, CaseIterable {
+    /// Where a performer stands. Radius is the "zone" they need to land in
+    /// to trigger cues. Default for all theater use.
+    case actor
+    /// A virtual camera position. Cues may still fire (the DP entering a
+    /// camera mark could trigger a lighting cue) but the primary purpose
+    /// is to visualize lens FOV and frame composition from this spot.
+    case camera
+}
+
+/// Lens + rig metadata for a `MarkKind.camera` mark. Units are millimetres
+/// for focal length and sensor dimensions (film-industry convention).
+nonisolated public struct CameraSpec: Codable, Hashable, Sendable {
+    /// Focal length in mm. Common values: 14, 24, 35, 50, 85, 135.
+    public var focalLengthMM: Float
+    /// Sensor width in mm. Full-frame = 36.0, Super 35 = 24.89, S16 = 12.52.
+    public var sensorWidthMM: Float
+    /// Sensor height in mm (for aspect-ratio / vertical FOV).
+    public var sensorHeightMM: Float
+    /// Camera height above the floor in meters (tripod height, shoulder, etc.).
+    public var heightM: Float
+    /// Tilt in radians. 0 = level. Positive = up, negative = down (tilting
+    /// down toward the stage). Matches the Pose yaw convention for
+    /// rotations: left-hand-y positive up, so positive tilt = pitch up.
+    public var tiltRadians: Float
+
+    public init(
+        focalLengthMM: Float = 35,
+        sensorWidthMM: Float = 36,
+        sensorHeightMM: Float = 24,
+        heightM: Float = 1.55,
+        tiltRadians: Float = 0
+    ) {
+        self.focalLengthMM = focalLengthMM
+        self.sensorWidthMM = sensorWidthMM
+        self.sensorHeightMM = sensorHeightMM
+        self.heightM = heightM
+        self.tiltRadians = tiltRadians
+    }
+
+    /// Horizontal field of view in radians: 2 * atan(sensorWidth / (2*focal)).
+    public var horizontalFOV: Float { 2 * atan(sensorWidthMM / (2 * focalLengthMM)) }
+    public var verticalFOV: Float { 2 * atan(sensorHeightMM / (2 * focalLengthMM)) }
+
+    /// A human-readable lens label for UI: "35mm · 36×24 · 1.55m".
+    public var shortLabel: String {
+        let aspect = sensorHeightMM > 0 ? sensorWidthMM / sensorHeightMM : 1.78
+        return String(format: "%.0fmm · %.2f:1 · %.1fm",
+                      focalLengthMM, aspect, heightM)
+    }
+
+    // Common preset lenses for the author-mode picker.
+    public static let preset14mm = CameraSpec(focalLengthMM: 14)
+    public static let preset24mm = CameraSpec(focalLengthMM: 24)
+    public static let preset35mm = CameraSpec(focalLengthMM: 35)
+    public static let preset50mm = CameraSpec(focalLengthMM: 50)
+    public static let preset85mm = CameraSpec(focalLengthMM: 85)
+    public static let preset135mm = CameraSpec(focalLengthMM: 135)
+    public static let presets: [CameraSpec] = [
+        preset14mm, preset24mm, preset35mm, preset50mm, preset85mm, preset135mm,
+    ]
+}
+
 /// A spatial position with radius. When a performer's pose enters a mark's
 /// radius, the mark fires its cues in order.
 nonisolated public struct Mark: Codable, Hashable, Identifiable, Sendable {
@@ -93,6 +158,12 @@ nonisolated public struct Mark: Codable, Hashable, Identifiable, Sendable {
     /// Sequence index in the blocking — what order the director expects this
     /// mark to be hit. -1 means "freeform, not part of the linear sequence."
     public var sequenceIndex: Int
+    /// Actor or camera. Decoded from JSON with `.actor` default so older
+    /// `.understudy` files (v0.1–v0.7) still load unchanged.
+    public var kind: MarkKind
+    /// Lens metadata. Nil unless `kind == .camera`. Older files have no
+    /// `camera` key, which Codable decodes as nil — preserving compat.
+    public var camera: CameraSpec?
 
     public init(
         id: ID = ID(),
@@ -100,7 +171,9 @@ nonisolated public struct Mark: Codable, Hashable, Identifiable, Sendable {
         pose: Pose,
         radius: Float = 0.6,
         cues: [Cue] = [],
-        sequenceIndex: Int = -1
+        sequenceIndex: Int = -1,
+        kind: MarkKind = .actor,
+        camera: CameraSpec? = nil
     ) {
         self.id = id
         self.name = name
@@ -108,6 +181,24 @@ nonisolated public struct Mark: Codable, Hashable, Identifiable, Sendable {
         self.radius = radius
         self.cues = cues
         self.sequenceIndex = sequenceIndex
+        self.kind = kind
+        self.camera = camera
+    }
+
+    // Custom Decodable so old files (missing `kind` / `camera`) still load.
+    private enum CodingKeys: String, CodingKey {
+        case id, name, pose, radius, cues, sequenceIndex, kind, camera
+    }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decode(ID.self, forKey: .id)
+        self.name = try c.decode(String.self, forKey: .name)
+        self.pose = try c.decode(Pose.self, forKey: .pose)
+        self.radius = try c.decode(Float.self, forKey: .radius)
+        self.cues = try c.decode([Cue].self, forKey: .cues)
+        self.sequenceIndex = try c.decode(Int.self, forKey: .sequenceIndex)
+        self.kind = try c.decodeIfPresent(MarkKind.self, forKey: .kind) ?? .actor
+        self.camera = try c.decodeIfPresent(CameraSpec.self, forKey: .camera)
     }
 }
 

@@ -180,6 +180,9 @@ struct DirectorImmersiveView: View {
     }
 
     private func buildMarkEntity(_ mark: Mark) -> Entity {
+        if mark.kind == .camera {
+            return buildCameraMarkEntity(mark)
+        }
         let root = Entity()
         root.name = "mark-\(mark.id.raw)"
         root.position = [mark.pose.x, 0.005, mark.pose.z]
@@ -214,6 +217,82 @@ struct DirectorImmersiveView: View {
         label.name = "label"
         label.position = [-0.2, 0.4, 0]
         root.addChild(label)
+
+        return root
+    }
+
+    /// Camera mark — tripod + camera body + amber FOV wedge showing what
+    /// the lens would frame. Architect-grade pre-viz in mid-air.
+    private func buildCameraMarkEntity(_ mark: Mark) -> Entity {
+        let root = Entity()
+        root.name = "mark-\(mark.id.raw)"
+        root.position = [mark.pose.x, 0.005, mark.pose.z]
+
+        let spec = mark.camera ?? CameraSpec()
+        let amber = UIColor(red: 1.0, green: 0.78, blue: 0.3, alpha: 1.0)
+
+        // Floor disc.
+        let disc = ModelEntity(
+            mesh: .generateCylinder(height: 0.008, radius: 0.22),
+            materials: [UnlitMaterial(color: amber.withAlphaComponent(0.5))]
+        )
+        disc.name = "disc"
+        root.addChild(disc)
+
+        // Tripod.
+        let tripod = ModelEntity(
+            mesh: .generateCylinder(height: spec.heightM, radius: 0.015),
+            materials: [UnlitMaterial(color: amber)]
+        )
+        tripod.position.y = spec.heightM / 2
+        root.addChild(tripod)
+
+        // Camera body — a slightly oversized box so it reads from a few meters away.
+        let body = ModelEntity(
+            mesh: .generateBox(size: [0.22, 0.12, 0.26], cornerRadius: 0.02),
+            materials: [UnlitMaterial(color: amber)]
+        )
+        body.position = [0, spec.heightM + 0.02, 0]
+        body.orientation = simd_quatf(angle: spec.tiltRadians, axis: [1, 0, 0])
+        root.addChild(body)
+
+        // FOV wedge — three-vertex translucent triangle spreading with HFOV.
+        let fovLen: Float = 3.0
+        let halfW = tanf(spec.horizontalFOV / 2) * fovLen
+        var desc = MeshDescriptor(name: "fovWedge-\(mark.id.raw)")
+        desc.positions = MeshBuffers.Positions([
+            SIMD3<Float>(0, 0, 0),
+            SIMD3<Float>(halfW, 0, -fovLen),
+            SIMD3<Float>(-halfW, 0, -fovLen),
+        ])
+        desc.primitives = .triangles([0, 1, 2])
+        if let mesh = try? MeshResource.generate(from: [desc]) {
+            let wedge = ModelEntity(
+                mesh: mesh,
+                materials: [UnlitMaterial(color: amber.withAlphaComponent(0.18))]
+            )
+            wedge.position = [0, 0.015, 0]
+            root.addChild(wedge)
+        }
+
+        // Label: name + mm + HFOV.
+        let labelText = "\(mark.name)  \(Int(spec.focalLengthMM))mm · \(Int(Double(spec.horizontalFOV) * 180 / .pi))°"
+        let label = ModelEntity(
+            mesh: .generateText(
+                labelText,
+                extrusionDepth: 0.001,
+                font: .systemFont(ofSize: 0.09),
+                alignment: .center
+            ),
+            materials: [UnlitMaterial(color: .white)]
+        )
+        label.name = "label"
+        label.position = [-0.3, spec.heightM + 0.35, 0]
+        root.addChild(label)
+
+        // Rotate the entire rig by the mark's yaw so the FOV wedge points
+        // in the correct real-world direction.
+        root.orientation = simd_quatf(angle: mark.pose.yaw, axis: [0, 1, 0])
 
         return root
     }

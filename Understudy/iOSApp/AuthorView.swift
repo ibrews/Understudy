@@ -28,6 +28,8 @@ struct AuthorView: View {
     @State private var showingImporter = false
     @State private var confirmClear = false
     @State private var placementFeedback: Date?
+    @State private var dropKind: MarkKind = .actor
+    @State private var cameraPreset: CameraSpec = .preset35mm
 
     private var gradientOpacity: Double { showARStage ? 0.30 : 1.0 }
 
@@ -51,6 +53,16 @@ struct AuthorView: View {
             .opacity(gradientOpacity)
             .allowsHitTesting(false)
 
+            // Viewfinder framing overlay — shows what the selected lens would
+            // frame from the phone's current position. Drawn ABOVE the AR view
+            // so the dimmed-outside effect works, BELOW the tap layer so taps
+            // still land.
+            if dropKind == .camera {
+                ViewfinderOverlay(spec: cameraPreset)
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+            }
+
             // Tap target — a full-screen clear layer that captures taps to drop marks.
             // Sits BELOW the SwiftUI controls (top bar, buttons) so real UI is not blocked.
             TapToPlaceOverlay(onTap: handleTap)
@@ -58,6 +70,7 @@ struct AuthorView: View {
 
             VStack(spacing: 0) {
                 topBar
+                dropKindPicker
                 Spacer()
                 hintCard
                 Spacer()
@@ -155,6 +168,42 @@ struct AuthorView: View {
                     .foregroundStyle(.white)
             }
         }
+    }
+
+    private var dropKindPicker: some View {
+        VStack(spacing: 8) {
+            Picker("Drop", selection: $dropKind) {
+                Label("Actor", systemImage: "figure.stand")
+                    .tag(MarkKind.actor)
+                Label("Camera", systemImage: "video")
+                    .tag(MarkKind.camera)
+            }
+            .pickerStyle(.segmented)
+            .colorScheme(.dark)
+
+            if dropKind == .camera {
+                HStack(spacing: 6) {
+                    ForEach(CameraSpec.presets, id: \.focalLengthMM) { spec in
+                        Button {
+                            cameraPreset = spec
+                        } label: {
+                            Text("\(Int(spec.focalLengthMM))mm")
+                                .font(.caption.monospaced())
+                                .padding(.horizontal, 10).padding(.vertical, 6)
+                                .background(
+                                    cameraPreset.focalLengthMM == spec.focalLengthMM
+                                    ? Color.orange.opacity(0.65)
+                                    : Color.white.opacity(0.08),
+                                    in: Capsule()
+                                )
+                                .foregroundStyle(.white)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .padding(.top, 8)
     }
 
     private var hintCard: some View {
@@ -279,12 +328,25 @@ struct AuthorView: View {
 
     private func dropMark(at pose: Pose) {
         let idx = (store.blocking.marks.map(\.sequenceIndex).max() ?? -1) + 1
+        let name: String
+        let camera: CameraSpec?
+        switch dropKind {
+        case .actor:
+            name = "Mark \(idx + 1)"
+            camera = nil
+        case .camera:
+            let camIdx = store.blocking.marks.filter { $0.kind == .camera }.count + 1
+            name = "Cam \(camIdx) · \(Int(cameraPreset.focalLengthMM))mm"
+            camera = cameraPreset
+        }
         let mark = Mark(
-            name: "Mark \(idx + 1)",
+            name: name,
             pose: pose,
-            radius: 0.6,
+            radius: dropKind == .camera ? 0.4 : 0.6,
             cues: [],
-            sequenceIndex: idx
+            sequenceIndex: dropKind == .camera ? -1 : idx,  // cameras aren't in the walk sequence
+            kind: dropKind,
+            camera: camera
         )
         store.addMark(mark)
         session.broadcastMarkAdded(mark)
@@ -395,6 +457,10 @@ struct MarkEditorSheet: View {
             Form {
                 Section("Mark") {
                     TextField("Name", text: $mark.name)
+                    LabeledContent("Kind") {
+                        Text(mark.kind.rawValue.capitalized)
+                            .foregroundStyle(.secondary)
+                    }
                     HStack {
                         Text("Radius")
                         Slider(value: $mark.radius, in: 0.2...3.0, step: 0.1)
@@ -409,6 +475,59 @@ struct MarkEditorSheet: View {
                         Text(String(format: "x %.2f  z %.2f", mark.pose.x, mark.pose.z))
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
+                    }
+                }
+
+                if mark.kind == .camera {
+                    Section("Lens") {
+                        let binding = Binding<CameraSpec>(
+                            get: { mark.camera ?? CameraSpec() },
+                            set: { mark.camera = $0 }
+                        )
+                        LabeledContent {
+                            HStack(spacing: 4) {
+                                ForEach(CameraSpec.presets, id: \.focalLengthMM) { preset in
+                                    Button("\(Int(preset.focalLengthMM))") {
+                                        var updated = binding.wrappedValue
+                                        updated.focalLengthMM = preset.focalLengthMM
+                                        updated.sensorWidthMM = preset.sensorWidthMM
+                                        updated.sensorHeightMM = preset.sensorHeightMM
+                                        binding.wrappedValue = updated
+                                        mark.name = "\(mark.name.split(separator: "·").first.map(String.init)?.trimmingCharacters(in: .whitespaces) ?? mark.name) · \(Int(preset.focalLengthMM))mm"
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .tint(abs(binding.wrappedValue.focalLengthMM - preset.focalLengthMM) < 0.1 ? .orange : .gray)
+                                    .font(.caption.monospaced())
+                                }
+                            }
+                        } label: { Text("Focal") }
+                        HStack {
+                            Text("Height")
+                            Slider(value: Binding(
+                                get: { binding.wrappedValue.heightM },
+                                set: { var u = binding.wrappedValue; u.heightM = $0; binding.wrappedValue = u }
+                            ), in: 0.3...2.5, step: 0.05)
+                            Text(String(format: "%.2f m", binding.wrappedValue.heightM))
+                                .font(.caption.monospacedDigit())
+                                .frame(width: 60, alignment: .trailing)
+                        }
+                        HStack {
+                            Text("Tilt")
+                            Slider(value: Binding(
+                                get: { Double(binding.wrappedValue.tiltRadians) * 180 / .pi },
+                                set: { var u = binding.wrappedValue; u.tiltRadians = Float($0 * .pi / 180); binding.wrappedValue = u }
+                            ), in: -45...45, step: 1)
+                            Text(String(format: "%.0f°", Double(binding.wrappedValue.tiltRadians) * 180 / .pi))
+                                .font(.caption.monospacedDigit())
+                                .frame(width: 50, alignment: .trailing)
+                        }
+                        HStack {
+                            Text("HFOV")
+                            Spacer()
+                            Text(String(format: "%.0f°", Double(binding.wrappedValue.horizontalFOV) * 180 / .pi))
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.orange)
+                        }
                     }
                 }
 
