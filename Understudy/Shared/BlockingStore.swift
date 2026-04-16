@@ -19,6 +19,10 @@ public final class BlockingStore {
     public var localPerformerID: ID
     /// True when this device is actively recording its own walk for playback.
     public var isRecording: Bool = false
+    /// When false, the director can drag the room-scan ghost to align it
+    /// with the rehearsal room. Locked by default so accidental drags
+    /// don't shift the scan mid-session.
+    public var scanAlignmentLocked: Bool = true
     /// Playback of the director's reference walk: 0…1, or nil if not playing.
     public var playbackT: Double? = nil
     /// Most recently fired cue queue — the UI consumes and drains this.

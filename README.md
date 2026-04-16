@@ -184,7 +184,7 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 
 ### Next up
 - [ ] Migrate Monitoring code to AgileLensMultiplayer SPM dependency (currently copied in)
-- [ ] Interactive overlay controls on visionOS — grab + rotate + scale the room-scan ghost to align scouted location to rehearsal room
+- [ ] Gestural rotation on visionOS 2.0 target — v0.12 translates via drag but rotates via ±15° buttons (1.0 has no `RotateGesture3D`). Uniform scale still unbuilt — add when there's a use case beyond "1:1 scale is what I want."
 - [ ] Android LiDAR pass-through (ARCore Depth API on supported devices)
 - [ ] More modern plays — `parse_modern.py` works for Chekhov + Wilde; try Cherry Orchard, Ghosts (Ibsen), Three Sisters, Salomé. Beckett's copyright expires in 2059 in Europe so is off the table.
 - [ ] QR-code anchor as a more precise alternative to the "stand here, face upstage" calibration ceremony
@@ -195,6 +195,16 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] Lens/sensor pickers with real-world presets (ARRI, RED, Sony FX, cine primes)
 - [ ] Public-domain Chekhov + Beckett in the Script Browser
 - [ ] TestFlight
+
+### v0.12 · Align the scouted room to the rehearsal room
+Completes the v0.9 LiDAR story. The scan was capturable and visible, but not alignable — so if your Brooklyn rehearsal studio and your scouted Manhattan loft weren't already sharing a coordinate frame (and they never are), the ghost floated in the wrong place.
+
+- **Draggable ghost on visionOS.** The scan entity gets a coarse bounding-box `CollisionComponent` (cheap — derived from vertex bounds, not per-triangle) and an `InputTargetComponent`. A `DragGesture.targetedToAnyEntity()` translates the ghost on the floor plane when the alignment lock is open. Y is pinned so the floor stays aligned with the real floor.
+- **Rotation via buttons.** visionOS 1.0 has no `RotateGesture3D`, so rotation is two buttons in the director panel's new "Scan align" strip — ±15° increments. (Gestural rotation is a v2.0-target item.)
+- **Lock by default.** `BlockingStore.scanAlignmentLocked` gates drag + buttons so the ghost doesn't drift mid-rehearsal from an accidental tap. Toggle off ("Align") to enter edit mode.
+- **Reset** button clears any drift back to scan origin.
+- **Live broadcast.** Every committed move emits `roomScanOverlay(Pose)` over the wire (message case shipped in v0.9) so every peer's ghost re-renders in the new pose without re-transmitting the mesh. Autosave on each commit.
+- Align strip in the director panel shows the scan's name, triangle count, and current offset ("`+0.85m, +45°`") so you can see what you're doing.
 
 ### v0.11 · Two more bundled plays (Chekhov + Wilde)
 - **New `scripts/parse_modern.py`** — handles the 19th/early-20th-century format that Shakespeare's parser chokes on (speaker-inline dialogue, unnumbered scenes, "FIRST ACT" vs. "ACT I"). Lenient ACT/SCENE regexes, two speaker shapes (`CHARACTER.` own-line like Wilde vs. `CHARACTER. dialogue` inline like Chekhov), and a tightened table-of-contents skip heuristic (no other ACT within 50 lines + at least one speaker shape within 80).

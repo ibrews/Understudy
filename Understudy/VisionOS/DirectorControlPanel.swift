@@ -35,6 +35,7 @@ struct DirectorControlPanel: View {
                 roomRow
                 marksList
                 transportStrip
+                scanAlignStrip
                 Spacer()
                 footer
             }
@@ -56,6 +57,24 @@ struct DirectorControlPanel: View {
         }
     }
 
+    private func nudgeScanRotation(by radians: Float) {
+        guard var scan = store.blocking.roomScan else { return }
+        scan.overlayOffset.yaw += radians
+        store.blocking.roomScan = scan
+        store.blocking.modifiedAt = Date()
+        BlockingAutosave.save(store.blocking)
+        session.broadcastScanOverlay(scan.overlayOffset)
+    }
+
+    private func resetScanAlignment() {
+        guard var scan = store.blocking.roomScan else { return }
+        scan.overlayOffset = Pose()
+        store.blocking.roomScan = scan
+        store.blocking.modifiedAt = Date()
+        BlockingAutosave.save(store.blocking)
+        session.broadcastScanOverlay(Pose())
+    }
+
     private func applyOSC() {
         let port = UInt16(oscPortStr) ?? 53000
         fx.osc.configure(
@@ -63,6 +82,51 @@ struct DirectorControlPanel: View {
             port: port,
             enabled: oscEnabled
         )
+    }
+
+    @ViewBuilder private var scanAlignStrip: some View {
+        if let scan = store.blocking.roomScan {
+            HStack(spacing: 12) {
+                Image(systemName: "cube.transparent.fill")
+                    .foregroundStyle(.cyan)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(scan.name)
+                        .font(.subheadline.bold())
+                    Text("\(scan.triangleCount) tris · offset \(String(format: "%+.2fm, %+.0f°", scan.overlayOffset.x, Double(scan.overlayOffset.yaw) * 180 / .pi))")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+
+                // Lock toggle — drags are gated by this so the scan
+                // doesn't drift mid-rehearsal.
+                Toggle(isOn: Binding(
+                    get: { !store.scanAlignmentLocked },
+                    set: { store.scanAlignmentLocked = !$0 }
+                )) {
+                    Label("Align", systemImage: store.scanAlignmentLocked ? "lock" : "hand.raised")
+                }
+                .toggleStyle(.button)
+
+                // Rotate ±15° for fine alignment (drag handles translation).
+                // The immersive view observes the store and re-applies the
+                // transform on every frame, so mutating store here is enough.
+                Button { nudgeScanRotation(by: -Float.pi / 12) }
+                label: { Image(systemName: "rotate.left") }
+                    .disabled(store.scanAlignmentLocked)
+
+                Button { nudgeScanRotation(by: Float.pi / 12) }
+                label: { Image(systemName: "rotate.right") }
+                    .disabled(store.scanAlignmentLocked)
+
+                // Reset.
+                Button(role: .destructive) { resetScanAlignment() }
+                label: { Image(systemName: "arrow.counterclockwise") }
+                    .disabled(store.scanAlignmentLocked)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(.cyan.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+        }
     }
 
     @ViewBuilder private var transportStrip: some View {

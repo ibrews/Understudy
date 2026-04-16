@@ -32,6 +32,10 @@ struct DirectorImmersiveView: View {
     @State private var roomScanEntity: ModelEntity?
     /// Hash of the last rendered scan so we don't rebuild the mesh every frame.
     @State private var renderedScanHash: Int?
+    /// Bounds used for the scan's coarse collision volume, so gestures hit it.
+    @State private var roomScanBounds: SIMD3<Float> = .zero
+    /// Starting pose of a drag. Nil when no drag is active.
+    @State private var scanDragStartOffset: Pose?
 
     /// Entities that host a floating SwiftUI script card for each mark.
     /// Parented under the mark entity so they move with the mark.
@@ -124,6 +128,48 @@ struct DirectorImmersiveView: View {
                     session.broadcastMarkAdded(mark)
                 }
         )
+        // Drag the room-scan ghost to align it with the rehearsal room.
+        // Only active when the user has un-locked alignment via the
+        // director panel (stored on store.ui.scanAlignUnlocked).
+        .gesture(
+            DragGesture()
+                .targetedToAnyEntity()
+                .onChanged { value in
+                    guard value.entity.name == "roomScan",
+                          !store.scanAlignmentLocked,
+                          let entity = roomScanEntity else { return }
+                    if scanDragStartOffset == nil {
+                        scanDragStartOffset = store.blocking.roomScan?.overlayOffset ?? Pose()
+                    }
+                    guard let start = scanDragStartOffset else { return }
+                    // Drag translation is in the parent coord space; floor-plane
+                    // only — ignore the Y component so the ghost stays on the floor.
+                    let t = value.convert(value.translation3D, from: .local, to: stageRoot)
+                    let newOffset = Pose(
+                        x: start.x + Float(t.x),
+                        y: start.y,
+                        z: start.z + Float(t.z),
+                        yaw: start.yaw
+                    )
+                    applyScanOffset(entity, offset: newOffset)
+                }
+                .onEnded { value in
+                    guard value.entity.name == "roomScan",
+                          let start = scanDragStartOffset else {
+                        scanDragStartOffset = nil
+                        return
+                    }
+                    let t = value.convert(value.translation3D, from: .local, to: stageRoot)
+                    let committed = Pose(
+                        x: start.x + Float(t.x),
+                        y: start.y,
+                        z: start.z + Float(t.z),
+                        yaw: start.yaw
+                    )
+                    commitScanOffset(committed)
+                    scanDragStartOffset = nil
+                }
+        )
     }
 
     // MARK: - Room scan ghost
@@ -152,11 +198,45 @@ struct DirectorImmersiveView: View {
         roomScanEntity?.removeFromParent()
         let entity = ModelEntity(mesh: mesh, materials: [RoomScanMesh.ghostMaterial()])
         entity.name = "roomScan"
+
+        // Compute coarse bounds from the raw position buffer so drag
+        // gestures hit the whole scan volume without needing a per-triangle
+        // collision mesh (which would hurt perf for big rooms).
+        let positions = scan.decodePositions()
+        var lo = SIMD3<Float>(.infinity, .infinity, .infinity)
+        var hi = SIMD3<Float>(-.infinity, -.infinity, -.infinity)
+        for i in stride(from: 0, to: positions.count, by: 3) {
+            let p = SIMD3<Float>(positions[i], positions[i + 1], positions[i + 2])
+            lo = min(lo, p); hi = max(hi, p)
+        }
+        if lo.x.isFinite && hi.x.isFinite {
+            let size = max(hi - lo, SIMD3<Float>(0.2, 0.2, 0.2))
+            let center = (hi + lo) * 0.5
+            entity.components.set(CollisionComponent(
+                shapes: [ShapeResource.generateBox(size: size).offsetBy(translation: center)]
+            ))
+            entity.components.set(InputTargetComponent(allowedInputTypes: .indirect))
+            roomScanBounds = size
+        }
+
         stageRoot.addChild(entity)
         applyScanOffset(entity, offset: scan.overlayOffset)
         roomScanEntity = entity
         renderedScanHash = hash
     }
+
+    // MARK: - Scan alignment
+
+    /// Commit the current in-flight offset to the store and broadcast.
+    private func commitScanOffset(_ offset: Pose) {
+        guard var scan = store.blocking.roomScan else { return }
+        scan.overlayOffset = offset
+        store.blocking.roomScan = scan
+        store.blocking.modifiedAt = Date()
+        BlockingAutosave.save(store.blocking)
+        session.broadcastScanOverlay(offset)
+    }
+
 
     private func applyScanOffset(_ entity: Entity, offset: Pose) {
         entity.position = [offset.x, offset.y, offset.z]
