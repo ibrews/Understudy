@@ -90,6 +90,7 @@ class PrefsRepo(private val context: Context) {
     private val KEY_SHOW_AR_STAGE = stringPreferencesKey("show_ar_stage")
     private val KEY_SHOW_DEPTH_OVERLAY = stringPreferencesKey("show_depth_overlay")
     private val KEY_SHOW_FLOATING_SCRIPT = stringPreferencesKey("show_floating_script")
+    private val KEY_AUTO_ADVANCE_ON_LAST_LINE = stringPreferencesKey("auto_advance_on_last_line")
 
     val displayName: kotlinx.coroutines.flow.Flow<String> =
         context.dataStore.data.map { it[KEY_DISPLAY_NAME] ?: defaultDisplayName() }
@@ -118,6 +119,16 @@ class PrefsRepo(private val context: Context) {
 
     val showFloatingScript: kotlinx.coroutines.flow.Flow<Boolean> =
         context.dataStore.data.map { (it[KEY_SHOW_FLOATING_SCRIPT] ?: "false") == "true" }
+
+    /**
+     * When ON, crossing the last `Cue.Line` of a mark in voice mode pre-advances
+     * `currentMarkID` to the next mark by `sequenceIndex` — the teleprompter
+     * scrolls and the next mark's cues become voice-firable without waiting
+     * for the performer to physically cross into the next mark's radius.
+     * Default OFF to match existing behavior.
+     */
+    val autoAdvanceOnLastLine: kotlinx.coroutines.flow.Flow<Boolean> =
+        context.dataStore.data.map { (it[KEY_AUTO_ADVANCE_ON_LAST_LINE] ?: "false") == "true" }
 
     suspend fun loadOrInitLocalId(): String {
         val existing = context.dataStore.data.map { it[KEY_LOCAL_ID] }.first()
@@ -154,6 +165,9 @@ class PrefsRepo(private val context: Context) {
     }
     suspend fun setShowFloatingScript(v: Boolean) {
         context.dataStore.edit { it[KEY_SHOW_FLOATING_SCRIPT] = if (v) "true" else "false" }
+    }
+    suspend fun setAutoAdvanceOnLastLine(v: Boolean) {
+        context.dataStore.edit { it[KEY_AUTO_ADVANCE_ON_LAST_LINE] = if (v) "true" else "false" }
     }
 
     private fun defaultDisplayName(): String = android.os.Build.MODEL ?: "Android"

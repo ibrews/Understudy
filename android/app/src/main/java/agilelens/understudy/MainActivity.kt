@@ -150,6 +150,7 @@ class MainActivity : ComponentActivity() {
                 showArStage = app.prefs.showARStage.first(),
                 showDepthOverlay = app.prefs.showDepthOverlay.first(),
                 showFloatingScript = app.prefs.showFloatingScript.first(),
+                autoAdvanceOnLastLine = app.prefs.autoAdvanceOnLastLine.first(),
             )
         }
 
@@ -176,6 +177,7 @@ class MainActivity : ComponentActivity() {
                 store = app.store,
                 onDismiss = { showTeleprompter = false },
                 fx = app.fx,
+                autoAdvanceOnLastLine = snap.autoAdvanceOnLastLine,
             )
             return
         }
@@ -204,6 +206,7 @@ class MainActivity : ComponentActivity() {
                     showARStage = snap.showArStage,
                     showDepthOverlay = snap.showDepthOverlay,
                     showFloatingScript = snap.showFloatingScript,
+                    autoAdvanceOnLastLine = snap.autoAdvanceOnLastLine,
                 ),
                 onSave = { saved ->
                     scope.launch {
@@ -214,6 +217,7 @@ class MainActivity : ComponentActivity() {
                         app.prefs.setShowARStage(saved.showARStage)
                         app.prefs.setShowDepthOverlay(saved.showDepthOverlay)
                         app.prefs.setShowFloatingScript(saved.showFloatingScript)
+                        app.prefs.setAutoAdvanceOnLastLine(saved.autoAdvanceOnLastLine)
                         app.store.updateLocalDisplayName(saved.displayName)
                         prefsState.value = snap.copy(
                             displayName = saved.displayName,
@@ -223,6 +227,7 @@ class MainActivity : ComponentActivity() {
                             showArStage = saved.showARStage,
                             showDepthOverlay = saved.showDepthOverlay,
                             showFloatingScript = saved.showFloatingScript,
+                            autoAdvanceOnLastLine = saved.autoAdvanceOnLastLine,
                         )
                         // Reconnect with new settings
                         app.transport.stop()
@@ -344,6 +349,7 @@ class MainActivity : ComponentActivity() {
                 onOpenSettings = { showSettings = true },
                 arProvider = arProvider,
                 showArStage = snap.showArStage,
+                fx = app.fx,
             )
             AppMode.PERFORM, AppMode.UNSET -> PerformerScreen(
                 blocking = blocking,
@@ -466,4 +472,5 @@ private data class PrefsSnapshot(
     val showArStage: Boolean,
     val showDepthOverlay: Boolean,
     val showFloatingScript: Boolean,
+    val autoAdvanceOnLastLine: Boolean,
 )

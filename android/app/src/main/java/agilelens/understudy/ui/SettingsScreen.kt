@@ -58,6 +58,7 @@ data class SettingsState(
     val showARStage: Boolean = true,
     val showDepthOverlay: Boolean = false,
     val showFloatingScript: Boolean = false,
+    val autoAdvanceOnLastLine: Boolean = false,
 )
 
 @Composable
@@ -73,6 +74,7 @@ fun SettingsScreen(
     var showAR by remember { mutableStateOf(initial.showARStage) }
     var showDepth by remember { mutableStateOf(initial.showDepthOverlay) }
     var showFloatingScript by remember { mutableStateOf(initial.showFloatingScript) }
+    var autoAdvance by remember { mutableStateOf(initial.autoAdvanceOnLastLine) }
 
     Box(
         Modifier
@@ -96,6 +98,7 @@ fun SettingsScreen(
                             showAR,
                             showDepth,
                             showFloatingScript,
+                            autoAdvance,
                         )
                     )
                     onBack()
@@ -222,6 +225,32 @@ fun SettingsScreen(
                 Switch(
                     checked = showFloatingScript,
                     onCheckedChange = { showFloatingScript = it },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = WhiteText,
+                        checkedTrackColor = StageRed,
+                        uncheckedThumbColor = WhiteDim,
+                        uncheckedTrackColor = Color.White.copy(alpha = 0.08f)
+                    )
+                )
+            }
+
+            Spacer(Modifier.height(24.dp))
+            SectionTitle("Teleprompter")
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Auto-advance to next mark", color = WhiteText, fontSize = 14.sp)
+                    Text(
+                        "When voice mode finishes the last line of a mark, jump the current mark forward so the next mark's cues can auto-fire without waiting for you to walk into its radius.",
+                        color = WhiteDim,
+                        fontSize = 11.sp
+                    )
+                }
+                Switch(
+                    checked = autoAdvance,
+                    onCheckedChange = { autoAdvance = it },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = WhiteText,
                         checkedTrackColor = StageRed,

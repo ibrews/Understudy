@@ -123,6 +123,40 @@ class BlockingStore(
         _localPerformer.update { it.copy(displayName = name) }
     }
 
+    /**
+     * Pre-advance `localPerformer.currentMarkID` to the next mark by
+     * `sequenceIndex`, but only if the given cue is the *last* [Cue.Line] on
+     * the given mark AND that mark is the performer's current mark AND a
+     * next mark exists. Used by the teleprompter's voice auto-fire path when
+     * the "Auto-advance to next mark" pref is on, so the next mark's cues
+     * become voice-firable without waiting on proximity.
+     *
+     * Returns true if the mark id actually changed.
+     *
+     * Intentionally does NOT enqueue the next mark's cues — we're pre-scrolling
+     * the teleprompter, not teleporting the performer. Cues still fire the
+     * usual way (proximity or voice auto-fire) when the moment arrives.
+     */
+    fun advanceIfLastLine(cueID: Id, onMarkID: Id): Boolean {
+        val prev = _localPerformer.value
+        if (prev.currentMarkID != onMarkID) return false
+        val b = _blocking.value
+        val mark = b.marks.firstOrNull { it.id == onMarkID } ?: return false
+        val lineIndices = mark.cues.withIndex().filter { it.value is Cue.Line }.map { it.index }
+        if (lineIndices.isEmpty()) return false
+        val lastLineIdx = lineIndices.last()
+        val thisIdx = mark.cues.indexOfFirst { it.id == cueID }
+        if (thisIdx != lastLineIdx) return false
+
+        val sorted = b.marks.sortedBy { it.sequenceIndex }
+        val next = sorted.firstOrNull { it.sequenceIndex > mark.sequenceIndex } ?: return false
+
+        val updated = prev.copy(currentMarkID = next.id)
+        _localPerformer.value = updated
+        _performers.update { it + (updated.id to updated) }
+        return true
+    }
+
     // --- helpers ---
 
     /** Next mark by sequenceIndex after the current one; falls back to lowest index. */
