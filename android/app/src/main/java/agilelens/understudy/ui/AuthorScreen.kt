@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Settings
@@ -64,7 +65,8 @@ fun AuthorScreen(
     onEditMark: (Mark) -> Unit,
     onExport: () -> Unit,
     onImport: () -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onOpenTeleprompter: () -> Unit = {}
 ) {
     Box(
         Modifier
@@ -96,6 +98,13 @@ fun AuthorScreen(
                         text = "Room: $roomCode  •  $peerCount peers  •  v${BuildConfig.APP_VERSION} (${BuildConfig.APP_BUILD})",
                         color = WhiteDim,
                         fontSize = 11.sp
+                    )
+                }
+                IconButton(onClick = onOpenTeleprompter) {
+                    Icon(
+                        Icons.Filled.Description,
+                        contentDescription = "Teleprompter",
+                        tint = WhiteText
                     )
                 }
                 IconButton(onClick = onImport) {

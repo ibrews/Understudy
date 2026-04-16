@@ -164,6 +164,15 @@ class MainActivity : ComponentActivity() {
 
         var showSettings by remember { mutableStateOf(false) }
         var editingMarkId by remember { mutableStateOf<Id?>(null) }
+        var showTeleprompter by remember { mutableStateOf(false) }
+
+        if (showTeleprompter) {
+            agilelens.understudy.teleprompter.TeleprompterScreen(
+                store = app.store,
+                onDismiss = { showTeleprompter = false }
+            )
+            return
+        }
 
         // Import launcher
         val openDocLauncher = rememberLauncherForActivityResult(
@@ -249,6 +258,7 @@ class MainActivity : ComponentActivity() {
                 local = local,
                 peerCount = peers,
                 roomCode = snap.roomCode,
+                onOpenTeleprompter = { showTeleprompter = true },
                 onDropMarkHere = {
                     val pose = app.store.localPerformer.value.pose
                     val nextIndex = (blocking.marks.maxOfOrNull { it.sequenceIndex } ?: -1) + 1
@@ -284,7 +294,8 @@ class MainActivity : ComponentActivity() {
                 roomCode = snap.roomCode,
                 onOpenSettings = { showSettings = true },
                 arProvider = arProvider,
-                showArStage = snap.showArStage
+                showArStage = snap.showArStage,
+                onOpenTeleprompter = { showTeleprompter = true }
             )
         }
     }

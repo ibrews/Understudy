@@ -194,7 +194,7 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 
 ### Next up
 - [ ] Google AI Glasses companion mode — paired to an iPhone, 480×480 glasses canvas shows the current mark's line cues only. Same wire protocol, same `TeleprompterView` rendering, tighter UI. Alex's reference implementation at `ai-samples/samples/gemini-live-todo/.../teleprompter/`.
-- [ ] Android voice mode — port `VoiceMatcher` to Kotlin (trivial — algorithm is pure) and wire to Android's `SpeechRecognizer` (Alex already has this working in the Gemini Live teleprompter).
+- [ ] Android CueFXEngine — port the iOS engine so Android gets audio/flash cue effects + voice-driven auto-fire (v0.17 ported scroll-only; firing still pending).
 - [ ] Next-mark auto-advance — right now voice auto-fire handles sub-mark cues; the performer still has to physically walk to advance marks. Optional toggle: when the last line on a mark finishes via voice AND the performer is within N seconds of walking, pre-advance the cue cursor.
 - [ ] Migrate Monitoring code to AgileLensMultiplayer SPM dependency (currently copied in)
 - [ ] Gestural rotation on visionOS 2.0 target — v0.12 translates via drag but rotates via ±15° buttons (1.0 has no `RotateGesture3D`). Uniform scale still unbuilt — add when there's a use case beyond "1:1 scale is what I want."
@@ -205,6 +205,17 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] DMX direct output (sACN / Art-Net)
 - [ ] Lens/sensor pickers with real-world presets (ARRI, RED, Sony FX, cine primes)
 - [ ] TestFlight
+
+### v0.17 · Android teleprompter + voice mode (scroll only)
+Android catches up with iOS v0.13's teleprompter. Voice matching algorithm is literally the Kotlin original Alex wrote (from Gemini-Live-ToDo `TeleprompterControlActivity.processSpokenText`) — I re-ported it to stay in sync with the Swift side.
+
+- **`teleprompter/TeleprompterDocument.kt`** — Kotlin mirror of Swift's. Same output: flattened script with per-mark character offsets + per-line-cue `endOffset` markers. Android's `Mark` doesn't yet have `kind` (v0.8 film-mode types aren't ported), so every `sequenceIndex >= 0` mark is included — identical behavior for a theater-only blocking.
+- **`teleprompter/VoiceMatcher.kt`** — 1:1 port of Swift's VoiceMatcher. Same algorithm: last 1-3 spoken words, 50-char forward window, jump to end-of-match, forward-only.
+- **`teleprompter/SpeechRecognitionDriver.kt`** — `SpeechRecognizer` with partial results + auto-restart on `onResults` / `onError` for continuous listening. Same trick your Gemini Live teleprompter uses. `EXTRA_PREFER_OFFLINE` = on-device where available.
+- **`teleprompter/TeleprompterScreen.kt`** — full-screen Compose `Dialog` with the same 4-scroll-input model (manual drag, auto-scroll timer, voice match, mark-follow). Karaoke rendering with `AnnotatedString` + `SpanStyle` — past 35% gray, 30-char cyan active window, white future.
+- **📜 teleprompter button** added to the top bars of PerformerScreen + AuthorScreen on Android (document icon).
+- **RECORD_AUDIO permission** added to AndroidManifest; runtime request on voice-mode toggle.
+- **Auto-fire is voice-scroll-only for now.** Android doesn't yet have a CueFXEngine equivalent (no cue queue, no audio flash overlays). The `isAutoFire` toggle is a stub; v0.18+ will port the engine.
 
 ### v0.16 · QR-code calibration — precise shared origin in one glance
 Upgrades v0.7's "stand at stage center, face upstage, tap compass at the same time" manual ceremony. A printed or on-screen QR target becomes the shared anchor; performer phones auto-calibrate the moment they see it.

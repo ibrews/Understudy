@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.GpsNotFixed
@@ -70,7 +71,8 @@ fun PerformerScreen(
     isRecording: Boolean = false,
     onToggleRecording: () -> Unit = {},
     arProvider: ArPoseProvider? = null,
-    showArStage: Boolean = false
+    showArStage: Boolean = false,
+    onOpenTeleprompter: () -> Unit = {}
 ) {
     val currentMark: Mark? = local.currentMarkID?.let { id ->
         blocking.marks.firstOrNull { it.id == id }
@@ -101,7 +103,8 @@ fun PerformerScreen(
                 title = blocking.title,
                 roomCode = roomCode,
                 peerCount = peerCount,
-                onOpenSettings = onOpenSettings
+                onOpenSettings = onOpenSettings,
+                onOpenTeleprompter = onOpenTeleprompter
             )
             Spacer(Modifier.height(12.dp))
             CurrentCueCard(mark = currentMark, nextMark = nextMark)
@@ -150,7 +153,8 @@ private fun TopBar(
     title: String,
     roomCode: String,
     peerCount: Int,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onOpenTeleprompter: () -> Unit = {}
 ) {
     Row(
         Modifier.fillMaxWidth(),
@@ -168,6 +172,21 @@ private fun TopBar(
                 color = WhiteDim,
                 fontSize = 11.sp
             )
+        }
+        IconButton(onClick = onOpenTeleprompter) {
+            Box(
+                Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.08f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Description,
+                    contentDescription = "Teleprompter",
+                    tint = WhiteText
+                )
+            }
         }
         IconButton(onClick = onOpenSettings) {
             Box(
