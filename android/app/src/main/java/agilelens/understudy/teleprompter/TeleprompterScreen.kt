@@ -20,8 +20,17 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.RemoveRedEye
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Whatshot
+import agilelens.understudy.glasses.GlassesLauncher
+import agilelens.understudy.glasses.GlassesTeleprompterState
+import android.app.Activity
+import android.os.Build
+import android.content.ContextWrapper
+import androidx.compose.runtime.DisposableEffect
+import androidx.xr.projected.ProjectedContext
+import androidx.xr.projected.experimental.ExperimentalProjectedApi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -74,6 +83,13 @@ fun TeleprompterScreen(store: BlockingStore, onDismiss: () -> Unit) {
     val fireFlashCount = 0
     val fireFlashAt = 0L
 
+    // Android XR AI Glasses pairing — only polled on API 36+.
+    val isGlassesConnected = if (Build.VERSION.SDK_INT >= 36) {
+        glassesConnectedState()
+    } else {
+        false
+    }
+
     val speech = remember { SpeechRecognitionDriver(context) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -89,6 +105,21 @@ fun TeleprompterScreen(store: BlockingStore, onDismiss: () -> Unit) {
     LaunchedEffect(Unit) {
         store.blocking.collectLatest { b ->
             document = TeleprompterDocument.from(b)
+        }
+    }
+
+    // Mirror phone state → GlassesTeleprompterState so the paired glasses
+    // stay in lock-step with whatever the phone is showing. No cost when
+    // no glasses are connected — GlassesTeleprompterState is just memory.
+    LaunchedEffect(document, scrollProgress) {
+        GlassesTeleprompterState.document = document
+        GlassesTeleprompterState.scrollProgress = scrollProgress
+    }
+    LaunchedEffect(Unit) {
+        store.localPerformer.collectLatest { p ->
+            val markId = p?.currentMarkID
+            GlassesTeleprompterState.currentMark =
+                markId?.let { id -> store.blocking.value.marks.firstOrNull { it.id == id } }
         }
     }
 
@@ -182,6 +213,7 @@ fun TeleprompterScreen(store: BlockingStore, onDismiss: () -> Unit) {
                         textSize = textSize,
                         fireFlashCount = fireFlashCount,
                         fireFlashAt = fireFlashAt,
+                        isGlassesConnected = isGlassesConnected,
                         onResetTop = {
                             scrollProgress = 0.0
                         },
@@ -199,7 +231,18 @@ fun TeleprompterScreen(store: BlockingStore, onDismiss: () -> Unit) {
                                 permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                             }
                         },
-                        onAutoFireToggle = { /* pending Android CueFXEngine port */ }
+                        onAutoFireToggle = { /* pending Android CueFXEngine port */ },
+                        onGlassesLaunch = {
+                            val host = context.findActivity()
+                            if (host != null) GlassesLauncher.launch(host)
+                        },
+                        onGlassesModeToggle = {
+                            GlassesTeleprompterState.renderMode =
+                                if (GlassesTeleprompterState.renderMode ==
+                                    GlassesTeleprompterState.RenderMode.SINGLE_LINE)
+                                    GlassesTeleprompterState.RenderMode.FLOWING_SCRIPT
+                                else GlassesTeleprompterState.RenderMode.SINGLE_LINE
+                        }
                     )
                 }
             }
@@ -211,6 +254,46 @@ fun TeleprompterScreen(store: BlockingStore, onDismiss: () -> Unit) {
             speech.stop()
         }
     }
+}
+
+/**
+ * Composition-scoped helper that collects `isProjectedDeviceConnected` as
+ * state. Safe to call from anywhere — the result is false until the flow
+ * emits. Only invoked on API 36+ (caller gates).
+ */
+@OptIn(ExperimentalProjectedApi::class)
+@Composable
+private fun glassesConnectedState(): Boolean {
+    val context = LocalContext.current
+    var connected by remember { mutableStateOf(false) }
+    DisposableEffect(context) {
+        // ProjectedContext.isProjectedDeviceConnected returns a Flow — subscribe
+        // it in a lightweight coroutine and surface the latest value via state.
+        val scope = kotlinx.coroutines.CoroutineScope(
+            kotlinx.coroutines.Dispatchers.Main +
+            kotlinx.coroutines.SupervisorJob()
+        )
+        val job = scope.launch {
+            try {
+                ProjectedContext.isProjectedDeviceConnected(context, coroutineContext)
+                    .collect { connected = it }
+            } catch (_: Throwable) { /* API not present — stay false */ }
+        }
+        onDispose { job.cancel() }
+    }
+    return connected
+}
+
+/** Walk the ContextWrapper chain to find the host Activity. Needed because
+ *  LocalContext inside a Dialog gives us the Compose view's context, not the
+ *  Activity itself. */
+private fun android.content.Context.findActivity(): Activity? {
+    var ctx: android.content.Context? = this
+    while (ctx is ContextWrapper) {
+        if (ctx is Activity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
 }
 
 @Composable
@@ -317,12 +400,15 @@ private fun Controls(
     textSize: Int,
     fireFlashCount: Int,
     fireFlashAt: Long,
+    isGlassesConnected: Boolean,
     onResetTop: () -> Unit,
     onPlayPause: () -> Unit,
     onSpeedChange: (Int) -> Unit,
     onTextSizeChange: (Int) -> Unit,
     onVoiceToggle: () -> Unit,
     onAutoFireToggle: () -> Unit,
+    onGlassesLaunch: () -> Unit,
+    onGlassesModeToggle: () -> Unit,
 ) {
     val flashVisible = (System.currentTimeMillis() - fireFlashAt) < 2000L
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -419,6 +505,39 @@ private fun Controls(
                         contentDescription = "Auto-fire",
                         tint = Color.White
                     )
+                }
+
+                // AI Glasses companion — enabled only when paired glasses are
+                // detected (API 36+). Long-press toggles between single-line
+                // prompt and flowing-script render modes on the glasses side.
+                IconButton(
+                    onClick = onGlassesLaunch,
+                    enabled = isGlassesConnected,
+                    modifier = Modifier.background(
+                        if (isGlassesConnected) Color(0xFF34A853)
+                        else Color.White.copy(alpha = 0.1f),
+                        CircleShape
+                    )
+                ) {
+                    Icon(
+                        Icons.Filled.RemoveRedEye,
+                        contentDescription = if (isGlassesConnected)
+                            "Open on Glasses" else "Glasses not paired",
+                        tint = if (isGlassesConnected) Color.Black else Color.White.copy(alpha = 0.4f)
+                    )
+                }
+                if (isGlassesConnected) {
+                    // Tiny mode-toggle sitting right next to the launch button.
+                    // No fancy segmented control — just a tap that cycles modes.
+                    TextButton(onClick = onGlassesModeToggle) {
+                        Text(
+                            if (GlassesTeleprompterState.renderMode ==
+                                GlassesTeleprompterState.RenderMode.SINGLE_LINE) "line" else "scroll",
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 10.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
                 }
             }
         }

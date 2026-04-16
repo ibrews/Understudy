@@ -38,6 +38,21 @@
             </intent-filter>
         </activity>
 
+        <!-- Companion teleprompter for AI Glasses (Android XR projected display).
+             Launched from the phone via ProjectedContext.createProjectedActivityOptions;
+             lives in the same process so GlassesTeleprompterState is shared. -->
+        <activity
+            android:name=".glasses.GlassesTeleprompterActivity"
+            android:exported="true"
+            android:requiredDisplayCategory="xr_projected"
+            tools:targetApi="34"
+            android:theme="@style/Theme.Understudy">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="androidx.xr.projected.CATEGORY_PROJECTED" />
+            </intent-filter>
+        </activity>
+
         <!-- Share exported blocking JSON via content:// URI -->
         <provider
             android:name="androidx.core.content.FileProvider"

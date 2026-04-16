@@ -2,24 +2,25 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
     namespace = "agilelens.understudy"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "agilelens.understudy"
         minSdk = 26
-        targetSdk = 34
-        versionCode = 17
-        versionName = "0.17"
+        targetSdk = 36
+        versionCode = 18
+        versionName = "0.18"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
 
-        buildConfigField("String", "APP_VERSION", "\"0.17\"")
-        buildConfigField("int", "APP_BUILD", "17")
+        buildConfigField("String", "APP_VERSION", "\"0.18\"")
+        buildConfigField("int", "APP_BUILD", "18")
     }
 
     buildTypes {
@@ -43,9 +44,8 @@ android {
         compose = true
         buildConfig = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.8"
-    }
+    // composeOptions.kotlinCompilerExtensionVersion removed — replaced by
+    // the org.jetbrains.kotlin.plugin.compose Gradle plugin (Kotlin 2.0+).
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -83,4 +83,7 @@ dependencies {
 
     // DataStore (for preferences)
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+    // Android XR — projected display for AI Glasses companion
+    implementation("androidx.xr.projected:projected:1.0.0-alpha03")
 }

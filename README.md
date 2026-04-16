@@ -206,6 +206,20 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] Lens/sensor pickers with real-world presets (ARRI, RED, Sony FX, cine primes)
 - [ ] TestFlight
 
+### v0.18 · Google AI Glasses companion — teleprompter on your face
+Android phone stays the controller (voice recognition, auto-scroll, controls); the paired Android XR AI Glasses show a pixel-tight 480×480 teleprompter canvas at the bottom of your left eye. Pattern borrowed directly from Alex's Gemini-Live-ToDo `TeleprompterControlActivity` + `TeleprompterActivity` — same APK, two `ComponentActivity`s, shared state via a Kotlin `object` singleton.
+
+- **`glasses/GlassesTeleprompterState.kt`** — `object` with `mutableStateOf` for `renderMode` (SINGLE_LINE / FLOWING_SCRIPT), `document`, `scrollProgress`, `currentMark`, `lastFlashAt`, `lastFlashColor`. Both activities in the same process; Compose on either side re-renders when fields change. No IPC needed.
+- **`glasses/GlassesTeleprompterRenderer.kt`** — 480dp-sized composable with two modes:
+  - **SINGLE_LINE** — just the current mark's first Line cue at screen center, big serif, character label above in uppercase red. Ideal "prompter for AR glasses" — maximum legibility, minimum distraction.
+  - **FLOWING_SCRIPT** — karaoke scroll of the flattened `TeleprompterDocument` with the same 30-char cyan active window that the phone uses. Pocket teleprompter.
+- **`glasses/GlassesTeleprompterActivity.kt`** — `ComponentActivity` hosts the renderer, adds `FLAG_KEEP_SCREEN_ON + FLAG_SHOW_WHEN_LOCKED + FLAG_TURN_SCREEN_ON`. Manifest entry has `android:requiredDisplayCategory="xr_projected"` + the `CATEGORY_PROJECTED` intent-filter so Android routes it to the glasses display.
+- **`glasses/GlassesLauncher.kt`** — the phone→glasses launch pattern. `ProjectedContext.createProjectedDeviceContext(activity)` → `createProjectedActivityOptions(...).toBundle()` → `startActivity(intent, bundle)`. Gated by `Build.VERSION.SDK_INT >= VanillaIceCream` (API 35).
+- **Phone-side integration in `TeleprompterScreen.kt`** — new `glassesConnectedState()` collects `ProjectedContext.isProjectedDeviceConnected` as Compose state (API 36+). When glasses are paired, a green 👁 button lights up in the teleprompter controls to launch onto the glasses; a tiny "line"/"scroll" text button cycles the render mode. Phone-side state is mirrored into `GlassesTeleprompterState` via `LaunchedEffect`s keyed on `scrollProgress` and `document`.
+- **Manifest + gradle updates** — added `androidx.xr.projected:projected:1.0.0-alpha03`, bumped AGP 8.5.2 → 8.9.1 and Kotlin 1.9.22 → 2.0.21 (required by the XR dep), moved Compose compiler config from `composeOptions.kotlinCompilerExtensionVersion = "1.5.8"` to the new `org.jetbrains.kotlin.plugin.compose` Gradle plugin, Gradle wrapper 8.9 → 8.11.1.
+
+Not yet: wiring the glasses render onto a physical device (I don't have AI Glasses here to verify). Code compiles cleanly with all the XR APIs wired; runtime exercise is the next user-facing step.
+
 ### v0.17 · Android teleprompter + voice mode (scroll only)
 Android catches up with iOS v0.13's teleprompter. Voice matching algorithm is literally the Kotlin original Alex wrote (from Gemini-Live-ToDo `TeleprompterControlActivity.processSpokenText`) — I re-ported it to stay in sync with the Swift side.
 
