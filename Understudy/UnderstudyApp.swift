@@ -11,6 +11,7 @@ import SwiftUI
 struct UnderstudyApp: App {
     @State private var store: BlockingStore
     @State private var sessionController: SessionController
+    @State private var fx: CueFXEngine
     @AppStorage("displayName") private var displayName: String = ""
     @AppStorage("roomCode") private var roomCode: String = "rehearsal"
     @State private var hasOnboarded = false
@@ -28,9 +29,11 @@ struct UnderstudyApp: App {
             localPerformer: me
         )
         let t = MultipeerTransport()
-        let sc = SessionController(transport: t, store: s, roomCode: "rehearsal")
+        let sc = SessionController(transport: t, kind: .multipeer, store: s, roomCode: "rehearsal")
+        let engine = CueFXEngine()
         _store = State(wrappedValue: s)
         _sessionController = State(wrappedValue: sc)
+        _fx = State(wrappedValue: engine)
     }
 
     var body: some Scene {
@@ -38,6 +41,7 @@ struct UnderstudyApp: App {
             RootView()
                 .environment(store)
                 .environment(sessionController)
+                .environment(fx)
                 .onAppear {
                     if !hasOnboarded {
                         // Seed default display name from device name if user hasn't set one.
@@ -46,6 +50,7 @@ struct UnderstudyApp: App {
                         }
                         sessionController.roomCode = roomCode
                         sessionController.start()
+                        fx.attach(store: store)
                         hasOnboarded = true
                     }
                 }
@@ -59,6 +64,7 @@ struct UnderstudyApp: App {
             DirectorImmersiveView()
                 .environment(store)
                 .environment(sessionController)
+                .environment(fx)
         }
         .immersionStyle(selection: .constant(.mixed), in: .mixed)
         #endif
@@ -101,18 +107,33 @@ struct RootView: View {
 struct PerformerContainer: View {
     @Environment(BlockingStore.self) private var store
     @Environment(SessionController.self) private var session
-    @State private var ar: ARPoseProvider?
+    @AppStorage("showARStage") private var showARStage: Bool = true
 
     var body: some View {
         PerformerView()
             .onAppear {
-                let provider = ARPoseProvider(store: store, sessionController: session)
-                provider.start()
-                ar = provider
+                // Tell the host which store/session to use. Session ownership
+                // depends on the AR background toggle: if AR is on, the
+                // ARStageContainer will hand over the session via adopt(). If
+                // not, we run a standalone provider here.
+                PerformerARHost.shared.configure(store: store, session: session)
+                if !showARStage {
+                    PerformerARHost.shared.startStandalone()
+                }
             }
             .onDisappear {
-                ar?.stop()
-                ar = nil
+                PerformerARHost.shared.stop()
+            }
+            .onChange(of: showARStage) { _, nowOn in
+                if nowOn {
+                    // When the user flips AR back on, the ARStageContainer
+                    // will appear and adopt its own session. Stop any
+                    // standalone provider so we don't run two sessions.
+                    PerformerARHost.shared.stop()
+                } else {
+                    PerformerARHost.shared.stop()
+                    PerformerARHost.shared.startStandalone()
+                }
             }
     }
 }

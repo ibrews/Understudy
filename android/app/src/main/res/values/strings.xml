@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Understudy</string>
+    <string name="camera_permission_rationale">Understudy needs the camera to track your position on the stage.</string>
+    <string name="install_arcore">Install ARCore</string>
+    <string name="grant_camera">Allow camera</string>
+    <string name="find_your_mark">Find your mark</string>
+    <string name="no_blocking">No blocking loaded</string>
+    <string name="on_mark">On %1$s</string>
+    <string name="next_mark">Next: %1$s</string>
+    <string name="tracking_good">Tracking good</string>
+    <string name="tracking_limited">Tracking limited</string>
+    <string name="tracking_none">No tracking — move around</string>
+</resources>

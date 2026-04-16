@@ -16,6 +16,7 @@ import RealityKit
 struct DirectorImmersiveView: View {
     @Environment(BlockingStore.self) private var store
     @Environment(SessionController.self) private var session
+    @Environment(CueFXEngine.self) private var fx
 
     // The root anchor that carries all mark/performer entities.
     @State private var stageRoot = Entity()
@@ -23,6 +24,9 @@ struct DirectorImmersiveView: View {
     @State private var markEntities: [ID: Entity] = [:]
     @State private var performerEntities: [ID: Entity] = [:]
     @State private var sequenceRibbon: Entity = Entity()
+    @State private var stageLight: ModelEntity = ModelEntity()
+    @State private var ghostEntity: Entity = Entity()
+    @State private var lastRenderedFlashID: UUID?
 
     var body: some View {
         RealityView { content in
@@ -40,11 +44,43 @@ struct DirectorImmersiveView: View {
             plane.components.set(InputTargetComponent())
             plane.name = "stageFloor"
             stageRoot.addChild(plane)
+
+            // Stage "light" — on visionOS 1.0 we don't have PointLightComponent
+            // (2.0+), so we fake a theatrical wash with a large tinted glowing
+            // sphere hanging above the stage. When a .light cue fires we bump
+            // its opacity + color, then fade back.
+            let light = ModelEntity(
+                mesh: .generateSphere(radius: 0.6),
+                materials: [UnlitMaterial(color: .white.withAlphaComponent(0.0))]
+            )
+            light.position = [0, 2.4, 0]
+            light.name = "stageLight"
+            stageRoot.addChild(light)
+            stageLight = light
+
+            // Playback ghost — a translucent magenta sphere. Disabled until needed.
+            let ghost = Entity()
+            ghost.name = "ghost"
+            let body = ModelEntity(
+                mesh: .generateSphere(radius: 0.25),
+                materials: [UnlitMaterial(color: .magenta.withAlphaComponent(0.55))]
+            )
+            ghost.addChild(body)
+            let halo = ModelEntity(
+                mesh: .generateSphere(radius: 0.38),
+                materials: [UnlitMaterial(color: .magenta.withAlphaComponent(0.18))]
+            )
+            ghost.addChild(halo)
+            ghost.isEnabled = false
+            stageRoot.addChild(ghost)
+            ghostEntity = ghost
         } update: { _ in
             Task { @MainActor in
                 syncMarks()
                 syncPerformers()
                 syncRibbon()
+                syncGhost()
+                syncFlash()
             }
         }
         .gesture(
@@ -216,6 +252,59 @@ struct DirectorImmersiveView: View {
             sequenceRibbon.addChild(seg)
         }
     }
+
+    private func syncGhost() {
+        guard let t = store.playbackT, let pose = store.ghostPose(at: t) else {
+            ghostEntity.isEnabled = false
+            return
+        }
+        ghostEntity.isEnabled = true
+        ghostEntity.position = [pose.x, 0.9, pose.z]
+        ghostEntity.orientation = simd_quatf(angle: pose.yaw, axis: [0, 1, 0])
+    }
+
+    private func syncFlash() {
+        guard let flash = fx.currentFlash else {
+            if lastRenderedFlashID != nil {
+                setStageLight(color: .white, alpha: 0)
+                lastRenderedFlashID = nil
+            }
+            return
+        }
+        guard flash.cueID != lastRenderedFlashID else { return }
+        lastRenderedFlashID = flash.cueID
+        let uiColor = UIColorFromSwiftUIColor(flash.color)
+        setStageLight(color: uiColor, alpha: CGFloat(flash.alpha))
+        Task { @MainActor in
+            let steps = 12
+            let total = flash.holdDuration + flash.fadeDuration
+            let tick = total / Double(steps)
+            for i in 1...steps {
+                try? await Task.sleep(nanoseconds: UInt64(tick * 1_000_000_000))
+                let progress = Double(i) / Double(steps)
+                let remaining = max(0, 1 - progress)
+                setStageLight(color: uiColor, alpha: CGFloat(flash.alpha * remaining))
+            }
+        }
+    }
+
+    private func setStageLight(color: UIColor, alpha: CGFloat) {
+        var m = UnlitMaterial()
+        let a = min(0.55, max(0, alpha))
+        m.color = .init(tint: color.withAlphaComponent(a))
+        m.blending = .transparent(opacity: .init(floatLiteral: Float(a)))
+        stageLight.model?.materials = [m]
+    }
+}
+
+/// Convert a SwiftUI Color to a UIColor for RealityKit materials/lights.
+@MainActor
+fileprivate func UIColorFromSwiftUIColor(_ c: Color) -> UIColor {
+    #if canImport(UIKit)
+    return UIColor(c)
+    #else
+    return .white
+    #endif
 }
 
 // Color helpers that compile on all platforms (UIKit on vision/iOS).

@@ -59,7 +59,7 @@ public final class MultipeerTransport: NSObject, Transport {
     public func send(_ message: NetMessage, from senderID: ID) {
         guard let session, !session.connectedPeers.isEmpty else { return }
         let envelope = Envelope(senderID: senderID, message: message)
-        guard let data = try? JSONEncoder().encode(envelope) else { return }
+        guard let data = try? WireCoding.encoder.encode(envelope) else { return }
         try? session.send(data, toPeers: session.connectedPeers, with: .reliable)
     }
 
@@ -74,7 +74,7 @@ extension MultipeerTransport: MCSessionDelegate {
         notifyCount()
     }
     public func session(_ session: MCSession, didReceive data: Data, fromPeer peerID: MCPeerID) {
-        guard let env = try? JSONDecoder().decode(Envelope.self, from: data) else { return }
+        guard let env = try? WireCoding.decoder.decode(Envelope.self, from: data) else { return }
         guard env.version == Envelope.currentVersion else { return } // drop mismatched
         onMessage?(env)
     }

@@ -12,6 +12,7 @@ import SwiftUI
 struct DirectorControlPanel: View {
     @Environment(BlockingStore.self) private var store
     @Environment(SessionController.self) private var session
+    @Environment(CueFXEngine.self) private var fx
     @Environment(\.openImmersiveSpace) private var openImmersiveSpace
     @Environment(\.dismissImmersiveSpace) private var dismissImmersiveSpace
 
@@ -19,6 +20,9 @@ struct DirectorControlPanel: View {
     @State private var editingMark: Mark?
     @State private var newCueText: String = ""
     @State private var newCueCharacter: String = ""
+    @State private var directorIsPlaying: Bool = false
+    @State private var directorPlaybackStartedAt: Date?
+    @State private var directorPlaybackTimer: Timer?
 
     var body: some View {
         NavigationStack {
@@ -26,6 +30,7 @@ struct DirectorControlPanel: View {
                 header
                 roomRow
                 marksList
+                transportStrip
                 Spacer()
                 footer
             }
@@ -38,6 +43,76 @@ struct DirectorControlPanel: View {
                     .frame(minWidth: 420, minHeight: 520)
             }
         }
+    }
+
+    @ViewBuilder private var transportStrip: some View {
+        if let reference = store.blocking.reference {
+            HStack(spacing: 14) {
+                Button {
+                    toggleDirectorPlayback(duration: reference.duration)
+                } label: {
+                    Image(systemName: directorIsPlaying ? "pause.fill" : "play.fill")
+                        .font(.title3)
+                }
+                .buttonStyle(.bordered)
+
+                Slider(
+                    value: Binding(
+                        get: { store.playbackT ?? 0 },
+                        set: { newValue in
+                            // Manual scrub pauses automatic playback.
+                            if directorIsPlaying { stopDirectorPlayback() }
+                            store.playbackT = newValue
+                            session.broadcastPlayback(t: newValue)
+                        }
+                    ),
+                    in: 0...1
+                )
+
+                Text(playbackTimeLabel(duration: reference.duration))
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .frame(minWidth: 80, alignment: .trailing)
+            }
+        }
+    }
+
+    private func playbackTimeLabel(duration: TimeInterval) -> String {
+        let t = store.playbackT ?? 0
+        let cur = t * duration
+        return String(format: "%04.1f / %04.1f s", cur, duration)
+    }
+
+    private func toggleDirectorPlayback(duration: TimeInterval) {
+        if directorIsPlaying {
+            stopDirectorPlayback()
+        } else {
+            startDirectorPlayback(duration: duration)
+        }
+    }
+
+    private func startDirectorPlayback(duration: TimeInterval) {
+        directorIsPlaying = true
+        let baseT = store.playbackT ?? 0
+        directorPlaybackStartedAt = Date().addingTimeInterval(-baseT * duration)
+        session.broadcastPlayback(t: baseT)
+        directorPlaybackTimer?.invalidate()
+        directorPlaybackTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { _ in
+            Task { @MainActor in
+                guard let started = directorPlaybackStartedAt else { return }
+                let t = min(1, Date().timeIntervalSince(started) / duration)
+                store.playbackT = t
+                session.broadcastPlayback(t: t)
+                if t >= 1 { stopDirectorPlayback() }
+            }
+        }
+    }
+
+    private func stopDirectorPlayback() {
+        directorIsPlaying = false
+        directorPlaybackStartedAt = nil
+        directorPlaybackTimer?.invalidate()
+        directorPlaybackTimer = nil
     }
 
     @ViewBuilder private var header: some View {
@@ -55,23 +130,44 @@ struct DirectorControlPanel: View {
     }
 
     @ViewBuilder private var roomRow: some View {
-        HStack {
-            Label("Room", systemImage: "number")
-            TextField("Room code", text: Binding(
-                get: { session.roomCode },
-                set: { session.roomCode = $0 }
-            ))
-            .textFieldStyle(.roundedBorder)
-            .frame(maxWidth: 180)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Room", systemImage: "number")
+                TextField("Room code", text: Binding(
+                    get: { session.roomCode },
+                    set: { session.roomCode = $0 }
+                ))
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 180)
 
-            Toggle(isOn: $immersiveActive) {
-                Text(immersiveActive ? "Stage On" : "Stage Off")
+                Toggle(isOn: $immersiveActive) {
+                    Text(immersiveActive ? "Stage On" : "Stage Off")
+                }
+                .toggleStyle(.button)
+                .onChange(of: immersiveActive) { _, on in
+                    Task {
+                        if on { _ = await openImmersiveSpace(id: "Stage") }
+                        else { await dismissImmersiveSpace() }
+                    }
+                }
             }
-            .toggleStyle(.button)
-            .onChange(of: immersiveActive) { _, on in
-                Task {
-                    if on { _ = await openImmersiveSpace(id: "Stage") }
-                    else { await dismissImmersiveSpace() }
+            HStack {
+                Label("Transport", systemImage: "antenna.radiowaves.left.and.right")
+                Picker("", selection: Binding(
+                    get: { session.transportKind },
+                    set: { session.switchTransport(to: $0) }
+                )) {
+                    Text("Multipeer (Apple only)").tag(TransportKind.multipeer)
+                    Text("WebSocket relay (incl. Android)").tag(TransportKind.websocket)
+                }
+                .pickerStyle(.menu)
+                if session.transportKind == .websocket {
+                    TextField("ws://host:8765", text: Binding(
+                        get: { session.relayURL },
+                        set: { session.relayURL = $0; session.switchTransport(to: .multipeer); session.switchTransport(to: .websocket) }
+                    ))
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 260)
                 }
             }
         }
@@ -144,12 +240,43 @@ struct DirectorControlPanel: View {
     }
 
     @ViewBuilder private var footer: some View {
-        HStack {
+        HStack(spacing: 14) {
             if let t = store.playbackT {
                 Label("Playback", systemImage: "play.circle")
                 ProgressView(value: t)
                     .frame(maxWidth: 240)
             }
+
+            // Last light cue chip.
+            if let flash = fx.currentFlash {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(flash.color)
+                        .frame(width: 12, height: 12)
+                        .overlay(Circle().stroke(.white.opacity(0.4), lineWidth: 1))
+                    Text("Last light")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.black.opacity(0.2), in: Capsule())
+                .transition(.opacity)
+            } else if let lastLight = lastLoggedLightColor() {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(CueFXEngine.color(for: lastLight))
+                        .opacity(0.55)
+                        .frame(width: 10, height: 10)
+                    Text("Last light: \(lastLight.rawValue)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(.black.opacity(0.12), in: Capsule())
+            }
+
             Spacer()
             Button(role: .destructive) {
                 for m in store.blocking.marks {
@@ -160,6 +287,16 @@ struct DirectorControlPanel: View {
                 Label("Clear Stage", systemImage: "trash")
             }
         }
+    }
+
+    /// The most recent .light cue color from the FX log, if any.
+    private func lastLoggedLightColor() -> LightColor? {
+        for entry in fx.recentLog.reversed() {
+            if case .light(_, let color, _) = entry.cue {
+                return color
+            }
+        }
+        return nil
     }
 }
 

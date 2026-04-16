@@ -12,22 +12,48 @@
 #if os(iOS)
 import SwiftUI
 import CoreHaptics
+import ARKit
 
 struct PerformerView: View {
     @Environment(BlockingStore.self) private var store
     @Environment(SessionController.self) private var session
+    @Environment(CueFXEngine.self) private var fx
     @State private var hapticEngine: CHHapticEngine?
     @State private var lastMarkID: ID?
     @State private var showingMarksList = false
+    @State private var showingSettings = false
+    /// True while this device is advancing playbackT locally.
+    @State private var isPlayingGhost: Bool = false
+    @State private var playbackStartedAt: Date?
+    @State private var playbackTimer: Timer?
+    @AppStorage("showARStage") private var showARStage: Bool = true
+
+    /// Opacity for the curtain gradient — dialed back when AR background is visible
+    /// so the camera reads through but the theatrical vibe stays.
+    private var gradientOpacity: Double { showARStage ? 0.4 : 1.0 }
 
     var body: some View {
         ZStack {
-            // Background gradient that hints at theater — deep curtain red → black.
+            // Live AR camera feed (behind everything). Toggle via Display setting.
+            if showARStage {
+                ARStageContainer { session in
+                    // Hand the session to the host so ARPoseProvider can share it.
+                    PerformerARHost.shared.adopt(session: session)
+                }
+                .environment(store)
+                .environment(session)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+            }
+
+            // Curtain gradient — either full curtain or a dimmed wash over the camera.
             LinearGradient(
                 colors: [Color.black, Color(red: 0.15, green: 0.02, blue: 0.04)],
                 startPoint: .bottom, endPoint: .top
             )
             .ignoresSafeArea()
+            .opacity(gradientOpacity)
+            .allowsHitTesting(false)
 
             VStack(spacing: 0) {
                 topBar
@@ -39,9 +65,35 @@ struct PerformerView: View {
                 bottomBar
             }
             .padding()
+
+            // Countdown pill for .wait cues.
+            if let hold = fx.currentHold, hold > 0 {
+                VStack {
+                    HStack {
+                        Spacer()
+                        Text(String(format: "Hold %.1fs", hold))
+                            .font(.caption.monospacedDigit().bold())
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 6)
+                            .background(.black.opacity(0.55), in: Capsule())
+                            .foregroundStyle(.white)
+                            .padding(.top, 60)
+                            .padding(.trailing, 18)
+                    }
+                    Spacer()
+                }
+                .allowsHitTesting(false)
+                .transition(.opacity)
+            }
+
+            // Lighting flash overlay — full-screen, fades over 0.75s.
+            FlashOverlay(flash: fx.currentFlash)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
         }
         .preferredColorScheme(.dark)
         .onAppear { prepareHaptics() }
+        .onDisappear { stopGhostPlayback() }
         .onChange(of: store.localPerformer?.currentMarkID ?? ID("")) { _, newID in
             if newID != lastMarkID {
                 lastMarkID = newID
@@ -50,6 +102,11 @@ struct PerformerView: View {
         }
         .sheet(isPresented: $showingMarksList) {
             MarksOverview().environment(store)
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsSheet()
+                .environment(store)
+                .environment(session)
         }
     }
 
@@ -65,6 +122,13 @@ struct PerformerView: View {
                     .foregroundStyle(.white.opacity(0.6))
             }
             Spacer()
+            Button { showingSettings = true } label: {
+                Image(systemName: "gearshape")
+                    .font(.title3)
+                    .padding(10)
+                    .background(.white.opacity(0.08), in: Circle())
+                    .foregroundStyle(.white)
+            }
             Button { showingMarksList = true } label: {
                 Image(systemName: "list.bullet")
                     .font(.title3)
@@ -153,13 +217,26 @@ struct PerformerView: View {
     }
 
     private var bottomBar: some View {
-        HStack {
+        HStack(spacing: 14) {
             let quality = store.localPerformer?.trackingQuality ?? 0
             Label(trackingLabel(quality),
                   systemImage: quality > 0.6 ? "location.fill" : "location.slash")
                 .foregroundStyle(quality > 0.6 ? .green : .orange)
                 .font(.caption)
             Spacer()
+            // Ghost playback toggle — only meaningful if we have a reference walk.
+            Button {
+                toggleGhostPlayback()
+            } label: {
+                Image(systemName: isPlayingGhost ? "figure.walk.motion" : "figure.walk")
+                    .font(.title2)
+                    .foregroundStyle(ghostReadyColor)
+                    .padding(8)
+                    .background(.white.opacity(0.06), in: Circle())
+            }
+            .disabled(store.blocking.reference == nil)
+            .accessibilityLabel(isPlayingGhost ? "Stop ghost playback" : "Play ghost walkthrough")
+
             Button {
                 if store.isRecording {
                     _ = store.stopRecording(
@@ -175,6 +252,49 @@ struct PerformerView: View {
                     .foregroundStyle(store.isRecording ? .red : .white)
             }
         }
+    }
+
+    private var ghostReadyColor: Color {
+        if store.blocking.reference == nil { return .white.opacity(0.25) }
+        return isPlayingGhost ? Color(red: 1.0, green: 0.4, blue: 0.9) : .white
+    }
+
+    // MARK: - Ghost playback
+
+    private func toggleGhostPlayback() {
+        guard let walk = store.blocking.reference, walk.duration > 0 else { return }
+        if isPlayingGhost {
+            stopGhostPlayback()
+        } else {
+            startGhostPlayback(duration: walk.duration)
+        }
+    }
+
+    private func startGhostPlayback(duration: TimeInterval) {
+        isPlayingGhost = true
+        playbackStartedAt = Date()
+        store.playbackT = 0
+        session.broadcastPlayback(t: 0)
+        playbackTimer?.invalidate()
+        playbackTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { _ in
+            Task { @MainActor in
+                guard let started = playbackStartedAt else { return }
+                let elapsed = Date().timeIntervalSince(started)
+                let t = min(1, elapsed / duration)
+                store.playbackT = t
+                session.broadcastPlayback(t: t)
+                if t >= 1 { stopGhostPlayback() }
+            }
+        }
+    }
+
+    private func stopGhostPlayback() {
+        isPlayingGhost = false
+        playbackStartedAt = nil
+        playbackTimer?.invalidate()
+        playbackTimer = nil
+        store.playbackT = nil
+        session.broadcastPlayback(t: nil)
     }
 
     // MARK: - Logic
@@ -258,6 +378,146 @@ private struct CueRow: View {
             Label("hold \(String(format: "%.1f", s))s", systemImage: "pause.circle")
                 .foregroundStyle(.white.opacity(0.7))
         }
+    }
+}
+
+private struct SettingsSheet: View {
+    @Environment(BlockingStore.self) private var store
+    @Environment(SessionController.self) private var session
+    @Environment(\.dismiss) private var dismiss
+    @AppStorage("displayName") private var displayName: String = ""
+    @AppStorage("relayURL") private var relayURL: String = "ws://127.0.0.1:8765"
+    @AppStorage("showARStage") private var showARStage: Bool = true
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Identity") {
+                    TextField("Display name", text: $displayName)
+                        .onSubmit { applyName() }
+                }
+                Section("Display") {
+                    Toggle("AR Stage background", isOn: $showARStage)
+                    Text(showARStage
+                         ? "Live camera feed with glowing marks."
+                         : "Solid curtain gradient (no camera).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Section("Room") {
+                    TextField("Room code", text: Binding(
+                        get: { session.roomCode },
+                        set: { session.roomCode = $0 }
+                    ))
+                }
+                Section("Transport") {
+                    Picker("Mode", selection: Binding(
+                        get: { session.transportKind },
+                        set: { session.switchTransport(to: $0) }
+                    )) {
+                        Text("Multipeer (Apple only)").tag(TransportKind.multipeer)
+                        Text("WebSocket relay").tag(TransportKind.websocket)
+                    }
+                    if session.transportKind == .websocket {
+                        TextField("Relay URL", text: $relayURL)
+                            .keyboardType(.URL)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .onSubmit {
+                                session.relayURL = relayURL
+                                session.switchTransport(to: .multipeer)
+                                session.switchTransport(to: .websocket)
+                            }
+                        Text("Runs at /relay/server.py. Enter the host's LAN IP, e.g. ws://192.168.1.42:8765")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                Section("About") {
+                    LabeledContent("Version", value: AppVersion.formatted)
+                    Text(store.blocking.title).foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("Settings")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        applyName()
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func applyName() {
+        guard !displayName.isEmpty, var me = store.localPerformer else { return }
+        me.displayName = displayName
+        store.upsertPerformer(me)
+    }
+}
+
+/// Full-screen color wash that fades when a light cue fires.
+/// Reads the CueFXEngine's currentFlash, and animates its own local opacity
+/// so the wash hits instantly then fades out.
+private struct FlashOverlay: View {
+    let flash: CueFXEngine.FlashState?
+    @State private var renderedID: UUID?
+    @State private var opacity: Double = 0
+
+    var body: some View {
+        Rectangle()
+            .fill(flash?.color ?? .clear)
+            .opacity(opacity)
+            .animation(.easeOut(duration: 0.75), value: opacity)
+            .onChange(of: flash?.cueID) { _, newID in
+                guard let newID, let f = flash, newID != renderedID else {
+                    if flash == nil { opacity = 0 }
+                    return
+                }
+                renderedID = newID
+                // Snap to the flash amplitude, then the animation above fades it.
+                opacity = f.alpha
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: UInt64(f.holdDuration * 1_000_000_000))
+                    opacity = 0
+                }
+            }
+    }
+}
+
+/// Tiny singleton that bridges the ARStageContainer's ARSession into a shared
+/// ARPoseProvider. The container creates its session, then calls
+/// `PerformerARHost.shared.adopt(session:)`. The host builds (or rebuilds) the
+/// provider so a single session feeds both pose tracking AND the AR background.
+@MainActor
+final class PerformerARHost {
+    static let shared = PerformerARHost()
+    private(set) var provider: ARPoseProvider?
+    private weak var store: BlockingStore?
+    private weak var session: SessionController?
+
+    func configure(store: BlockingStore, session: SessionController) {
+        self.store = store
+        self.session = session
+    }
+
+    func adopt(session arSession: ARSession) {
+        guard let store, let sc = self.session else { return }
+        provider = ARPoseProvider(session: arSession, store: store, sessionController: sc)
+    }
+
+    /// Fallback when AR background is disabled: run a provider that owns its own session.
+    func startStandalone() {
+        guard provider == nil || provider?.session.delegate == nil else { return }
+        guard let store, let sc = session else { return }
+        let p = ARPoseProvider(store: store, sessionController: sc)
+        p.start()
+        provider = p
+    }
+
+    func stop() {
+        provider?.stop()
+        provider = nil
     }
 }
 

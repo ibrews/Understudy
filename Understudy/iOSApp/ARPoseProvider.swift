@@ -15,16 +15,37 @@ final class ARPoseProvider: NSObject, ARSessionDelegate {
     let session: ARSession
     private weak var store: BlockingStore?
     private weak var sessionController: SessionController?
+    /// When true, `start()` / `stop()` are no-ops because another component
+    /// (e.g. ARView) owns this session's lifecycle.
+    private let ownsSession: Bool
 
+    /// Original init — provider creates and runs its own ARSession.
     init(store: BlockingStore, sessionController: SessionController) {
         self.session = ARSession()
         self.store = store
         self.sessionController = sessionController
+        self.ownsSession = true
         super.init()
         session.delegate = self
     }
 
+    /// Overload for when an `ARView` (or other host) already owns an `ARSession`.
+    /// The provider attaches as delegate to read pose updates but does NOT
+    /// start or stop the session itself.
+    init(session: ARSession, store: BlockingStore, sessionController: SessionController) {
+        self.session = session
+        self.store = store
+        self.sessionController = sessionController
+        self.ownsSession = false
+        super.init()
+        // Be polite: if the host set its own delegate, chain is the caller's
+        // responsibility. For Understudy the ARView doesn't install a delegate,
+        // so we just claim it.
+        session.delegate = self
+    }
+
     func start() {
+        guard ownsSession else { return }
         let config = ARWorldTrackingConfiguration()
         config.planeDetection = [.horizontal]
         config.environmentTexturing = .none
@@ -32,6 +53,7 @@ final class ARPoseProvider: NSObject, ARSessionDelegate {
     }
 
     func stop() {
+        guard ownsSession else { return }
         session.pause()
     }
 

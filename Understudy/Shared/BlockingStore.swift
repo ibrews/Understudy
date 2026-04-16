@@ -148,6 +148,40 @@ public final class BlockingStore {
         return walk
     }
 
+    // MARK: - Playback
+
+    /// Interpolate the recorded reference walk at a given 0…1 normalized time.
+    /// Returns `nil` if no reference walk exists, or if its samples are empty.
+    /// Linear interpolation between the two bracketing samples.
+    public func ghostPose(at normalizedT: Double) -> Pose? {
+        guard let walk = blocking.reference, !walk.samples.isEmpty else { return nil }
+        let t = max(0, min(1, normalizedT)) * walk.duration
+        let samples = walk.samples
+        if samples.count == 1 { return samples[0].pose }
+        // Find the bracketing indices.
+        if t <= samples.first!.t { return samples.first!.pose }
+        if t >= samples.last!.t { return samples.last!.pose }
+        var lo = 0
+        var hi = samples.count - 1
+        while hi - lo > 1 {
+            let mid = (lo + hi) / 2
+            if samples[mid].t <= t { lo = mid } else { hi = mid }
+        }
+        let a = samples[lo]
+        let b = samples[hi]
+        let span = b.t - a.t
+        let alpha: Float = span > 0 ? Float((t - a.t) / span) : 0
+        // Lerp position; shortest-arc blend for yaw.
+        let x = a.pose.x + (b.pose.x - a.pose.x) * alpha
+        let y = a.pose.y + (b.pose.y - a.pose.y) * alpha
+        let z = a.pose.z + (b.pose.z - a.pose.z) * alpha
+        var dy = b.pose.yaw - a.pose.yaw
+        while dy >  .pi { dy -= 2 * .pi }
+        while dy < -.pi { dy += 2 * .pi }
+        let yaw = a.pose.yaw + dy * alpha
+        return Pose(x: x, y: y, z: z, yaw: yaw)
+    }
+
     // MARK: - Sequencing helpers
 
     /// Next mark the performer should hit, based on current position.
