@@ -56,8 +56,14 @@ class UnderstudyApp : Application() {
 
 private val Context.dataStore by preferencesDataStore(name = "understudy_prefs")
 
-/** App-wide mode — matches the two iOS author/performer cards. */
-enum class AppMode { UNSET, PERFORM, AUTHOR }
+/**
+ * App-wide mode — matches the iOS author/performer/audience cards.
+ *
+ * AUDIENCE turns the phone into a self-paced audio tour. The audience walks
+ * between recorded marks and the next cue card fires when they step into the
+ * target mark's radius (proximity alone — no wall-clock timing).
+ */
+enum class AppMode { UNSET, PERFORM, AUTHOR, AUDIENCE }
 
 class PrefsRepo(private val context: Context) {
     private val KEY_LOCAL_ID = stringPreferencesKey("local_id")
@@ -81,6 +87,7 @@ class PrefsRepo(private val context: Context) {
             when (it[KEY_APP_MODE]) {
                 "perform" -> AppMode.PERFORM
                 "author" -> AppMode.AUTHOR
+                "audience" -> AppMode.AUDIENCE
                 else -> AppMode.UNSET
             }
         }
@@ -110,6 +117,7 @@ class PrefsRepo(private val context: Context) {
             it[KEY_APP_MODE] = when (v) {
                 AppMode.PERFORM -> "perform"
                 AppMode.AUTHOR -> "author"
+                AppMode.AUDIENCE -> "audience"
                 AppMode.UNSET -> ""
             }
         }

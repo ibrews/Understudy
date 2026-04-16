@@ -109,6 +109,9 @@ fun SettingsScreen(
                 ModePill(label = "Author", selected = mode == AppMode.AUTHOR) {
                     mode = AppMode.AUTHOR
                 }
+                ModePill(label = "Audience", selected = mode == AppMode.AUDIENCE) {
+                    mode = AppMode.AUDIENCE
+                }
             }
 
             Spacer(Modifier.height(16.dp))

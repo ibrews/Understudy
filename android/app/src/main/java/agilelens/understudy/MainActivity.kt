@@ -4,6 +4,7 @@ import agilelens.understudy.ar.ArPoseProvider
 import agilelens.understudy.model.Id
 import agilelens.understudy.model.Mark
 import agilelens.understudy.net.NetMessage
+import agilelens.understudy.ui.AudienceScreen
 import agilelens.understudy.ui.AuthorScreen
 import agilelens.understudy.ui.MarkEditor
 import agilelens.understudy.ui.ModePickerScreen
@@ -322,6 +323,15 @@ class MainActivity : ComponentActivity() {
                     app.transport.send(NetMessage.MarkAdded(newMark), app.localId)
                     editingMarkId = newMark.id
                 },
+            )
+            AppMode.AUDIENCE -> AudienceScreen(
+                blocking = blocking,
+                local = local,
+                peerCount = peers,
+                roomCode = snap.roomCode,
+                onOpenSettings = { showSettings = true },
+                arProvider = arProvider,
+                showArStage = snap.showArStage,
             )
             AppMode.PERFORM, AppMode.UNSET -> PerformerScreen(
                 blocking = blocking,
