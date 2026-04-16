@@ -116,6 +116,8 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         arProvider.close()
+        // Engine lives in UnderstudyApp, not the activity, so we don't shut it
+        // down here — it needs to survive config changes (screen rotation etc).
     }
 
     // --- Composition ---
@@ -172,7 +174,8 @@ class MainActivity : ComponentActivity() {
         if (showTeleprompter) {
             agilelens.understudy.teleprompter.TeleprompterScreen(
                 store = app.store,
-                onDismiss = { showTeleprompter = false }
+                onDismiss = { showTeleprompter = false },
+                fx = app.fx,
             )
             return
         }
@@ -352,7 +355,8 @@ class MainActivity : ComponentActivity() {
                 showArStage = snap.showArStage,
                 showDepthOverlay = snap.showDepthOverlay,
                 showFloatingScript = snap.showFloatingScript,
-                onOpenTeleprompter = { showTeleprompter = true }
+                onOpenTeleprompter = { showTeleprompter = true },
+                fx = app.fx,
             )
         }
     }
@@ -418,7 +422,16 @@ class MainActivity : ComponentActivity() {
                     is NetMessage.Hello -> app.store.upsertPerformer(m.performer)
                     is NetMessage.PerformerUpdate -> app.store.upsertPerformer(m.performer)
                     is NetMessage.Goodbye -> app.store.removePerformer(m.id)
-                    is NetMessage.CueFired -> { /* director-side; no-op on performer */ }
+                    is NetMessage.CueFired -> {
+                        // A peer (director) announced a cue fire — look up the
+                        // cue on the named mark and fire it locally via the
+                        // engine so every device in the room reacts in sync.
+                        val mark = app.store.blocking.value.marks.firstOrNull { it.id == m.markID }
+                        val cue = mark?.cues?.firstOrNull { it.id == m.cueID }
+                        if (mark != null && cue != null) {
+                            app.fx.preview(cue)
+                        }
+                    }
                     is NetMessage.PlaybackState -> { /* reserved */ }
                 }
             }

@@ -1,5 +1,6 @@
 package agilelens.understudy
 
+import agilelens.understudy.cuefx.CueFXEngine
 import agilelens.understudy.model.Id
 import agilelens.understudy.net.WebSocketTransport
 import agilelens.understudy.store.BlockingStore
@@ -35,6 +36,14 @@ class UnderstudyApp : Application() {
     lateinit var store: BlockingStore
         private set
 
+    /**
+     * Cue firing engine — owns the audio/flash/hold reactions to the store's
+     * cueQueue. Attached once at bootstrap; every screen that needs to observe
+     * flashState/holdState collects the engine's flows directly.
+     */
+    lateinit var fx: CueFXEngine
+        private set
+
     lateinit var localId: Id
         private set
 
@@ -49,6 +58,13 @@ class UnderstudyApp : Application() {
 
         store = BlockingStore(localID = localId, localDisplayName = name)
         transport = WebSocketTransport(appScope)
+        fx = CueFXEngine().also { it.attach(store) }
+    }
+
+    override fun onTerminate() {
+        // Unit tests never hit this; Android process death runs it best-effort.
+        super.onTerminate()
+        try { fx.shutdown() } catch (_: Throwable) { /* ignore */ }
     }
 }
 

@@ -2,6 +2,8 @@ package agilelens.understudy.ui
 
 import agilelens.understudy.BuildConfig
 import agilelens.understudy.ar.ArPoseProvider
+import agilelens.understudy.cuefx.CueFXEngine
+import agilelens.understudy.cuefx.FlashOverlay
 import agilelens.understudy.model.Blocking
 import agilelens.understudy.model.CameraSpec
 import agilelens.understudy.model.Cue
@@ -43,6 +45,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,8 +79,13 @@ fun PerformerScreen(
     showArStage: Boolean = false,
     showDepthOverlay: Boolean = false,
     showFloatingScript: Boolean = false,
-    onOpenTeleprompter: () -> Unit = {}
+    onOpenTeleprompter: () -> Unit = {},
+    fx: CueFXEngine? = null,
 ) {
+    // Read the engine's live flash/hold state so we can render the overlay
+    // and the "HOLD 1.4 s" badge without threading state into every child.
+    val flash = fx?.flashState?.collectAsState()?.value
+    val hold = fx?.holdState?.collectAsState()?.value
     val currentMark: Mark? = local.currentMarkID?.let { id ->
         blocking.marks.firstOrNull { it.id == id }
     }
@@ -164,6 +172,37 @@ fun PerformerScreen(
                 isRecording = isRecording,
                 onToggleRecording = onToggleRecording
             )
+        }
+
+        // Lighting flash overlay — full-screen, fades over 0.75 s. Matches iOS's
+        // FlashOverlay. Hit-test-transparent so it never swallows taps.
+        FlashOverlay(flash = flash, modifier = Modifier.fillMaxSize())
+
+        // Wait/hold badge — mirrors the iOS "HOLD 1.4 s" chip the director sees
+        // next to recent cues. Anchored top-center so a performer glancing at
+        // their phone can read the countdown at a glance.
+        if (hold != null) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(top = 64.dp),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFFFF9800).copy(alpha = 0.9f))
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = "HOLD  %.1f s".format(hold),
+                        color = Color.Black,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+            }
         }
     }
 }
