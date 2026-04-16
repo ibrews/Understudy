@@ -197,17 +197,35 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 
 ### Next up
 - [ ] Google AI Glasses companion mode — paired to an iPhone, 480×480 glasses canvas shows the current mark's line cues only. Same wire protocol, same `TeleprompterView` rendering, tighter UI. Alex's reference implementation at `ai-samples/samples/gemini-live-todo/.../teleprompter/`.
-- [ ] Android CueFXEngine — port the iOS engine so Android gets audio/flash cue effects + voice-driven auto-fire (v0.17 ported scroll-only; firing still pending).
 - [ ] Next-mark auto-advance — right now voice auto-fire handles sub-mark cues; the performer still has to physically walk to advance marks. Optional toggle: when the last line on a mark finishes via voice AND the performer is within N seconds of walking, pre-advance the cue cursor.
 - [ ] Migrate Monitoring code to AgileLensMultiplayer SPM dependency (currently copied in)
 - [ ] Gestural rotation on visionOS 2.0 target — v0.12 translates via drag but rotates via ±15° buttons (1.0 has no `RotateGesture3D`). Uniform scale still unbuilt — add when there's a use case beyond "1:1 scale is what I want."
-- [ ] Android LiDAR pass-through (ARCore Depth API on supported devices)
 - [ ] More modern plays — `parse_modern.py` works for Chekhov + Wilde; try Cherry Orchard, Ghosts (Ibsen), Three Sisters, Salomé. Beckett's copyright expires in 2059 in Europe so is off the table.
-- [ ] Android floating script panels (feature parity with visionOS)
-- [ ] Android Audience mode + camera marks
+- [ ] Audience-mode flash overlay — v0.23 wires CueFXEngine to Performer + Teleprompter screens but not AudienceScreen; audience walkers don't see flash cues yet.
+- [ ] Real SFX bundle on Android — v0.23's `CueAudioPlayer` uses `ToneGenerator` bursts as placeholders. Drop WAVs into `android/app/src/main/res/raw/` and swap in `SoundPool`. iOS hits Apple's system-sound ROM which Android can't mirror.
 - [ ] DMX direct output (sACN / Art-Net)
 - [ ] Lens/sensor pickers with real-world presets (ARRI, RED, Sony FX, cine primes)
 - [ ] `HANDOFF_GOOGLE_PLAY.md` — Android internal-testing track (parallel to `HANDOFF_TESTFLIGHT.md`). Needs release keystore + Play Console click-through.
+
+### v0.23 · Android parity sprint — five features in one drop
+Closes the long tail of Android-vs-iOS gaps with five features built in parallel by isolated agents on worktree branches, then sequentially merged. All five build clean and the 6 WireCompatTests still pass.
+
+**1. Audience mode** — third-card choice in the mode picker alongside Performer and Author. Renders the AR stage + current-mark card + next-line preview + progress ("Mark 3 of 12"). Auto-advances when you walk into the next mark's radius (proximity alone, no wall-clock). iOS already had it; Android was the hold-out.
+- New `ui/AudienceScreen.kt`, `AppMode.AUDIENCE` enum case, third `ModePill` in Settings, third `ModeCard` in the mode picker.
+
+**2. Floating script panels** — visionOS-style world-anchored cards. The next line shows as a translucent card floating above the mark you're walking toward, projected to screen-space using the same view×projection matrices the mark-disc overlay already caches. Typography mirrors the teleprompter (character in uppercase StageRed monospace, line in serif white, mark name dimmed). Toggled by a new "Floating script panels" Display pref; performer mode only, AR stage only.
+- New `ui/ScriptPanelOverlay.kt`. `ArStageView` gains `showFloatingScript: Boolean = false` param; `SettingsState` + `PrefsRepo` gain `showFloatingScript`.
+
+**3. ARCore Depth pass-through** — colored per-pixel depth overlay (warm = near, cool = far, no-data = transparent). Android's analogue to the iOS LiDAR mesh visualization. Gated on `session.isDepthModeSupported(AUTOMATIC)` so devices without depth silently render nothing.
+- New `ar/DepthRenderer.kt`. `ArPoseProvider` now configures `DepthMode.AUTOMATIC`. New "Depth overlay" Display pref.
+
+**4. Camera marks + viewfinder (film director mode)** — Android now gets the UI for the camera-mark data model that shipped back in v0.20. The mark editor has an Actor/Camera toggle revealing a `CameraSpec` form (focal-length chips for 14/24/35/50/85/135mm + freeform, sensor picker, tripod-height and tilt sliders). The AR stage draws a cyan FOV wedge on the floor for every camera mark; standing on a camera mark overlays a rectangular viewfinder cutout matching that lens/sensor over the live AR feed (with corner ticks + rule-of-thirds + lens chip "35mm · 54°").
+- New `model/CameraSpecHelpers.kt` (FOV extension props + `LensPresets` + `SensorPresets`, all outside `CoreModels.kt` to keep the wire format sacred). New `ui/ViewfinderOverlay.kt`. `ArStageView` tints camera discs cyan and draws wedges. `MarkEditor` gains the Camera form.
+
+**5. CueFXEngine firing** — the scroll-only port from v0.17 is now the full engine. Walk onto a mark → audio + flash + hold cues fire locally, voice-recognized spoken lines auto-fire matching cues (reusing the v0.17 `SpeechRecognizer`). Replaces the `isAutoFire = false` hardcode in `TeleprompterScreen`.
+- New `cuefx/CueFXEngine.kt` (attaches to store's cue queue, exposes `flashState`/`holdState`/`lastAutoFireBatch` StateFlows), `cuefx/CueAudioPlayer.kt` (ToneGenerator-based bursts — SFX catalog swap-in path is documented: drop WAVs into `res/raw/` and swap in `SoundPool`), `cuefx/FlashOverlay.kt` (full-screen Compose wash). `BlockingStore` gains `FiredCue` + `cueQueue` + `enqueueCuesForMark`. The engine lives on `UnderstudyApp` so it survives config changes. Remote `NetMessage.CueFired` envelopes now fire the engine locally.
+
+The iOS/visionOS side keeps its CueFXEngine unchanged — wire format is untouched, so an iPhone, Apple Vision Pro, and Android phone all see the same fire events when a performer crosses a mark.
 
 ### v0.22 · Android tap-to-place on the AR stage
 Closes the last v0.21 Author-mode parity gap with iOS/visionOS. On iPhone, an author can aim the live AR view at any point in the room and tap the floor to place a mark there. Before v0.22 an Android author could only drop marks at the performer's *current* position, which meant walking to every intended mark. Now the floor tap does the walking for you.
