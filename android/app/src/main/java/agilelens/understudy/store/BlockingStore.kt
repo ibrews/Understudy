@@ -1,6 +1,7 @@
 package agilelens.understudy.store
 
 import agilelens.understudy.model.Blocking
+import agilelens.understudy.model.Cue
 import agilelens.understudy.model.Id
 import agilelens.understudy.model.Mark
 import agilelens.understudy.model.Performer
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import java.time.Instant
+import java.util.UUID
 
 /**
  * Observable store mirroring the iOS BlockingStore.
@@ -43,6 +45,33 @@ class BlockingStore(
         Performer(id = localID, displayName = localDisplayName, role = Role.performer)
     )
     val localPerformer: StateFlow<Performer> = _localPerformer.asStateFlow()
+
+    /**
+     * Queue of cues freshly fired by mark entry — the CueFXEngine drains this on
+     * the main thread and turns each one into audio/flash/hold. Mirrors Swift's
+     * `BlockingStore.cueQueue`. Appended to only when a performer transitions
+     * onto a new mark (never per-frame while camping on one).
+     */
+    data class FiredCue(
+        val id: String = UUID.randomUUID().toString(),
+        val cue: Cue,
+        val markName: String,
+        val performerID: Id,
+    )
+
+    private val _cueQueue = MutableStateFlow<List<FiredCue>>(emptyList())
+    val cueQueue: StateFlow<List<FiredCue>> = _cueQueue.asStateFlow()
+
+    fun drainCue(id: String) = _cueQueue.update { q -> q.filterNot { it.id == id } }
+
+    fun drainCues(ids: Set<String>) = _cueQueue.update { q -> q.filterNot { it.id in ids } }
+
+    /** Manually enqueue — used by OSC GO / "as-if-entered" flows. */
+    fun enqueueCuesForMark(mark: Mark, performerID: Id) {
+        val additions = mark.cues.map { FiredCue(cue = it, markName = mark.name, performerID = performerID) }
+        if (additions.isEmpty()) return
+        _cueQueue.update { it + additions }
+    }
 
     // --- blocking updates ---
 
@@ -79,6 +108,14 @@ class BlockingStore(
         )
         _localPerformer.value = updated
         _performers.update { it + (updated.id to updated) }
+
+        // Mirror iOS: fire cues ONLY on the entry transition — not per-frame
+        // while camping on a mark. Requires a newly-bound mark id *and* that
+        // it differs from the previous mark.
+        if (changed && onMark != null) {
+            val mark = b.marks.firstOrNull { it.id == onMark }
+            if (mark != null) enqueueCuesForMark(mark, updated.id)
+        }
         return changed
     }
 

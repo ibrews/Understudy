@@ -1,5 +1,7 @@
 package agilelens.understudy.teleprompter
 
+import agilelens.understudy.cuefx.CueFXEngine
+import agilelens.understudy.cuefx.FlashOverlay
 import agilelens.understudy.store.BlockingStore
 import android.Manifest
 import android.content.Context
@@ -65,7 +67,11 @@ import kotlin.math.min
  * active window in cyan, future in white.
  */
 @Composable
-fun TeleprompterScreen(store: BlockingStore, onDismiss: () -> Unit) {
+fun TeleprompterScreen(
+    store: BlockingStore,
+    onDismiss: () -> Unit,
+    fx: CueFXEngine? = null,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -75,13 +81,17 @@ fun TeleprompterScreen(store: BlockingStore, onDismiss: () -> Unit) {
     var speed by rememberSaveable { mutableStateOf(14) }  // cps
     var isAutoScrolling by remember { mutableStateOf(false) }
     var isVoiceMode by remember { mutableStateOf(false) }
-    // Auto-fire lives behind a CueFXEngine-equivalent port to Kotlin — not
-    // yet wired. When Android gets its own cue queue, this toggle + the
-    // auto-fire branch below come alive. For now, voice mode just scrolls.
-    val isAutoFire = false
+    // Auto-fire: voice matches a cue.line → CueFXEngine fires the trailing
+    // SFX/light/wait cues on the same mark. Disabled by default — performers
+    // explicitly opt in so they can rehearse dry without firing lights.
+    var isAutoFire by rememberSaveable { mutableStateOf(false) }
     var lastHeard by remember { mutableStateOf("") }
-    val fireFlashCount = 0
-    val fireFlashAt = 0L
+
+    // Feedback flash banner — iOS shows "🔥 N cues fired" for 2 s.
+    val autoFireBatch = fx?.lastAutoFireBatch?.collectAsState()?.value
+    val fireFlashCount = autoFireBatch?.count ?: 0
+    val fireFlashAt = autoFireBatch?.atEpochMs ?: 0L
+    val flashState = fx?.flashState?.collectAsState()?.value
 
     // Android XR AI Glasses pairing — only polled on API 36+.
     val isGlassesConnected = if (Build.VERSION.SDK_INT >= 36) {
@@ -156,7 +166,7 @@ fun TeleprompterScreen(store: BlockingStore, onDismiss: () -> Unit) {
     }
 
     // Wire speech → voice matcher → scroll + auto-fire.
-    LaunchedEffect(isVoiceMode) {
+    LaunchedEffect(isVoiceMode, isAutoFire) {
         if (!isVoiceMode) return@LaunchedEffect
         speech.onHeard = { transcript ->
             lastHeard = transcript.takeLast(64)
@@ -166,11 +176,23 @@ fun TeleprompterScreen(store: BlockingStore, onDismiss: () -> Unit) {
                 currentProgress = scrollProgress
             )
             if (matched != null && matched > scrollProgress) {
+                val oldProgress = scrollProgress
                 scrollProgress = matched.coerceIn(0.0, 1.0)
-                // Auto-fire branch lives here in Swift — Kotlin port pending
-                // once Android's BlockingStore grows a cue queue + CueFXEngine.
+                // Mirrors iOS TeleprompterView.startVoiceMode auto-fire branch.
+                if (isAutoFire && fx != null) {
+                    val finished = document.linesFinishedBetween(oldProgress, scrollProgress)
+                    for (marker in finished) {
+                        fx.voiceLineFinished(cueID = marker.cueId, onMarkID = marker.markId)
+                    }
+                }
             }
         }
+    }
+
+    // When the teleprompter is scrolled back to the top, reset voice-fire
+    // memory so a second read of the script fires cues again.
+    LaunchedEffect(scrollProgress) {
+        if (scrollProgress == 0.0) fx?.resetVoiceFiredCues()
     }
 
     Dialog(
@@ -197,6 +219,10 @@ fun TeleprompterScreen(store: BlockingStore, onDismiss: () -> Unit) {
                     scrollProgress = scrollProgress,
                     textSize = textSize
                 )
+                // Flash overlay sits between the scrolling text and the
+                // controls so a light cue dims the script briefly. Pointer-
+                // transparent — drags still hit the Box above.
+                FlashOverlay(flash = flashState, modifier = Modifier.fillMaxSize())
                 Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                     TopBar(
                         title = store.blocking.value.title,
@@ -231,7 +257,12 @@ fun TeleprompterScreen(store: BlockingStore, onDismiss: () -> Unit) {
                                 permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                             }
                         },
-                        onAutoFireToggle = { /* pending Android CueFXEngine port */ },
+                        onAutoFireToggle = {
+                            // Auto-fire only makes sense while voice mode is on —
+                            // UI already gates `enabled = isVoiceMode`. Toggle
+                            // the user preference; the speech listener re-wires.
+                            isAutoFire = !isAutoFire
+                        },
                         onGlassesLaunch = {
                             val host = context.findActivity()
                             if (host != null) GlassesLauncher.launch(host)
