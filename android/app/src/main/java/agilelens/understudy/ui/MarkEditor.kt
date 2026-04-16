@@ -1,9 +1,15 @@
 package agilelens.understudy.ui
 
+import agilelens.understudy.model.CameraSpec
 import agilelens.understudy.model.Cue
 import agilelens.understudy.model.Id
+import agilelens.understudy.model.LensPresets
 import agilelens.understudy.model.LightColor
 import agilelens.understudy.model.Mark
+import agilelens.understudy.model.MarkKind
+import agilelens.understudy.model.SensorPreset
+import agilelens.understudy.model.SensorPresets
+import agilelens.understudy.model.horizontalFOV
 import agilelens.understudy.model.humanLabel
 import agilelens.understudy.ui.theme.CurtainBlack
 import agilelens.understudy.ui.theme.CurtainRed
@@ -34,6 +40,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -78,18 +86,37 @@ fun MarkEditor(
     var name by remember { mutableStateOf(initial.name) }
     var radius by remember { mutableStateOf(initial.radius) }
     var cues by remember { mutableStateOf(initial.cues) }
+    var kind by remember { mutableStateOf(initial.kind) }
+    // Keep the last camera spec around so toggling back to Camera restores it
+    // instead of snapping to defaults every time.
+    var camera by remember {
+        mutableStateOf(initial.camera ?: CameraSpec())
+    }
     var showScriptBrowser by remember { mutableStateOf(false) }
 
     // Helpers — commit whenever any field changes
     fun commit(
         newName: String = name,
         newRadius: Float = radius,
-        newCues: List<Cue> = cues
+        newCues: List<Cue> = cues,
+        newKind: MarkKind = kind,
+        newCamera: CameraSpec = camera,
     ) {
         name = newName
         radius = newRadius
         cues = newCues
-        onChange(initial.copy(name = newName, radius = newRadius, cues = newCues))
+        kind = newKind
+        camera = newCamera
+        onChange(
+            initial.copy(
+                name = newName,
+                radius = newRadius,
+                cues = newCues,
+                kind = newKind,
+                // Wire format rule: camera is only attached when kind == camera.
+                camera = if (newKind == MarkKind.camera) newCamera else null,
+            )
+        )
     }
 
     Box(
@@ -124,6 +151,17 @@ fun MarkEditor(
             }
             Spacer(Modifier.height(12.dp))
 
+            // Kind toggle — actor mark vs. camera mark (v0.23). Actor marks
+            // drive the performer teleprompter + cueing; camera marks are
+            // pre-viz references with lens metadata and render a FOV wedge
+            // in AR instead of a standing disc.
+            SectionLabel("Kind")
+            KindToggle(
+                selected = kind,
+                onSelect = { picked -> commit(newKind = picked) },
+            )
+            Spacer(Modifier.height(16.dp))
+
             // Name
             SectionLabel("Name")
             DarkField(
@@ -141,6 +179,15 @@ fun MarkEditor(
                 valueRange = 0.2f..2.0f
             )
             Spacer(Modifier.height(24.dp))
+
+            // Camera form — only shown for camera marks.
+            if (kind == MarkKind.camera) {
+                CameraSpecForm(
+                    spec = camera,
+                    onChange = { updated -> commit(newCamera = updated) },
+                )
+                Spacer(Modifier.height(24.dp))
+            }
 
             // Cues list
             SectionLabel("Cues")
@@ -413,6 +460,202 @@ private fun AddButton(enabled: Boolean = true, onClick: () -> Unit) {
         Icon(Icons.Filled.Add, contentDescription = null, tint = WhiteText)
         Spacer(Modifier.width(4.dp))
         Text("Add", color = WhiteText, fontSize = 13.sp)
+    }
+}
+
+/**
+ * Segmented toggle between Actor and Camera mark kinds. Styling mirrors the
+ * LightColor row — selected pill uses StageRed, unselected uses white @ 8%.
+ */
+@Composable
+private fun KindToggle(
+    selected: MarkKind,
+    onSelect: (MarkKind) -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White.copy(alpha = 0.05f))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        MarkKind.values().forEach { k ->
+            val on = k == selected
+            Box(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(
+                        if (on) StageRed.copy(alpha = 0.75f)
+                        else Color.Transparent
+                    )
+                    .clickable { onSelect(k) }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = k.name.replaceFirstChar { it.titlecase() },
+                    color = WhiteText,
+                    fontSize = 14.sp,
+                    fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Lens + rig form for a camera mark. Each control writes through `onChange`
+ * so every tweak is broadcast over the transport (same pattern as the
+ * actor-mark fields).
+ *
+ * Focal length: preset chips (14/24/35/50/85/135) + freeform numeric field
+ * Sensor:       dropdown of presets (Full-frame / Super 35 / APS-C / M4/3 / S16)
+ * Height:       slider 0.5–2.5 m
+ * Tilt:         slider -30° to +30°
+ */
+@Composable
+private fun CameraSpecForm(
+    spec: CameraSpec,
+    onChange: (CameraSpec) -> Unit,
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White.copy(alpha = 0.05f))
+            .padding(12.dp)
+    ) {
+        SectionLabel("Focal length")
+        Spacer(Modifier.height(6.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            LensPresets.focalLengthsMM.forEach { mm ->
+                val on = kotlin.math.abs(spec.focalLengthMM - mm) < 0.1f
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            if (on) StageRed.copy(alpha = 0.7f)
+                            else Color.White.copy(alpha = 0.08f)
+                        )
+                        .clickable { onChange(spec.copy(focalLengthMM = mm)) }
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Text("${mm.toInt()}mm", color = WhiteText, fontSize = 12.sp)
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        // Freeform input — lets a DP dial in e.g. 40mm or 100mm macro.
+        var focalText by remember(spec.focalLengthMM) {
+            mutableStateOf("%.0f".format(spec.focalLengthMM))
+        }
+        DarkField(
+            value = focalText,
+            onChange = { raw ->
+                focalText = raw
+                raw.toFloatOrNull()?.let { mm ->
+                    if (mm in 4f..800f) onChange(spec.copy(focalLengthMM = mm))
+                }
+            },
+            placeholder = "Custom focal length (mm)"
+        )
+        Spacer(Modifier.height(12.dp))
+
+        // Sensor size — collapsed dropdown. Full-frame default already shown.
+        SectionLabel("Sensor")
+        Spacer(Modifier.height(6.dp))
+        SensorDropdown(
+            current = spec,
+            onPick = { preset ->
+                onChange(
+                    spec.copy(
+                        sensorWidthMM = preset.widthMM,
+                        sensorHeightMM = preset.heightMM,
+                    )
+                )
+            }
+        )
+        Spacer(Modifier.height(12.dp))
+
+        // Tripod height — 0.5–2.5 m covers a crouch rig up through a stand.
+        SectionLabel("Tripod height: ${"%.2f".format(spec.heightM)} m")
+        Slider(
+            value = spec.heightM,
+            onValueChange = { onChange(spec.copy(heightM = it)) },
+            valueRange = 0.5f..2.5f,
+        )
+        Spacer(Modifier.height(8.dp))
+
+        // Tilt in degrees for the user; stored as radians in the model.
+        val tiltDeg = spec.tiltRadians * 180f / Math.PI.toFloat()
+        SectionLabel("Tilt: ${"%.0f".format(tiltDeg)}°")
+        Slider(
+            value = tiltDeg,
+            onValueChange = { deg ->
+                onChange(spec.copy(tiltRadians = deg * Math.PI.toFloat() / 180f))
+            },
+            valueRange = -30f..30f,
+        )
+        Spacer(Modifier.height(6.dp))
+
+        // Computed HFOV readout — matches iOS's AuthorView chip.
+        val hfovDeg = spec.horizontalFOV * 180f / Math.PI.toFloat()
+        Text(
+            text = "HFOV %.0f°  ·  %.0f × %.0f mm".format(
+                hfovDeg, spec.sensorWidthMM, spec.sensorHeightMM
+            ),
+            color = WhiteDim,
+            fontSize = 11.sp,
+        )
+    }
+}
+
+@Composable
+private fun SensorDropdown(
+    current: CameraSpec,
+    onPick: (SensorPreset) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val activeLabel = SensorPresets.all.firstOrNull {
+        kotlin.math.abs(current.sensorWidthMM - it.widthMM) < 0.1f &&
+            kotlin.math.abs(current.sensorHeightMM - it.heightMM) < 0.1f
+    }?.name ?: "Custom"
+
+    Box {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color.White.copy(alpha = 0.08f))
+                .clickable { expanded = true }
+                .padding(horizontal = 12.dp, vertical = 10.dp)
+        ) {
+            Text(
+                text = "$activeLabel  (${"%.1f".format(current.sensorWidthMM)} × ${"%.1f".format(current.sensorHeightMM)} mm)",
+                color = WhiteText,
+                fontSize = 13.sp,
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            SensorPresets.all.forEach { preset ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            "${preset.name} — ${"%.1f".format(preset.widthMM)} × ${"%.1f".format(preset.heightMM)} mm"
+                        )
+                    },
+                    onClick = {
+                        onPick(preset)
+                        expanded = false
+                    },
+                )
+            }
+        }
     }
 }
 
