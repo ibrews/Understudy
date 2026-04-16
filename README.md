@@ -94,11 +94,19 @@ See **[QUICKSTART.md](QUICKSTART.md)** for the full multi-device flow. TL;DR:
 - [x] **Android performer** — ARCore world tracking + OkHttp WebSocket
 - [x] **WebSocket relay** — Python server, room-scoped broadcast, cross-platform
 
+### v0.3
+- [x] **Three modes on iPhone** — Perform, Author, Audience. First-launch picker + re-switchable from Settings.
+- [x] **Author mode** — tap the AR floor to drop marks, tap a mark to edit name/radius/cues inline. Drop lines, sounds, lights, waits, and director notes without an AVP.
+- [x] **Audience mode** — self-paced walk through a finished blocking, hides director notes, progress bar. Site-specific theater as a finished product.
+- [x] **Save / load `.understudy` blockings** — SwiftUI `fileExporter` / `fileImporter`, pretty-printed JSON (same shape as the wire format, so files are hackable).
+- [x] **Autosave** — every mark edit persists to UserDefaults; the app never loses your work between launches.
+- [x] **Bundled demo** — first launch ships a 5-mark Hamlet opening (Elsinore battlements, Bernardo/Francisco/Horatio) with real cues so you can walk through before writing your own.
+
 ### Next
-- [ ] Save / load blockings to disk (JSON already, just needs a browser)
 - [ ] Collaborative AR origin anchor (so all devices agree on (0,0) in the room)
-- [ ] iPhone author mode (drop marks from phone without AVP)
+- [ ] Android author mode + real AR camera background (currently radar-only)
 - [ ] DMX / QLab bridge for real theater rigs
+- [ ] Visible script on visionOS (floating page by each mark)
 - [ ] TestFlight
 
 ## Project rules

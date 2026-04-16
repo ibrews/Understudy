@@ -1,0 +1,545 @@
+//
+//  AuthorView.swift
+//  Understudy (iOS)
+//
+//  Author mode. Same AR camera background as PerformerView, but:
+//    • A big transparent tap target over the stage: tap the floor to drop a mark.
+//    • Tap an existing mark entity to open the inline editor.
+//    • Bottom bar has Export / Import / Clear instead of Record / Ghost.
+//    • Role over the wire is still "performer" — the author is a live body with
+//      a pose, so other devices see them as a ghost avatar.
+//
+
+#if os(iOS)
+import SwiftUI
+import ARKit
+import RealityKit
+import UniformTypeIdentifiers
+
+struct AuthorView: View {
+    @Environment(BlockingStore.self) private var store
+    @Environment(SessionController.self) private var session
+    @Environment(CueFXEngine.self) private var fx
+    @AppStorage("showARStage") private var showARStage: Bool = true
+
+    @State private var editingMark: Mark?
+    @State private var showingSettings = false
+    @State private var exportItem: BlockingDocument?
+    @State private var showingImporter = false
+    @State private var confirmClear = false
+    @State private var placementFeedback: Date?
+
+    private var gradientOpacity: Double { showARStage ? 0.30 : 1.0 }
+
+    var body: some View {
+        ZStack {
+            if showARStage {
+                ARStageContainer { arSession in
+                    PerformerARHost.shared.adopt(session: arSession)
+                }
+                .environment(store)
+                .environment(session)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+            }
+
+            LinearGradient(
+                colors: [Color.black, Color(red: 0.05, green: 0.02, blue: 0.06)],
+                startPoint: .bottom, endPoint: .top
+            )
+            .ignoresSafeArea()
+            .opacity(gradientOpacity)
+            .allowsHitTesting(false)
+
+            // Tap target — a full-screen clear layer that captures taps to drop marks.
+            // Sits BELOW the SwiftUI controls (top bar, buttons) so real UI is not blocked.
+            TapToPlaceOverlay(onTap: handleTap)
+                .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                topBar
+                Spacer()
+                hintCard
+                Spacer()
+                bottomBar
+            }
+            .padding()
+
+            // Quick visual feedback after placing a mark.
+            if let t = placementFeedback, Date().timeIntervalSince(t) < 0.6 {
+                Text("Mark \(store.blocking.marks.count) placed")
+                    .font(.caption.bold())
+                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .foregroundStyle(.white)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .allowsHitTesting(false)
+            }
+        }
+        .preferredColorScheme(.dark)
+        .sheet(item: $editingMark) { mark in
+            MarkEditorSheet(mark: mark)
+                .environment(store)
+                .environment(session)
+        }
+        .sheet(isPresented: $showingSettings) {
+            SettingsSheet()
+                .environment(store)
+                .environment(session)
+        }
+        .fileExporter(
+            isPresented: Binding(
+                get: { exportItem != nil },
+                set: { if !$0 { exportItem = nil } }
+            ),
+            document: exportItem,
+            contentType: .understudyBlocking,
+            defaultFilename: store.blocking.title
+        ) { _ in
+            exportItem = nil
+        }
+        .fileImporter(
+            isPresented: $showingImporter,
+            allowedContentTypes: [.understudyBlocking, .json],
+            allowsMultipleSelection: false
+        ) { result in
+            if case .success(let urls) = result, let url = urls.first {
+                importBlocking(from: url)
+            }
+        }
+        .alert("Clear all marks?", isPresented: $confirmClear) {
+            Button("Cancel", role: .cancel) {}
+            Button("Clear", role: .destructive) {
+                for m in store.blocking.marks {
+                    session.broadcastMarkRemoved(m.id)
+                }
+                store.blocking.marks.removeAll()
+                store.blocking.modifiedAt = Date()
+            }
+        } message: {
+            Text("This removes every mark in '\(store.blocking.title)'. The reference walk is kept.")
+        }
+    }
+
+    // MARK: - UI pieces
+
+    private var topBar: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "mappin.and.ellipse")
+                .font(.title3)
+                .foregroundStyle(.white)
+                .padding(10)
+                .background(.white.opacity(0.08), in: Circle())
+            VStack(alignment: .leading) {
+                HStack(spacing: 4) {
+                    Text(store.blocking.title)
+                        .font(.headline)
+                    Text("AUTHOR")
+                        .font(.caption2.bold())
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(Color.red.opacity(0.8), in: Capsule())
+                        .foregroundStyle(.white)
+                }
+                Text("\(store.blocking.marks.count) marks  •  \(session.peerCount) peers  •  \(AppVersion.formatted)")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.6))
+            }
+            Spacer()
+            Button { showingSettings = true } label: {
+                Image(systemName: "gearshape")
+                    .font(.title3)
+                    .padding(10)
+                    .background(.white.opacity(0.08), in: Circle())
+                    .foregroundStyle(.white)
+            }
+        }
+    }
+
+    private var hintCard: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "hand.tap")
+                .font(.largeTitle)
+                .foregroundStyle(.white.opacity(0.8))
+            Text("Tap the floor to drop a mark")
+                .font(.title3).bold()
+                .foregroundStyle(.white)
+            Text("Tap a mark to edit its cues")
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.6))
+        }
+        .padding(22)
+        .frame(maxWidth: .infinity)
+        .background(.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 20))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(.white.opacity(0.12), lineWidth: 1)
+        )
+        .opacity(store.blocking.marks.isEmpty ? 1.0 : 0.0)
+        .allowsHitTesting(false)
+    }
+
+    private var bottomBar: some View {
+        HStack(spacing: 14) {
+            Button {
+                exportItem = BlockingDocument(blocking: store.blocking)
+            } label: {
+                Label("Export", systemImage: "square.and.arrow.up")
+                    .labelStyle(.iconOnly)
+                    .font(.title2)
+                    .padding(12)
+                    .background(.white.opacity(0.08), in: Circle())
+                    .foregroundStyle(.white)
+            }
+            .accessibilityLabel("Export blocking")
+
+            Button {
+                showingImporter = true
+            } label: {
+                Label("Import", systemImage: "square.and.arrow.down")
+                    .labelStyle(.iconOnly)
+                    .font(.title2)
+                    .padding(12)
+                    .background(.white.opacity(0.08), in: Circle())
+                    .foregroundStyle(.white)
+            }
+            .accessibilityLabel("Import blocking")
+
+            Spacer()
+
+            Button {
+                confirmClear = true
+            } label: {
+                Label("Clear", systemImage: "trash")
+                    .labelStyle(.iconOnly)
+                    .font(.title2)
+                    .padding(12)
+                    .background(.red.opacity(0.5), in: Circle())
+                    .foregroundStyle(.white)
+            }
+            .disabled(store.blocking.marks.isEmpty)
+            .accessibilityLabel("Clear marks")
+        }
+    }
+
+    // MARK: - Tap → place / edit
+
+    private func handleTap(at point: CGPoint) {
+        guard let arView = PerformerARHost.shared.arView else {
+            // AR background is off — drop a mark at the user's current pose.
+            dropMarkAtCurrentPose()
+            return
+        }
+
+        // First, see if the tap hit an existing mark entity.
+        let hits = arView.hitTest(point)
+        if let hit = hits.first,
+           let markID = markID(for: hit.entity) {
+            if let mark = store.blocking.marks.first(where: { $0.id == markID }) {
+                editingMark = mark
+                return
+            }
+        }
+
+        // Otherwise, raycast to a horizontal plane (existing, then estimated).
+        let results = arView.raycast(from: point, allowing: .existingPlaneGeometry, alignment: .horizontal)
+        let fallback = results.first
+            ?? arView.raycast(from: point, allowing: .estimatedPlane, alignment: .horizontal).first
+        guard let result = fallback else {
+            dropMarkAtCurrentPose()
+            return
+        }
+        let t = result.worldTransform
+        dropMark(at: Pose(x: t.columns.3.x, y: 0, z: t.columns.3.z, yaw: 0))
+    }
+
+    /// Extract the mark id by walking up the entity tree looking for a name
+    /// of the form `mark-<id>`.
+    private func markID(for entity: Entity) -> ID? {
+        var node: Entity? = entity
+        while let n = node {
+            if n.name.hasPrefix("mark-") {
+                let raw = String(n.name.dropFirst("mark-".count))
+                return ID(raw)
+            }
+            node = n.parent
+        }
+        return nil
+    }
+
+    private func dropMarkAtCurrentPose() {
+        guard let me = store.localPerformer else { return }
+        dropMark(at: Pose(x: me.pose.x, y: 0, z: me.pose.z, yaw: me.pose.yaw))
+    }
+
+    private func dropMark(at pose: Pose) {
+        let idx = (store.blocking.marks.map(\.sequenceIndex).max() ?? -1) + 1
+        let mark = Mark(
+            name: "Mark \(idx + 1)",
+            pose: pose,
+            radius: 0.6,
+            cues: [],
+            sequenceIndex: idx
+        )
+        store.addMark(mark)
+        session.broadcastMarkAdded(mark)
+        withAnimation(.easeOut(duration: 0.2)) {
+            placementFeedback = Date()
+        }
+        // Light haptic on place.
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    }
+
+    private func importBlocking(from url: URL) {
+        let granted = url.startAccessingSecurityScopedResource()
+        defer { if granted { url.stopAccessingSecurityScopedResource() } }
+        guard let data = try? Data(contentsOf: url),
+              let loaded = try? WireCoding.decoder.decode(Blocking.self, from: data) else {
+            return
+        }
+        // Broadcast removals of the old blocking, then the new snapshot.
+        for m in store.blocking.marks {
+            session.broadcastMarkRemoved(m.id)
+        }
+        store.blocking = loaded
+        BlockingAutosave.save(loaded)
+        // Tell peers we have a new document.
+        if let me = store.localPerformer {
+            session.transport.send(.blockingSnapshot(loaded), from: me.id)
+        }
+    }
+}
+
+// MARK: - Tap overlay
+
+/// A UIKit-backed transparent layer that captures single taps and reports
+/// their location. We use UIKit because SwiftUI's gestures can conflict with
+/// the ARView's touches-through behavior at screen edges.
+private struct TapToPlaceOverlay: UIViewRepresentable {
+    let onTap: (CGPoint) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(onTap: onTap) }
+
+    func makeUIView(context: Context) -> UIView {
+        let v = PassthroughTapView()
+        v.onTap = context.coordinator.handle
+        v.backgroundColor = .clear
+        return v
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        context.coordinator.onTap = onTap
+        (uiView as? PassthroughTapView)?.onTap = context.coordinator.handle
+    }
+
+    final class Coordinator {
+        var onTap: (CGPoint) -> Void
+        init(onTap: @escaping (CGPoint) -> Void) { self.onTap = onTap }
+        func handle(_ p: CGPoint) { onTap(p) }
+    }
+}
+
+/// UIView that captures single taps but lets every other touch pass through
+/// to whatever SwiftUI drew above it. Tap recognizer fires on tap-up.
+private final class PassthroughTapView: UIView {
+    var onTap: ((CGPoint) -> Void)?
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        let tap = UITapGestureRecognizer(target: self, action: #selector(didTap(_:)))
+        tap.cancelsTouchesInView = false
+        addGestureRecognizer(tap)
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    @objc private func didTap(_ g: UITapGestureRecognizer) {
+        onTap?(g.location(in: self))
+    }
+
+    // Let touches on controls above us pass through. We only care about
+    // gesture events, which the recognizer captures anyway.
+    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+        let hit = super.hitTest(point, with: event)
+        return hit === self ? self : hit
+    }
+}
+
+// MARK: - Mark editor sheet
+
+struct MarkEditorSheet: View {
+    @Environment(BlockingStore.self) private var store
+    @Environment(SessionController.self) private var session
+    @Environment(\.dismiss) private var dismiss
+
+    @State var mark: Mark
+    @State private var newLine: String = ""
+    @State private var newCharacter: String = ""
+    @State private var newNote: String = ""
+    @State private var selectedSFX: String = "bell"
+    @State private var selectedLight: LightColor = .warm
+    @State private var lightIntensity: Double = 0.8
+    @State private var waitSeconds: Double = 1.0
+    @State private var confirmDelete = false
+
+    private let sfxNames = ["bell", "thunder", "chime", "knock", "applause"]
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Mark") {
+                    TextField("Name", text: $mark.name)
+                    HStack {
+                        Text("Radius")
+                        Slider(value: $mark.radius, in: 0.2...3.0, step: 0.1)
+                        Text(String(format: "%.1f m", mark.radius))
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .frame(width: 52, alignment: .trailing)
+                    }
+                    HStack {
+                        Text("Position")
+                        Spacer()
+                        Text(String(format: "x %.2f  z %.2f", mark.pose.x, mark.pose.z))
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Section("Lines") {
+                    ForEach(mark.cues.indices, id: \.self) { i in
+                        if case .line(_, let text, let character) = mark.cues[i] {
+                            VStack(alignment: .leading) {
+                                if let c = character {
+                                    Text(c.uppercased())
+                                        .font(.caption.monospaced())
+                                        .foregroundStyle(.red)
+                                }
+                                Text(text).font(.body)
+                            }
+                        }
+                    }
+                    .onDelete { offsets in
+                        let lineIndices = mark.cues.enumerated().compactMap {
+                            if case .line = $0.element { return $0.offset } else { return nil }
+                        }
+                        let drop = offsets.map { lineIndices[$0] }
+                        mark.cues.remove(atOffsets: IndexSet(drop))
+                    }
+                    TextField("Character (optional)", text: $newCharacter)
+                    TextField("Add a line…", text: $newLine, axis: .vertical)
+                        .lineLimit(1...4)
+                    Button("Add Line") {
+                        mark.cues.append(.line(
+                            id: ID(),
+                            text: newLine.trimmingCharacters(in: .whitespacesAndNewlines),
+                            character: newCharacter.isEmpty ? nil : newCharacter
+                        ))
+                        newLine = ""
+                    }
+                    .disabled(newLine.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+
+                Section("Sound") {
+                    Picker("Effect", selection: $selectedSFX) {
+                        ForEach(sfxNames, id: \.self) { Text($0.capitalized) }
+                    }
+                    Button("Add Sound Cue") {
+                        mark.cues.append(.sfx(id: ID(), name: selectedSFX))
+                    }
+                }
+
+                Section("Light") {
+                    Picker("Color", selection: $selectedLight) {
+                        ForEach(LightColor.allCases, id: \.self) {
+                            Text($0.rawValue.capitalized).tag($0)
+                        }
+                    }
+                    HStack {
+                        Text("Intensity")
+                        Slider(value: $lightIntensity, in: 0.1...1.0)
+                        Text(String(format: "%.1f", lightIntensity))
+                            .font(.caption.monospacedDigit())
+                            .frame(width: 40)
+                    }
+                    Button("Add Light Cue") {
+                        mark.cues.append(.light(
+                            id: ID(),
+                            color: selectedLight,
+                            intensity: Float(lightIntensity)
+                        ))
+                    }
+                }
+
+                Section("Beat") {
+                    HStack {
+                        Text("Hold")
+                        Slider(value: $waitSeconds, in: 0.5...10.0, step: 0.5)
+                        Text(String(format: "%.1fs", waitSeconds))
+                            .font(.caption.monospacedDigit())
+                            .frame(width: 50)
+                    }
+                    Button("Add Wait Cue") {
+                        mark.cues.append(.wait(id: ID(), seconds: waitSeconds))
+                    }
+                }
+
+                Section("Note (director only)") {
+                    TextField("Add a director note…", text: $newNote)
+                    Button("Add Note") {
+                        mark.cues.append(.note(id: ID(), text: newNote))
+                        newNote = ""
+                    }
+                    .disabled(newNote.isEmpty)
+                }
+
+                Section {
+                    ForEach(mark.cues.indices, id: \.self) { i in
+                        HStack {
+                            Text(mark.cues[i].humanLabel)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                            Spacer()
+                        }
+                    }
+                    .onDelete { mark.cues.remove(atOffsets: $0) }
+                } header: {
+                    Text("All Cues (\(mark.cues.count))")
+                } footer: {
+                    Text("Cues fire in order when a performer enters this mark.")
+                }
+
+                Section {
+                    Button(role: .destructive) {
+                        confirmDelete = true
+                    } label: {
+                        Label("Delete Mark", systemImage: "trash")
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+            }
+            .navigationTitle(mark.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        store.updateMark(mark)
+                        session.broadcastMarkUpdated(mark)
+                        dismiss()
+                    }
+                }
+            }
+            .alert("Delete \(mark.name)?", isPresented: $confirmDelete) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) {
+                    store.removeMark(id: mark.id)
+                    session.broadcastMarkRemoved(mark.id)
+                    dismiss()
+                }
+            }
+        }
+    }
+}
+#endif

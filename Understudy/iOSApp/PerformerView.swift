@@ -13,6 +13,7 @@
 import SwiftUI
 import CoreHaptics
 import ARKit
+import RealityKit
 
 struct PerformerView: View {
     @Environment(BlockingStore.self) private var store
@@ -381,17 +382,34 @@ private struct CueRow: View {
     }
 }
 
-private struct SettingsSheet: View {
+struct SettingsSheet: View {
     @Environment(BlockingStore.self) private var store
     @Environment(SessionController.self) private var session
     @Environment(\.dismiss) private var dismiss
     @AppStorage("displayName") private var displayName: String = ""
     @AppStorage("relayURL") private var relayURL: String = "ws://127.0.0.1:8765"
     @AppStorage("showARStage") private var showARStage: Bool = true
+    @AppStorage("appMode") private var appModeRaw: String = AppMode.perform.rawValue
+
+    private var appMode: AppMode {
+        get { AppMode(rawValue: appModeRaw) ?? .perform }
+    }
 
     var body: some View {
         NavigationStack {
             Form {
+                Section("Mode") {
+                    Picker("I want to", selection: $appModeRaw) {
+                        ForEach(AppMode.allCases, id: \.self) { m in
+                            Label(m.displayName, systemImage: m.systemImage).tag(m.rawValue)
+                        }
+                    }
+                    if let m = AppMode(rawValue: appModeRaw) {
+                        Text(m.tagline)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 Section("Identity") {
                     TextField("Display name", text: $displayName)
                         .onSubmit { applyName() }
@@ -459,7 +477,7 @@ private struct SettingsSheet: View {
 /// Full-screen color wash that fades when a light cue fires.
 /// Reads the CueFXEngine's currentFlash, and animates its own local opacity
 /// so the wash hits instantly then fades out.
-private struct FlashOverlay: View {
+struct FlashOverlay: View {
     let flash: CueFXEngine.FlashState?
     @State private var renderedID: UUID?
     @State private var opacity: Double = 0
@@ -495,6 +513,9 @@ final class PerformerARHost {
     private(set) var provider: ARPoseProvider?
     private weak var store: BlockingStore?
     private weak var session: SessionController?
+    /// Held weakly so Author mode can raycast tap locations to world coords.
+    /// Set by `ARStageContainer.makeUIView`; nil when AR background is disabled.
+    weak var arView: ARView?
 
     func configure(store: BlockingStore, session: SessionController) {
         self.store = store

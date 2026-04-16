@@ -14,6 +14,7 @@ struct UnderstudyApp: App {
     @State private var fx: CueFXEngine
     @AppStorage("displayName") private var displayName: String = ""
     @AppStorage("roomCode") private var roomCode: String = "rehearsal"
+    @AppStorage("seededDemo") private var seededDemo: Bool = false
     @State private var hasOnboarded = false
 
     init() {
@@ -24,8 +25,10 @@ struct UnderstudyApp: App {
         let role: Performer.Role = .performer
         #endif
         let me = Performer(displayName: initialName, role: role)
+        // Restore user's last-saved blocking, or seed the Hamlet demo on first launch.
+        let initialBlocking = BlockingAutosave.load() ?? DemoBlockings.hamletOpening
         let s = BlockingStore(
-            blocking: Blocking(title: "Untitled Piece", authorName: initialName),
+            blocking: initialBlocking,
             localPerformer: me
         )
         let t = MultipeerTransport()
@@ -96,7 +99,7 @@ struct RootView: View {
         #if os(visionOS)
         DirectorControlPanel()
         #elseif os(iOS)
-        PerformerContainer()
+        ModeRouter()
         #else
         Text("Unsupported platform")
         #endif
@@ -104,6 +107,44 @@ struct RootView: View {
 }
 
 #if os(iOS)
+/// Routes the iPhone to the right top-level view based on `appMode`.
+/// On first launch (no mode picked yet) shows the ModeSelector; after the
+/// user picks, settles on whichever view matches.
+struct ModeRouter: View {
+    @Environment(BlockingStore.self) private var store
+    @Environment(SessionController.self) private var session
+    @AppStorage("appMode") private var appModeRaw: String = AppMode.perform.rawValue
+    @AppStorage("hasPickedMode") private var hasPickedMode: Bool = false
+
+    var body: some View {
+        Group {
+            if !hasPickedMode {
+                ModeSelector { _ in
+                    // Nothing to do — the picker already wrote appMode & hasPickedMode.
+                }
+            } else {
+                let mode = AppMode(rawValue: appModeRaw) ?? .perform
+                switch mode {
+                case .perform:  PerformerContainer()
+                case .author:   AuthorContainer()
+                case .audience: AudienceContainer()
+                }
+            }
+        }
+        .onChange(of: appModeRaw) { _, new in
+            // Changing modes updates the wire-level role so directors see
+            // authors and audiences correctly.
+            guard var me = store.localPerformer,
+                  let newMode = AppMode(rawValue: new) else { return }
+            me.role = newMode.role
+            store.upsertPerformer(me)
+            if let senderID = store.localPerformer?.id {
+                session.transport.send(.performerUpdate(me), from: senderID)
+            }
+        }
+    }
+}
+
 struct PerformerContainer: View {
     @Environment(BlockingStore.self) private var store
     @Environment(SessionController.self) private var session
@@ -111,11 +152,42 @@ struct PerformerContainer: View {
 
     var body: some View {
         PerformerView()
+            .modifier(ARHostLifecycle(showARStage: showARStage))
+    }
+}
+
+struct AuthorContainer: View {
+    @Environment(BlockingStore.self) private var store
+    @Environment(SessionController.self) private var session
+    @AppStorage("showARStage") private var showARStage: Bool = true
+
+    var body: some View {
+        AuthorView()
+            .modifier(ARHostLifecycle(showARStage: showARStage))
+    }
+}
+
+struct AudienceContainer: View {
+    @Environment(BlockingStore.self) private var store
+    @Environment(SessionController.self) private var session
+    @AppStorage("showARStage") private var showARStage: Bool = true
+
+    var body: some View {
+        AudienceView()
+            .modifier(ARHostLifecycle(showARStage: showARStage))
+    }
+}
+
+/// Shared lifecycle management for the AR host — every iPhone mode needs
+/// to configure the session and start/stop the pose provider the same way.
+private struct ARHostLifecycle: ViewModifier {
+    @Environment(BlockingStore.self) private var store
+    @Environment(SessionController.self) private var session
+    let showARStage: Bool
+
+    func body(content: Content) -> some View {
+        content
             .onAppear {
-                // Tell the host which store/session to use. Session ownership
-                // depends on the AR background toggle: if AR is on, the
-                // ARStageContainer will hand over the session via adopt(). If
-                // not, we run a standalone provider here.
                 PerformerARHost.shared.configure(store: store, session: session)
                 if !showARStage {
                     PerformerARHost.shared.startStandalone()
@@ -125,13 +197,8 @@ struct PerformerContainer: View {
                 PerformerARHost.shared.stop()
             }
             .onChange(of: showARStage) { _, nowOn in
-                if nowOn {
-                    // When the user flips AR back on, the ARStageContainer
-                    // will appear and adopt its own session. Stop any
-                    // standalone provider so we don't run two sessions.
-                    PerformerARHost.shared.stop()
-                } else {
-                    PerformerARHost.shared.stop()
+                PerformerARHost.shared.stop()
+                if !nowOn {
                     PerformerARHost.shared.startStandalone()
                 }
             }

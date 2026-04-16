@@ -84,23 +84,27 @@ public final class BlockingStore {
         }
         blocking.marks.append(m)
         blocking.modifiedAt = Date()
+        BlockingAutosave.save(blocking)
     }
 
     public func updateMark(_ mark: Mark) {
         guard let i = blocking.marks.firstIndex(where: { $0.id == mark.id }) else { return }
         blocking.marks[i] = mark
         blocking.modifiedAt = Date()
+        BlockingAutosave.save(blocking)
     }
 
     public func removeMark(id: ID) {
         blocking.marks.removeAll { $0.id == id }
         blocking.modifiedAt = Date()
+        BlockingAutosave.save(blocking)
     }
 
     public func addCue(_ cue: Cue, to markID: ID) {
         guard let i = blocking.marks.firstIndex(where: { $0.id == markID }) else { return }
         blocking.marks[i].cues.append(cue)
         blocking.modifiedAt = Date()
+        BlockingAutosave.save(blocking)
     }
 
     // MARK: - Cue firing

@@ -79,6 +79,9 @@ struct ARStageContainer: UIViewRepresentable {
             coordinator?.advance(elapsed: event.deltaTime)
         }
 
+        // Stash the ARView so Author mode can raycast tap points to world coords.
+        PerformerARHost.shared.arView = arView
+
         onSessionReady(arView.session)
         return arView
     }

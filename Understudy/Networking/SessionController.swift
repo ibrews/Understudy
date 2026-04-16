@@ -140,11 +140,13 @@ public final class SessionController {
             // Prefer newer snapshots; ignore older.
             if b.modifiedAt >= store.blocking.modifiedAt {
                 store.blocking = b
+                BlockingAutosave.save(b)
             }
         case .markAdded(let m):
             if !store.blocking.marks.contains(where: { $0.id == m.id }) {
                 store.blocking.marks.append(m)
                 store.blocking.modifiedAt = Date()
+                BlockingAutosave.save(store.blocking)
             }
         case .markUpdated(let m):
             store.updateMark(m)
