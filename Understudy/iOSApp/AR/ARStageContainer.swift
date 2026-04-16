@@ -90,7 +90,9 @@ struct ARStageContainer: UIViewRepresentable {
         context.coordinator.sync(
             marks: store.blocking.marks,
             nextMarkID: store.nextMark(after: store.localPerformer?.currentMarkID)?.id,
-            ghostPose: store.playbackT.flatMap { store.ghostPose(at: $0) }
+            ghostPose: store.playbackT.flatMap { store.ghostPose(at: $0) },
+            savedScan: store.blocking.roomScan,
+            session: uiView.session
         )
     }
 
@@ -143,6 +145,22 @@ struct ARStageContainer: UIViewRepresentable {
         private var nextMarkID: ID?
         /// Time since view creation, used for the pulse.
         private var elapsed: Double = 0
+        /// Live ARMeshAnchor visualizations. Keyed by anchor identifier.
+        /// Values track the vertex+face counts we last built with, so we
+        /// only rebuild entities when the underlying geometry changes.
+        private var meshEntities: [UUID: LiveMeshEntity] = [:]
+        /// Fallback: the last-saved RoomScan from the Blocking, rendered
+        /// as a ghost when there are no live mesh anchors (e.g. after an
+        /// app relaunch, ARKit session fresh). Hash tracks which scan we
+        /// currently have mounted so we don't rebuild every frame.
+        private var savedScanEntity: Entity?
+        private var savedScanHash: Int?
+
+        struct LiveMeshEntity {
+            let entity: ModelEntity
+            var vertexCount: Int
+            var faceCount: Int
+        }
 
         struct MarkEntityBundle {
             let root: Entity
@@ -151,9 +169,16 @@ struct ARStageContainer: UIViewRepresentable {
             let radius: Float
         }
 
-        func sync(marks: [Mark], nextMarkID: ID?, ghostPose: Pose?) {
+        func sync(marks: [Mark], nextMarkID: ID?, ghostPose: Pose?,
+                  savedScan: RoomScan?, session: ARSession) {
             self.nextMarkID = nextMarkID
             guard let anchor = worldAnchor else { return }
+
+            // Mesh anchors live in the ARSession's own anchor list, not in
+            // the RealityKit scene graph — we have to mirror them every update.
+            syncMeshAnchors(session: session, anchor: anchor)
+            // Saved-scan fallback — only visible when no live anchors are present.
+            syncSavedScan(scan: savedScan, anchor: anchor)
 
             // Marks live in the shared blocking frame. To render them in the
             // device's own ARKit scene, convert back to raw via the active
@@ -226,6 +251,161 @@ struct ARStageContainer: UIViewRepresentable {
                 ringMat.blending = .transparent(opacity: .init(floatLiteral: Float(ringAlpha)))
                 bundle.ring.model?.materials = [ringMat]
             }
+        }
+
+        // MARK: - Live mesh (LiDAR scene reconstruction)
+
+        /// Build / diff / drop ModelEntities for each ARMeshAnchor the session
+        /// currently knows about. Positions live in ARKit world frame — NO
+        /// calibration transform is applied (unlike marks), because mesh
+        /// anchors and the camera pose share the same raw origin.
+        private func syncMeshAnchors(session: ARSession, anchor: Entity) {
+            guard let frame = session.currentFrame else { return }
+            let meshAnchors = frame.anchors.compactMap { $0 as? ARMeshAnchor }
+            let liveIDs = Set(meshAnchors.map { $0.identifier })
+
+            // Remove entities for mesh anchors that are gone.
+            for (id, live) in meshEntities where !liveIDs.contains(id) {
+                live.entity.removeFromParent()
+                meshEntities.removeValue(forKey: id)
+            }
+
+            // Add / update each anchor.
+            for ma in meshAnchors {
+                let geom = ma.geometry
+                let vCount = geom.vertices.count
+                let fCount = geom.faces.count
+                let existing = meshEntities[ma.identifier]
+
+                // Position + orientation: follow the anchor's own world transform.
+                let t = ma.transform
+                let pos = SIMD3<Float>(t.columns.3.x, t.columns.3.y, t.columns.3.z)
+                // Build full transform as orientation + position — the anchor
+                // transform is a 4x4 rigid body.
+                let rotation = simd_quatf(simd_float3x3(
+                    SIMD3<Float>(t.columns.0.x, t.columns.0.y, t.columns.0.z),
+                    SIMD3<Float>(t.columns.1.x, t.columns.1.y, t.columns.1.z),
+                    SIMD3<Float>(t.columns.2.x, t.columns.2.y, t.columns.2.z)
+                ))
+
+                if let existing {
+                    existing.entity.position = pos
+                    existing.entity.orientation = rotation
+                    // Rebuild the mesh only when vertex/face count has changed,
+                    // which is the signal ARKit uses for "the geometry is newer."
+                    if existing.vertexCount != vCount || existing.faceCount != fCount {
+                        if let mesh = Self.meshResource(from: geom) {
+                            existing.entity.model?.mesh = mesh
+                        }
+                        meshEntities[ma.identifier] = LiveMeshEntity(
+                            entity: existing.entity,
+                            vertexCount: vCount,
+                            faceCount: fCount
+                        )
+                    }
+                } else {
+                    guard let mesh = Self.meshResource(from: geom) else { continue }
+                    let entity = ModelEntity(mesh: mesh, materials: [Self.meshGhostMaterial()])
+                    entity.name = "liveMesh-\(ma.identifier.uuidString)"
+                    entity.position = pos
+                    entity.orientation = rotation
+                    // Mesh anchors are attached to the ARView scene root (not
+                    // our stageRoot worldAnchor) because their transforms are
+                    // already in the ARKit world frame — matching our camera.
+                    let hostAnchor = AnchorEntity(world: .zero)
+                    hostAnchor.addChild(entity)
+                    arView?.scene.addAnchor(hostAnchor)
+                    meshEntities[ma.identifier] = LiveMeshEntity(
+                        entity: entity,
+                        vertexCount: vCount,
+                        faceCount: fCount
+                    )
+                }
+            }
+        }
+
+        // MARK: - Mesh helpers
+
+        /// Build a RealityKit MeshResource from an ARMeshGeometry. Handles
+        /// both 16-bit and 32-bit index formats.
+        fileprivate static func meshResource(from geom: ARMeshGeometry) -> MeshResource? {
+            let vCount = geom.vertices.count
+            guard vCount >= 3 else { return nil }
+
+            let verts = geom.vertices
+            let buffer = verts.buffer.contents()
+            let stride = verts.stride
+            let offset = verts.offset
+            var positions = [SIMD3<Float>]()
+            positions.reserveCapacity(vCount)
+            for i in 0..<vCount {
+                let p = buffer.advanced(by: offset + i * stride)
+                    .assumingMemoryBound(to: SIMD3<Float>.self).pointee
+                positions.append(p)
+            }
+
+            let faces = geom.faces
+            let primCount = faces.count
+            let indicesPerFace = faces.indexCountPerPrimitive
+            let bytesPerIndex = faces.bytesPerIndex
+            let faceBuf = faces.buffer.contents()
+            let totalIndices = primCount * indicesPerFace
+            var indices = [UInt32]()
+            indices.reserveCapacity(totalIndices)
+            for i in 0..<totalIndices {
+                let raw = faceBuf.advanced(by: i * bytesPerIndex)
+                if bytesPerIndex == 2 {
+                    indices.append(UInt32(raw.assumingMemoryBound(to: UInt16.self).pointee))
+                } else {
+                    indices.append(raw.assumingMemoryBound(to: UInt32.self).pointee)
+                }
+            }
+
+            var desc = MeshDescriptor(name: "liveMesh")
+            desc.positions = MeshBuffers.Positions(positions)
+            desc.primitives = .triangles(indices)
+            return try? MeshResource.generate(from: [desc])
+        }
+
+        fileprivate static func meshGhostMaterial() -> RealityKit.Material {
+            var m = UnlitMaterial()
+            let color = UIColor(red: 0.45, green: 0.85, blue: 1.0, alpha: 0.28)
+            m.color = .init(tint: color)
+            m.blending = .transparent(opacity: .init(floatLiteral: 0.28))
+            return m
+        }
+
+        /// Mount the previously-saved RoomScan as a fallback ghost when
+        /// there are no live ARMeshAnchors (fresh session post-relaunch).
+        /// Hidden automatically when live anchors appear so we don't
+        /// double-render the same geometry.
+        private func syncSavedScan(scan: RoomScan?, anchor: Entity) {
+            let hasLive = !meshEntities.isEmpty
+            guard let scan = scan, !hasLive else {
+                savedScanEntity?.isEnabled = false
+                return
+            }
+            let hash = scan.vertexCount &+ scan.triangleCount &* 31 &+ scan.name.hashValue
+            if let entity = savedScanEntity, hash == savedScanHash {
+                entity.isEnabled = true
+                applySavedScanOffset(entity, offset: scan.overlayOffset)
+                return
+            }
+            savedScanEntity?.removeFromParent()
+            savedScanEntity = nil
+            savedScanHash = nil
+            guard let mesh = RoomScanMesh.make(from: scan) else { return }
+            let entity = ModelEntity(mesh: mesh, materials: [RoomScanMesh.ghostMaterial()])
+            entity.name = "savedScan"
+            applySavedScanOffset(entity, offset: scan.overlayOffset)
+            anchor.addChild(entity)
+            savedScanEntity = entity
+            savedScanHash = hash
+        }
+
+        private func applySavedScanOffset(_ entity: Entity, offset: Pose) {
+            entity.position = [offset.x, offset.y, offset.z]
+            entity.orientation = simd_quatf(angle: offset.yaw, axis: [0, 1, 0])
         }
 
         // MARK: - Building

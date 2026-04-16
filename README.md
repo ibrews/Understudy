@@ -207,6 +207,13 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] Lens/sensor pickers with real-world presets (ARRI, RED, Sony FX, cine primes)
 - [ ] TestFlight
 
+### v0.15 · Live scan visualization on iPhone
+You're walking with Scan Room on, the triangle counter ticks up, but the screen shows you nothing — v0.14 and earlier only visualized the mesh on visionOS. Fixed.
+
+- **Live mesh rendering during capture.** `ARStageContainer.syncMeshAnchors()` iterates `ARSession.currentFrame.anchors`, filters to `ARMeshAnchor`, and mirrors each one as a translucent cyan `ModelEntity` in the ARView scene. Rebuilds only when the anchor's vertex or face count has changed (ARKit's "the geometry is newer" signal), not every frame. Handles both 16-bit and 32-bit index formats.
+- **Saved-scan fallback.** When no live mesh anchors are present (e.g. fresh session after relaunch) but the blocking has a saved `roomScan`, `syncSavedScan` mounts the stored mesh as the ghost so yesterday's scan is still visible today. Auto-hides when live anchors return, so we never double-render the same geometry.
+- **Positions live in ARKit world frame** — calibration transform intentionally NOT applied to mesh anchors (they and the camera pose share the same origin). Marks still go through `toRaw()` as before.
+
 ### v0.14 · The show runs itself — voice-driven cue firing
 v0.13 shipped a voice-following teleprompter; v0.14 closes the real loop. When the actor finishes speaking a line, the mark's subsequent SFX / light / wait cues fire automatically. No stage manager. No OSC GO. No taps.
 
