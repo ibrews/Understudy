@@ -122,6 +122,7 @@ scripts/                            parse_hamlet.py — how Resources/hamlet.jso
 test-fixtures/                      Canonical JSON for wire-format round-tripping
 PROTOCOL.md                         The single source of truth for the wire format
 QUICKSTART.md                       How to run the whole stack on a LAN
+OSC.md                              OSC bridge to QLab / TouchDesigner / Max
 ```
 
 ### Architecture at a glance
@@ -182,6 +183,10 @@ Then in every app's Settings → Transport → WebSocket, enter `ws://<relay-hos
 - **Script Browser** in Author mode — tap a line, it's on the mark. Search by character or word. Scene filter menu. Already-used lines show a green check.
 - **Structured `PlayScript` model** — open to more plays via `Scripts.all`; see `scripts/parse_hamlet.py` for the parser.
 
+### v0.6  ·  QLab bridge + more plays
+- **OSC → QLab / show control** — a ~100-line `OSCBridge` (pure Swift, no deps) sends `/understudy/cue/line`, `/understudy/cue/sfx`, `/understudy/cue/light`, `/understudy/cue/wait`, and `/understudy/mark/enter` over UDP when cues fire. Wire it up in Settings on iPhone or "OSC → QLab" on the visionOS director panel. See [OSC.md](OSC.md) for the protocol. Understudy is now usable in a real production — the spatial rehearsal drives the actual show control.
+- **Three bundled plays** — Hamlet (1108 lines), Macbeth (647 lines), and A Midsummer Night's Dream (484 lines) all available in the Script Browser's play picker. Add more by dropping a parsed JSON into `Understudy/Resources/` and extending `Scripts.all`.
+
 ### v0.5  ·  Drop a whole scene, preview a cue, see the script in space, Android catches up
 - **Drop Whole Scene** — one-tap in the Script Browser auto-lays out a zig-zag path of marks along your current forward direction, bucketed by speaker (max 4 lines per beat), with stage directions attached as `.note` cues. A 20-beat scene becomes a walkable blocking in under a second.
 - **Floating script panels on visionOS** — every mark in the immersive stage gets a translucent "manuscript page" floating at shoulder height nearby. The director sees the cues *in the room*, next to where the action happens. Ambient script-in-space — exactly what AVP is for.
@@ -190,10 +195,11 @@ Then in every app's Settings → Transport → WebSocket, enter `ws://<relay-hos
 
 ### Next up
 - [ ] Shared-origin ceremony — QR-code anchor so every device agrees on where (0,0) is in the real room
-- [ ] DMX / QLab bridge for real theater rigs on the director side
 - [ ] Android floating script panels (feature parity with visionOS)
 - [ ] Android Audience mode
-- [ ] More bundled plays — Public-domain Chekhov, Beckett's shorter works
+- [ ] OSC receiver (bi-directional: listen for `/understudy/go` etc.)
+- [ ] DMX direct output (sACN / Art-Net)
+- [ ] Public-domain Chekhov + Beckett in the Script Browser
 - [ ] TestFlight
 
 ## Project rules

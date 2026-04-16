@@ -99,25 +99,33 @@ nonisolated public struct PlayScript: Codable, Sendable, Identifiable {
 // MARK: - Bundled scripts
 
 public enum Scripts {
-    /// Full Hamlet, parsed from Project Gutenberg eBook #1524. ~1100 lines.
-    public static let hamlet: PlayScript = {
-        guard let url = Bundle.main.url(forResource: "hamlet", withExtension: "json"),
+    private static func load(_ resourceName: String, fallbackTitle: String) -> PlayScript {
+        guard let url = Bundle.main.url(forResource: resourceName, withExtension: "json"),
               let data = try? Data(contentsOf: url),
               let script = try? JSONDecoder().decode(PlayScript.self, from: data) else {
-            // Fallback: empty script. Should never hit this if the bundle includes the JSON.
             return PlayScript(
-                title: "Hamlet (unavailable)",
+                title: "\(fallbackTitle) (unavailable)",
                 author: "William Shakespeare",
                 source: "",
                 acts: []
             )
         }
         return script
-    }()
+    }
 
-    /// All currently-bundled scripts. Today just Hamlet; extend when more plays
-    /// are added to the Resources folder.
-    public static let all: [PlayScript] = [hamlet]
+    /// Hamlet — parsed from Project Gutenberg eBook #1524. ~1100 lines of dialogue.
+    public static let hamlet: PlayScript = load("hamlet", fallbackTitle: "Hamlet")
+
+    /// Macbeth — Project Gutenberg eBook #1533. ~650 lines.
+    public static let macbeth: PlayScript = load("macbeth", fallbackTitle: "Macbeth")
+
+    /// A Midsummer Night's Dream — Project Gutenberg eBook #1514. ~485 lines.
+    public static let midsummerNightsDream: PlayScript = load("midsummer", fallbackTitle: "A Midsummer Night's Dream")
+
+    /// All currently-bundled scripts. Extend when more plays are added to
+    /// Resources/ and update this list — ScriptBrowser will pick up the new
+    /// entries automatically.
+    public static let all: [PlayScript] = [hamlet, macbeth, midsummerNightsDream]
 }
 
 // MARK: - Helpers

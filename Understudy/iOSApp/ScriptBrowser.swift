@@ -62,20 +62,39 @@ struct ScriptBrowser: View {
                     Button("Done") { dismiss() }
                 }
                 ToolbarItem(placement: .cancellationAction) {
-                    Menu {
-                        Picker("Scene", selection: $sceneFilter) {
-                            Text("All scenes").tag(SceneFilter.all)
-                            ForEach(script.acts, id: \.number) { act in
-                                Section("Act \(act.roman)") {
-                                    ForEach(act.scenes, id: \.number) { scene in
-                                        Text("Scene \(scene.roman) — \(scene.location)")
-                                            .tag(SceneFilter.scene(act: act.number, scene: scene.number))
+                    HStack(spacing: 12) {
+                        Menu {
+                            ForEach(Scripts.all, id: \.title) { s in
+                                Button {
+                                    script = s
+                                    sceneFilter = .all
+                                } label: {
+                                    HStack {
+                                        Text(s.title)
+                                        if s.title == script.title {
+                                            Image(systemName: "checkmark")
+                                        }
                                     }
                                 }
                             }
+                        } label: {
+                            Image(systemName: "books.vertical")
                         }
-                    } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
+                        Menu {
+                            Picker("Scene", selection: $sceneFilter) {
+                                Text("All scenes").tag(SceneFilter.all)
+                                ForEach(script.acts, id: \.number) { act in
+                                    Section("Act \(act.roman)") {
+                                        ForEach(act.scenes, id: \.number) { scene in
+                                            Text("Scene \(scene.roman) — \(scene.location)")
+                                                .tag(SceneFilter.scene(act: act.number, scene: scene.number))
+                                        }
+                                    }
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "line.3.horizontal.decrease.circle")
+                        }
                     }
                 }
             }

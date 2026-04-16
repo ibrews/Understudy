@@ -23,6 +23,10 @@ struct DirectorControlPanel: View {
     @State private var directorIsPlaying: Bool = false
     @State private var directorPlaybackStartedAt: Date?
     @State private var directorPlaybackTimer: Timer?
+    @State private var showingOSCSettings = false
+    @AppStorage("oscEnabled") private var oscEnabled: Bool = false
+    @AppStorage("oscHost") private var oscHost: String = ""
+    @AppStorage("oscPort") private var oscPortStr: String = "53000"
 
     var body: some View {
         NavigationStack {
@@ -40,9 +44,25 @@ struct DirectorControlPanel: View {
                 MarkEditor(mark: mark)
                     .environment(store)
                     .environment(session)
+                    .environment(fx)
                     .frame(minWidth: 420, minHeight: 520)
             }
+            .sheet(isPresented: $showingOSCSettings) {
+                OSCSettingsSheet(enabled: $oscEnabled, host: $oscHost, port: $oscPortStr)
+                    .environment(fx)
+                    .frame(minWidth: 420, minHeight: 360)
+            }
+            .onAppear { applyOSC() }
         }
+    }
+
+    private func applyOSC() {
+        let port = UInt16(oscPortStr) ?? 53000
+        fx.osc.configure(
+            host: oscHost.trimmingCharacters(in: .whitespaces).isEmpty ? nil : oscHost,
+            port: port,
+            enabled: oscEnabled
+        )
     }
 
     @ViewBuilder private var transportStrip: some View {
@@ -168,6 +188,18 @@ struct DirectorControlPanel: View {
                     ))
                     .textFieldStyle(.roundedBorder)
                     .frame(maxWidth: 260)
+                }
+            }
+            HStack {
+                Label("OSC → QLab", systemImage: "waveform.path")
+                Button {
+                    showingOSCSettings = true
+                } label: {
+                    Text(oscEnabled && !oscHost.isEmpty ? "\(oscHost):\(oscPortStr)" : "Configure…")
+                }
+                if oscEnabled {
+                    Circle().fill(.green).frame(width: 8, height: 8)
+                        .accessibilityLabel("OSC enabled")
                 }
             }
         }
@@ -297,6 +329,59 @@ struct DirectorControlPanel: View {
             }
         }
         return nil
+    }
+}
+
+/// Quick OSC configuration for the director panel.
+struct OSCSettingsSheet: View {
+    @Environment(CueFXEngine.self) private var fx
+    @Environment(\.dismiss) private var dismiss
+    @Binding var enabled: Bool
+    @Binding var host: String
+    @Binding var port: String
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Toggle("Enabled", isOn: $enabled)
+                    TextField("Host (192.168.1.50 or qlab.local)", text: $host)
+                        .textContentType(.URL)
+                    TextField("Port", text: $port)
+                } header: {
+                    Text("OSC Destination")
+                } footer: {
+                    Text("When enabled, Understudy sends OSC messages for each cue fired:\n/understudy/cue/line <character> <text>\n/understudy/cue/sfx <name>\n/understudy/cue/light <color> <intensity>\n/understudy/cue/wait <seconds>\n/understudy/mark/enter <name> <index>")
+                        .font(.caption.monospaced())
+                }
+
+                Section("Test") {
+                    Button("Send test message") {
+                        applyAndFlush()
+                        fx.osc.sendMessage(address: "/understudy/test",
+                                           args: [.string("ping from Understudy director")])
+                    }
+                }
+            }
+            .navigationTitle("OSC → QLab / Show Control")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        applyAndFlush()
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func applyAndFlush() {
+        let p = UInt16(port) ?? 53000
+        fx.osc.configure(
+            host: host.trimmingCharacters(in: .whitespaces).isEmpty ? nil : host,
+            port: p,
+            enabled: enabled
+        )
     }
 }
 

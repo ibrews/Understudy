@@ -12,14 +12,14 @@ android {
         applicationId = "agilelens.understudy"
         minSdk = 26
         targetSdk = 34
-        versionCode = 3
-        versionName = "0.3"
+        versionCode = 6
+        versionName = "0.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
 
-        buildConfigField("String", "APP_VERSION", "\"0.3\"")
-        buildConfigField("int", "APP_BUILD", "3")
+        buildConfigField("String", "APP_VERSION", "\"0.6\"")
+        buildConfigField("int", "APP_BUILD", "6")
     }
 
     buildTypes {

@@ -54,6 +54,12 @@ struct UnderstudyApp: App {
                         sessionController.roomCode = roomCode
                         sessionController.start()
                         fx.attach(store: store)
+                        // Restore OSC config from defaults.
+                        let ud = UserDefaults.standard
+                        let host = ud.string(forKey: "oscHost") ?? ""
+                        let port = UInt16(ud.string(forKey: "oscPort") ?? "53000") ?? 53000
+                        let enabled = ud.bool(forKey: "oscEnabled")
+                        fx.osc.configure(host: host.isEmpty ? nil : host, port: port, enabled: enabled)
                         hasOnboarded = true
                     }
                 }

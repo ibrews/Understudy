@@ -386,10 +386,14 @@ struct SettingsSheet: View {
     @Environment(BlockingStore.self) private var store
     @Environment(SessionController.self) private var session
     @Environment(\.dismiss) private var dismiss
+    @Environment(CueFXEngine.self) private var fx
     @AppStorage("displayName") private var displayName: String = ""
     @AppStorage("relayURL") private var relayURL: String = "ws://127.0.0.1:8765"
     @AppStorage("showARStage") private var showARStage: Bool = true
     @AppStorage("appMode") private var appModeRaw: String = AppMode.perform.rawValue
+    @AppStorage("oscEnabled") private var oscEnabled: Bool = false
+    @AppStorage("oscHost") private var oscHost: String = ""
+    @AppStorage("oscPort") private var oscPortStr: String = "53000"
 
     private var appMode: AppMode {
         get { AppMode(rawValue: appModeRaw) ?? .perform }
@@ -450,6 +454,27 @@ struct SettingsSheet: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }
+                Section {
+                    Toggle("Send OSC to QLab / show control", isOn: $oscEnabled)
+                        .onChange(of: oscEnabled) { _, _ in applyOSC() }
+                    if oscEnabled {
+                        TextField("Host (e.g. 192.168.1.50)", text: $oscHost)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .keyboardType(.URL)
+                            .onSubmit { applyOSC() }
+                        TextField("Port", text: $oscPortStr)
+                            .keyboardType(.numberPad)
+                            .onSubmit { applyOSC() }
+                        Text("Sends /understudy/cue/... messages when cues fire. Works with QLab, TouchDesigner, Max/MSP, etc.")
+                            .font(.caption).foregroundStyle(.secondary)
+                        Button("Send test message") {
+                            fx.osc.sendMessage(address: "/understudy/test",
+                                               args: [.string("ping from \(UIDevice.current.name)")])
+                        }
+                    }
+                } header: { Text("OSC Bridge") }
+
                 Section("About") {
                     LabeledContent("Version", value: AppVersion.formatted)
                     Text(store.blocking.title).foregroundStyle(.secondary)
@@ -460,11 +485,21 @@ struct SettingsSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
                         applyName()
+                        applyOSC()
                         dismiss()
                     }
                 }
             }
         }
+    }
+
+    private func applyOSC() {
+        let port = UInt16(oscPortStr) ?? 53000
+        fx.osc.configure(
+            host: oscHost.trimmingCharacters(in: .whitespaces).isEmpty ? nil : oscHost,
+            port: port,
+            enabled: oscEnabled
+        )
     }
 
     private func applyName() {

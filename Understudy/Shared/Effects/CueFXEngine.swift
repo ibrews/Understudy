@@ -70,6 +70,14 @@ public final class CueFXEngine {
     private var drainTask: Task<Void, Never>?
     private var flashClearTask: Task<Void, Never>?
     private var holdTask: Task<Void, Never>?
+    /// Track the last mark name we dispatched a cue from, so we can send
+    /// a single `/understudy/mark/enter` OSC message per entry rather than
+    /// spamming one per cue.
+    private var lastDispatchedMark: String?
+
+    /// Optional OSC bridge — when configured + enabled, every fired cue is
+    /// also sent out over UDP to a listening host (QLab, TouchDesigner, etc.).
+    public let osc = OSCBridge()
 
     public init() {}
 
@@ -127,6 +135,12 @@ public final class CueFXEngine {
 
     private func dispatch(_ fired: BlockingStore.FiredCue) {
         appendLog(cue: fired.cue, markName: fired.markName)
+        // Emit one mark-enter OSC per mark transition (not per cue).
+        if fired.markName != lastDispatchedMark {
+            lastDispatchedMark = fired.markName
+            let seq = store?.blocking.marks.first { $0.name == fired.markName }?.sequenceIndex ?? -1
+            osc.sendMarkEnter(name: fired.markName, sequenceIndex: seq)
+        }
         switch fired.cue {
         case .line:
             // UI owns lines; engine just logs.
@@ -140,6 +154,8 @@ public final class CueFXEngine {
         case .note:
             break
         }
+        // Forward the cue to any listening OSC target (QLab etc.).
+        osc.sendCue(fired.cue)
     }
 
     private func appendLog(cue: Cue, markName: String) {
