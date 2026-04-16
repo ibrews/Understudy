@@ -122,10 +122,21 @@ public enum Scripts {
     /// A Midsummer Night's Dream — Project Gutenberg eBook #1514. ~485 lines.
     public static let midsummerNightsDream: PlayScript = load("midsummer", fallbackTitle: "A Midsummer Night's Dream")
 
+    /// The Seagull (Chekhov) — Project Gutenberg eBook #1754. ~625 lines,
+    /// 4 acts, Constance Garnett's translation. Parsed with the modern
+    /// (speaker-inline) parser.
+    public static let seagull: PlayScript = load("seagull", fallbackTitle: "The Seagull")
+
+    /// The Importance of Being Earnest (Wilde) — Project Gutenberg eBook #844.
+    /// ~870 lines, 3 acts. Parsed with the modern parser.
+    public static let earnest: PlayScript = load("earnest", fallbackTitle: "The Importance of Being Earnest")
+
     /// All currently-bundled scripts. Extend when more plays are added to
     /// Resources/ and update this list — ScriptBrowser will pick up the new
     /// entries automatically.
-    public static let all: [PlayScript] = [hamlet, macbeth, midsummerNightsDream]
+    public static let all: [PlayScript] = [
+        hamlet, macbeth, midsummerNightsDream, seagull, earnest,
+    ]
 }
 
 // MARK: - Helpers

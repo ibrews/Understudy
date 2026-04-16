@@ -186,7 +186,7 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] Migrate Monitoring code to AgileLensMultiplayer SPM dependency (currently copied in)
 - [ ] Interactive overlay controls on visionOS — grab + rotate + scale the room-scan ghost to align scouted location to rehearsal room
 - [ ] Android LiDAR pass-through (ARCore Depth API on supported devices)
-- [ ] Second parser for modern plays (Chekhov / Wilde / Beckett) — the existing `scripts/parse_hamlet.py` assumes Shakespeare's format (`CHARACTER.` on its own line, SCENE headings). Chekhov has inline dialogue and no scenes, so it needs a distinct parser. Hamlet + Macbeth + Midsummer work today; The Seagull / Cherry Orchard are blocked by this.
+- [ ] More modern plays — `parse_modern.py` works for Chekhov + Wilde; try Cherry Orchard, Ghosts (Ibsen), Three Sisters, Salomé. Beckett's copyright expires in 2059 in Europe so is off the table.
 - [ ] QR-code anchor as a more precise alternative to the "stand here, face upstage" calibration ceremony
 - [ ] Android floating script panels (feature parity with visionOS)
 - [ ] Android Audience mode + camera marks
@@ -195,6 +195,12 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] Lens/sensor pickers with real-world presets (ARRI, RED, Sony FX, cine primes)
 - [ ] Public-domain Chekhov + Beckett in the Script Browser
 - [ ] TestFlight
+
+### v0.11 · Two more bundled plays (Chekhov + Wilde)
+- **New `scripts/parse_modern.py`** — handles the 19th/early-20th-century format that Shakespeare's parser chokes on (speaker-inline dialogue, unnumbered scenes, "FIRST ACT" vs. "ACT I"). Lenient ACT/SCENE regexes, two speaker shapes (`CHARACTER.` own-line like Wilde vs. `CHARACTER. dialogue` inline like Chekhov), and a tightened table-of-contents skip heuristic (no other ACT within 50 lines + at least one speaker shape within 80).
+- **The Seagull** (Chekhov, Gutenberg #1754 — Garnett translation) — 4 acts, 627 lines of dialogue. `Resources/seagull.json`.
+- **The Importance of Being Earnest** (Wilde, Gutenberg #844) — 3 acts, 873 lines, 43 stage directions. `Resources/earnest.json`.
+- Script Browser automatically picks both up via `Scripts.all`. The library now covers five bundled plays — Hamlet, Macbeth, Midsummer, Seagull, Earnest — across two parsers and three authors.
 
 ### v0.10 · Bidirectional OSC — QLab can GO the show
 - **Inbound OSC receiver.** `OSCReceiver` listens on UDP 53001 (default) for `/understudy/go`, `/understudy/back`, `/understudy/reset`, `/understudy/mark <seq:int>`. Enable from Settings → Stage Manager on iPhone or the OSC sheet on visionOS.
@@ -272,11 +278,13 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 All rights reserved for now — ping if you want to build on it or use it commercially.
 
 The bundled plays are public-domain Project Gutenberg texts, restructured as JSON for runtime use:
-- **Hamlet** — [eBook #1524](https://www.gutenberg.org/ebooks/1524)
-- **Macbeth** — [eBook #1533](https://www.gutenberg.org/ebooks/1533)
-- **A Midsummer Night's Dream** — [eBook #1514](https://www.gutenberg.org/ebooks/1514)
+- **Hamlet** — Shakespeare, [eBook #1524](https://www.gutenberg.org/ebooks/1524)
+- **Macbeth** — Shakespeare, [eBook #1533](https://www.gutenberg.org/ebooks/1533)
+- **A Midsummer Night's Dream** — Shakespeare, [eBook #1514](https://www.gutenberg.org/ebooks/1514)
+- **The Seagull** — Chekhov (trans. Constance Garnett), [eBook #1754](https://www.gutenberg.org/ebooks/1754)
+- **The Importance of Being Earnest** — Wilde, [eBook #844](https://www.gutenberg.org/ebooks/844)
 
-Parser in `scripts/parse_hamlet.py` (works on any Gutenberg Shakespeare — extend `Scripts.all` and drop the JSON into `Resources/`).
+Parsers: `scripts/parse_hamlet.py` (Shakespeare — SCENE-numbered format) and `scripts/parse_modern.py` (Wilde / Chekhov — flexible ACT/SCENE, speaker-inline OR speaker-on-own-line). Extend `Scripts.all` and drop new JSON into `Resources/`.
 
 ## Credits
 
