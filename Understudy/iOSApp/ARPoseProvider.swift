@@ -18,6 +18,10 @@ final class ARPoseProvider: NSObject, ARSessionDelegate {
     /// When true, `start()` / `stop()` are no-ops because another component
     /// (e.g. ARView) owns this session's lifecycle.
     private let ownsSession: Bool
+    /// Latest raw-frame pose from ARKit, kept so the UI can calibrate
+    /// (snapshot this as `DeviceCalibration.anchor` when the user taps
+    /// "Set Origin Here").
+    private(set) var latestRawPose: Pose = Pose()
 
     /// Original init — provider creates and runs its own ARSession.
     init(store: BlockingStore, sessionController: SessionController) {
@@ -75,8 +79,17 @@ final class ARPoseProvider: NSObject, ARSessionDelegate {
         }()
         Task { @MainActor [weak self] in
             guard let self else { return }
-            let pose = Pose(x: px, y: py, z: pz, yaw: yaw)
-            self.store?.updateLocalPose(pose, quality: q)
+            let raw = Pose(x: px, y: py, z: pz, yaw: yaw)
+            self.latestRawPose = raw
+            // Convert raw → blocking frame if calibrated. Otherwise the raw pose
+            // is used directly (single-device operation).
+            let reported: Pose
+            if let calibration = PerformerARHost.shared.calibration {
+                reported = calibration.toBlocking(raw)
+            } else {
+                reported = raw
+            }
+            self.store?.updateLocalPose(reported, quality: q)
             self.sessionController?.broadcastLocalPose()
         }
     }

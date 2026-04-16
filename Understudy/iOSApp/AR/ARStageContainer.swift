@@ -155,6 +155,17 @@ struct ARStageContainer: UIViewRepresentable {
             self.nextMarkID = nextMarkID
             guard let anchor = worldAnchor else { return }
 
+            // Marks live in the shared blocking frame. To render them in the
+            // device's own ARKit scene, convert back to raw via the active
+            // calibration (or pass through if uncalibrated — the raw frame
+            // IS the blocking frame in single-device mode).
+            let calibration = PerformerARHost.shared.calibration
+
+            func rawPosition(_ p: Pose, y: Float) -> SIMD3<Float> {
+                let raw = calibration?.toRaw(p) ?? p
+                return [raw.x, y, raw.z]
+            }
+
             // Diff marks.
             let liveIDs = Set(marks.map(\.id))
             for (id, bundle) in markEntities where !liveIDs.contains(id) {
@@ -162,17 +173,18 @@ struct ARStageContainer: UIViewRepresentable {
                 markEntities.removeValue(forKey: id)
             }
             for mark in marks {
+                let pos = rawPosition(mark.pose, y: 0.005)
                 if let existing = markEntities[mark.id] {
-                    existing.root.position = [mark.pose.x, 0.005, mark.pose.z]
+                    existing.root.position = pos
                     // Radius change → rebuild bundle.
                     if abs(existing.radius - mark.radius) > 0.001 {
                         existing.root.removeFromParent()
-                        let bundle = buildMarkBundle(mark)
+                        let bundle = buildMarkBundle(mark, atPosition: pos)
                         anchor.addChild(bundle.root)
                         markEntities[mark.id] = bundle
                     }
                 } else {
-                    let bundle = buildMarkBundle(mark)
+                    let bundle = buildMarkBundle(mark, atPosition: pos)
                     anchor.addChild(bundle.root)
                     markEntities[mark.id] = bundle
                 }
@@ -180,13 +192,14 @@ struct ARStageContainer: UIViewRepresentable {
 
             // Rebuild trail whenever the sequence changes. This is cheap at
             // the scales we care about (<50 marks).
-            rebuildTrail(marks: marks, anchor: anchor)
+            rebuildTrail(marks: marks, anchor: anchor, calibration: calibration)
 
             // Ghost orb.
             if let ghost, let pose = ghostPose {
                 ghost.isEnabled = true
-                ghost.position = [pose.x, 0.9, pose.z]
-                ghost.orientation = simd_quatf(angle: pose.yaw, axis: [0, 1, 0])
+                ghost.position = rawPosition(pose, y: 0.9)
+                let rawYaw = (calibration?.toRaw(pose).yaw ?? pose.yaw)
+                ghost.orientation = simd_quatf(angle: rawYaw, axis: [0, 1, 0])
             } else {
                 ghost?.isEnabled = false
             }
@@ -217,10 +230,10 @@ struct ARStageContainer: UIViewRepresentable {
 
         // MARK: - Building
 
-        private func buildMarkBundle(_ mark: Mark) -> MarkEntityBundle {
+        private func buildMarkBundle(_ mark: Mark, atPosition pos: SIMD3<Float>) -> MarkEntityBundle {
             let root = Entity()
             root.name = "mark-\(mark.id.raw)"
-            root.position = [mark.pose.x, 0.005, mark.pose.z]
+            root.position = pos
 
             // iOS 17 doesn't have `generateCylinder`. Use a flat thin plane as
             // the disc and a slightly larger one underneath for a subtle rim.
@@ -259,7 +272,7 @@ struct ARStageContainer: UIViewRepresentable {
             return m
         }
 
-        private func rebuildTrail(marks: [Mark], anchor: Entity) {
+        private func rebuildTrail(marks: [Mark], anchor: Entity, calibration: DeviceCalibration?) {
             for (_, entity) in trailEntities { entity.removeFromParent() }
             trailEntities.removeAll()
             let ordered = marks
@@ -267,8 +280,10 @@ struct ARStageContainer: UIViewRepresentable {
                 .sorted { $0.sequenceIndex < $1.sequenceIndex }
             guard ordered.count >= 2 else { return }
             for i in 0..<(ordered.count - 1) {
-                let a = ordered[i].pose
-                let b = ordered[i + 1].pose
+                // Transform both endpoints through calibration so segments
+                // align with the floor-anchored discs they connect.
+                let a = calibration?.toRaw(ordered[i].pose) ?? ordered[i].pose
+                let b = calibration?.toRaw(ordered[i + 1].pose) ?? ordered[i + 1].pose
                 let dx = b.x - a.x
                 let dz = b.z - a.z
                 let len = max(0.01, sqrtf(dx * dx + dz * dz))

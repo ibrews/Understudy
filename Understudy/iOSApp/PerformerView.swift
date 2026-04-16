@@ -123,6 +123,8 @@ struct PerformerView: View {
                     .foregroundStyle(.white.opacity(0.6))
             }
             Spacer()
+            CalibrationButton()
+                .environment(store)
             Button { showingSettings = true } label: {
                 Image(systemName: "gearshape")
                     .font(.title3)
@@ -551,6 +553,32 @@ final class PerformerARHost {
     /// Held weakly so Author mode can raycast tap locations to world coords.
     /// Set by `ARStageContainer.makeUIView`; nil when AR background is disabled.
     weak var arView: ARView?
+
+    /// Per-session calibration. Nil = uncalibrated, device uses its raw AR
+    /// world frame as the blocking frame. Everyone in a rehearsal should
+    /// stand at the same spot + face the same direction + tap "Set Origin
+    /// Here" at the same time.
+    public var calibration: DeviceCalibration?
+
+    /// Snapshot the current raw ARKit pose and use it as the shared origin.
+    /// Returns true if a pose was available (ARKit has started and produced
+    /// at least one frame), false otherwise.
+    @discardableResult
+    public func calibrateAtCurrentPose() -> Bool {
+        guard let provider else { return false }
+        calibration = DeviceCalibration(anchor: provider.latestRawPose)
+        // Force an immediate pose update so the store reflects the new frame
+        // without waiting for the next ARKit frame.
+        let raw = provider.latestRawPose
+        if let calibration, let store = self.store {
+            store.updateLocalPose(calibration.toBlocking(raw), quality: store.localPerformer?.trackingQuality ?? 1)
+        }
+        return true
+    }
+
+    public func clearCalibration() {
+        calibration = nil
+    }
 
     func configure(store: BlockingStore, session: SessionController) {
         self.store = store

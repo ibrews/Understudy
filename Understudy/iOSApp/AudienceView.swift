@@ -107,6 +107,8 @@ struct AudienceView: View {
                     .font(.caption2).foregroundStyle(.white.opacity(0.6))
             }
             Spacer()
+            CalibrationButton()
+                .environment(store)
             Button { showingSettings = true } label: {
                 Image(systemName: "gearshape")
                     .font(.title3)

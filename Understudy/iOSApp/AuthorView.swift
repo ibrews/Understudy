@@ -145,6 +145,8 @@ struct AuthorView: View {
                     .foregroundStyle(.white.opacity(0.6))
             }
             Spacer()
+            CalibrationButton()
+                .environment(store)
             Button { showingSettings = true } label: {
                 Image(systemName: "gearshape")
                     .font(.title3)
@@ -249,7 +251,11 @@ struct AuthorView: View {
             return
         }
         let t = result.worldTransform
-        dropMark(at: Pose(x: t.columns.3.x, y: 0, z: t.columns.3.z, yaw: 0))
+        // Raycast result is in the device's raw AR frame — convert to the
+        // shared blocking frame before storing.
+        let rawPose = Pose(x: t.columns.3.x, y: 0, z: t.columns.3.z, yaw: 0)
+        let blockingPose = PerformerARHost.shared.calibration?.toBlocking(rawPose) ?? rawPose
+        dropMark(at: blockingPose)
     }
 
     /// Extract the mark id by walking up the entity tree looking for a name
