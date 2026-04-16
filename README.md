@@ -200,12 +200,23 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] Next-mark auto-advance — right now voice auto-fire handles sub-mark cues; the performer still has to physically walk to advance marks. Optional toggle: when the last line on a mark finishes via voice AND the performer is within N seconds of walking, pre-advance the cue cursor.
 - [ ] Migrate Monitoring code to AgileLensMultiplayer SPM dependency (currently copied in)
 - [ ] Gestural rotation on visionOS 2.0 target — v0.12 translates via drag but rotates via ±15° buttons (1.0 has no `RotateGesture3D`). Uniform scale still unbuilt — add when there's a use case beyond "1:1 scale is what I want."
-- [ ] More modern plays — `parse_modern.py` works for Chekhov + Wilde; try Cherry Orchard, Ghosts (Ibsen), Three Sisters, Salomé. Beckett's copyright expires in 2059 in Europe so is off the table.
-- [ ] Audience-mode flash overlay — v0.23 wires CueFXEngine to Performer + Teleprompter screens but not AudienceScreen; audience walkers don't see flash cues yet.
-- [ ] Real SFX bundle on Android — v0.23's `CueAudioPlayer` uses `ToneGenerator` bursts as placeholders. Drop WAVs into `android/app/src/main/res/raw/` and swap in `SoundPool`. iOS hits Apple's system-sound ROM which Android can't mirror.
-- [ ] DMX direct output (sACN / Art-Net)
+- [ ] More modern plays — `parse_modern.py` works for Chekhov + Wilde; v0.24 added Cherry Orchard + Three Sisters. Still open: Ghosts (Ibsen), Uncle Vanya, Salomé, Long Day's Journey. Beckett's copyright expires in 2059 in Europe so is off the table.
+- [ ] DMX on Android — v0.24 ships iOS sACN; port `DMXOutput.swift` + `DMXCueMapping.swift` to Kotlin (`java.net.DatagramSocket`/`MulticastSocket`). Hand-roll the same E1.31-2018 packet.
 - [ ] Lens/sensor pickers with real-world presets (ARRI, RED, Sony FX, cine primes)
-- [ ] `HANDOFF_GOOGLE_PLAY.md` — Android internal-testing track (parallel to `HANDOFF_TESTFLIGHT.md`). Needs release keystore + Play Console click-through.
+- [ ] `scripts/ship-playstore.sh` — automate the `./gradlew bundleRelease` + Google Play Publisher roll-out. Guide in `HANDOFF_GOOGLE_PLAY.md`.
+
+### v0.24 · Feature sprint #2 — five drops in parallel
+Five more parallel agents, zero merge conflicts this time. The batch leans outward: two cross-platform content adds (new plays, new DMX output), two Android polish items, and the Google-Play-Console handoff doc to mirror the iOS TestFlight path.
+
+**1. Cherry Orchard + Three Sisters** — both Chekhov plays from Project Gutenberg ebook #7986 (Julius West translation, PD). `parse_modern.py` handled both unchanged; `three-sisters.json` is 224 KB / 754 lines, `cherry-orchard.json` 182 KB / 643 lines. Registered in iOS `Scripts.all` + Android `Scripts.kt`. Seven plays now bundled (Hamlet, Macbeth, Midsummer, Seagull, Earnest, Cherry Orchard, Three Sisters).
+
+**2. Real SFX WAV bundle on Android** — replaces v0.23's `ToneGenerator` placeholders with five CC0 WAVs synthesized via `ffmpeg lavfi` filters (bell 52 KB, chime 65 KB, knock 11 KB, thunder 108 KB, applause 86 KB — 328 KB total). `cuefx/CueAudioPlayer.kt` rewritten to `SoundPool` first with `ToneGenerator` fallback for unknown cue names. APK stays at 19.7 MB. New `LICENSE-SOUNDS.md` documents provenance (all self-generated, CC0).
+
+**3. Audience-mode flash overlay + next-mark auto-advance** — finishes v0.23's loose end (`AudienceScreen` now renders `FlashOverlay` + HOLD badge matching `PerformerScreen`). Adds a new Teleprompter-section pref "Auto-advance to next mark" (default off): when on, crossing the last `Cue.Line` on a mark via voice recognition pre-advances `currentMarkID` to the next mark in sequence so the teleprompter scrolls and the next mark's cues are ready for voice-fire without waiting on proximity. Five guard conditions (pref on, voice active, last Line cue, still on mark, next mark exists) — never wraps past end of show.
+
+**4. DMX direct output (iOS + visionOS)** — sACN (E1.31) over UDP, parallel to the existing OSC output layer. `Understudy/Shared/Effects/DMXOutput.swift` hand-rolls the full E1.31-2018 packet (root → framing → DMP), uses `NWConnection` over UDP port 5568, supports multicast (`239.255.{universe>>8}.{universe&0xFF}`) and unicast. `Understudy/Shared/Effects/DMXCueMapping.swift` ships a default 4-fixture RGBW+dim preset at DMX addresses 1/6/11/16. New Settings section in the iOS PerformerView: enable toggle, universe, destination picker, node IP, "send test wash" button. Prefs survive app restart via `UserDefaults`. No deps — Network.framework only.
+
+**5. HANDOFF_GOOGLE_PLAY.md + GOOGLE_PLAY_COPY.md** — the Android/Play-Console analogue to `HANDOFF_TESTFLIGHT.md`. 374 lines covering keystore creation, `build.gradle.kts` signingConfig via env vars, `./gradlew bundleRelease`, Play Console app-record setup (bundle ID + default language + privacy policy URL + data-safety form — all cross-referenced to `PRIVACY.md`), Internal Testing track, Play App Signing, and 11 gotchas (signing leaks, minSdk, targetSdk rolling deadline, versionCode monotonicity, .aab vs .apk, 150 MB size, opt-in URL scope, ARCore filter, etc.). Recommends Gradle Play Publisher plugin for the eventual `scripts/ship-playstore.sh`.
 
 ### v0.23 · Android parity sprint — five features in one drop
 Closes the long tail of Android-vs-iOS gaps with five features built in parallel by isolated agents on worktree branches, then sequentially merged. All five build clean and the 6 WireCompatTests still pass.
