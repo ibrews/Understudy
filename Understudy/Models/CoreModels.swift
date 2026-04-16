@@ -254,6 +254,9 @@ nonisolated public struct Blocking: Codable, Hashable, Identifiable, Sendable {
     /// Optional recorded performance: the director's ideal walkthrough, so
     /// late-joining performers can scrub a ghost.
     public var reference: RecordedWalk?
+    /// Optional LiDAR mesh of the location. When present, the visionOS
+    /// director sees it as a wireframe ghost over their stage.
+    public var roomScan: RoomScan?
 
     public init(
         id: ID = ID(),
@@ -270,6 +273,25 @@ nonisolated public struct Blocking: Codable, Hashable, Identifiable, Sendable {
         self.marks = marks
         self.origin = origin
         self.reference = nil
+        self.roomScan = nil
+    }
+
+    // Backward-compatible decoder — older .understudy files didn't have
+    // `roomScan`, so we let that key be absent.
+    private enum CodingKeys: String, CodingKey {
+        case id, title, authorName, createdAt, modifiedAt, marks, origin, reference, roomScan
+    }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decode(ID.self, forKey: .id)
+        self.title = try c.decode(String.self, forKey: .title)
+        self.authorName = try c.decode(String.self, forKey: .authorName)
+        self.createdAt = try c.decode(Date.self, forKey: .createdAt)
+        self.modifiedAt = try c.decode(Date.self, forKey: .modifiedAt)
+        self.marks = try c.decode([Mark].self, forKey: .marks)
+        self.origin = try c.decode(Pose.self, forKey: .origin)
+        self.reference = try c.decodeIfPresent(RecordedWalk.self, forKey: .reference)
+        self.roomScan = try c.decodeIfPresent(RoomScan.self, forKey: .roomScan)
     }
 
     /// Return the mark a given pose is currently inside, if any.
@@ -280,6 +302,118 @@ nonisolated public struct Blocking: Codable, Hashable, Identifiable, Sendable {
             .filter { $0.1 <= $0.0.radius }
             .min(by: { $0.1 < $1.1 })?
             .0
+    }
+}
+
+// MARK: - Room scan (LiDAR)
+
+/// A LiDAR-captured mesh of the rehearsal / filming location. Captured
+/// on an iPhone Pro via `ARSceneReconstruction` and shared over the wire
+/// so the visionOS director can stand in their office and see the
+/// scouted location as a wireframe ghost.
+///
+/// Binary layout (wire-efficient, base64-wrapped inside JSON):
+///
+///   positions : [Float32]  interleaved xyz, 12 bytes / vertex
+///   indices   : [UInt32]   triangle corners, 4 bytes / index
+///   triangleCount = indices.count / 3
+///   vertexCount   = positions.count / 3
+///
+/// We don't ship normals — the renderer can compute them per-triangle, and
+/// normals double the wire weight. Quantizing positions is a nice-to-have
+/// but not worth the complexity at the sizes we care about (typical
+/// ~3-8k triangles after `ARMeshGeometry` dedupes).
+nonisolated public struct RoomScan: Codable, Hashable, Sendable {
+    /// Base64 of the interleaved Float32 positions (big-endian).
+    public var positionsBase64: String
+    /// Base64 of the UInt32 triangle indices (big-endian).
+    public var indicesBase64: String
+    /// Wall-clock time of capture.
+    public var capturedAt: Date
+    /// Human label — "Brooklyn studio 4F", "Client's Williamsburg loft", etc.
+    public var name: String
+    /// Optional transform (yaw/translation) applied to the scan when rendered
+    /// in the director's space, so a scouted Manhattan loft can be aligned
+    /// to a Brooklyn rehearsal room.
+    public var overlayOffset: Pose
+
+    public init(
+        positionsBase64: String,
+        indicesBase64: String,
+        capturedAt: Date = Date(),
+        name: String = "Room scan",
+        overlayOffset: Pose = Pose()
+    ) {
+        self.positionsBase64 = positionsBase64
+        self.indicesBase64 = indicesBase64
+        self.capturedAt = capturedAt
+        self.name = name
+        self.overlayOffset = overlayOffset
+    }
+
+    /// Derived: number of vertices in the mesh (three floats per vertex).
+    public var vertexCount: Int {
+        guard let data = Data(base64Encoded: positionsBase64) else { return 0 }
+        return data.count / (MemoryLayout<Float>.size * 3)
+    }
+    public var triangleCount: Int {
+        guard let data = Data(base64Encoded: indicesBase64) else { return 0 }
+        return data.count / (MemoryLayout<UInt32>.size * 3)
+    }
+    /// Approximate wire cost in kilobytes (base64 payload only).
+    public var wireKB: Int {
+        (positionsBase64.utf8.count + indicesBase64.utf8.count + 512) / 1024
+    }
+
+    public func decodePositions() -> [Float] {
+        guard let data = Data(base64Encoded: positionsBase64) else { return [] }
+        // Memory contains big-endian Float32 bitpatterns. Read as UInt32,
+        // swap to host byte order, then reinterpret as Float.
+        let count = data.count / MemoryLayout<UInt32>.size
+        var out = [Float](repeating: 0, count: count)
+        data.withUnsafeBytes { raw in
+            let words = raw.bindMemory(to: UInt32.self)
+            for i in 0..<count {
+                out[i] = Float(bitPattern: UInt32(bigEndian: words[i]))
+            }
+        }
+        return out
+    }
+
+    public func decodeIndices() -> [UInt32] {
+        guard let data = Data(base64Encoded: indicesBase64) else { return [] }
+        let count = data.count / MemoryLayout<UInt32>.size
+        var out = [UInt32](repeating: 0, count: count)
+        data.withUnsafeBytes { raw in
+            let words = raw.bindMemory(to: UInt32.self)
+            for i in 0..<count {
+                out[i] = UInt32(bigEndian: words[i])
+            }
+        }
+        return out
+    }
+
+    /// Build from raw arrays — writes each scalar as big-endian bytes.
+    public static func from(positions: [SIMD3<Float>], indices: [UInt32], name: String) -> RoomScan {
+        // Positions.
+        var posData = Data(capacity: positions.count * 3 * 4)
+        for p in positions {
+            for v in [p.x, p.y, p.z] {
+                var be = v.bitPattern.bigEndian
+                withUnsafeBytes(of: &be) { posData.append(contentsOf: $0) }
+            }
+        }
+        // Indices.
+        var idxData = Data(capacity: indices.count * 4)
+        for i in indices {
+            var be = i.bigEndian
+            withUnsafeBytes(of: &be) { idxData.append(contentsOf: $0) }
+        }
+        return RoomScan(
+            positionsBase64: posData.base64EncodedString(),
+            indicesBase64: idxData.base64EncodedString(),
+            name: name
+        )
     }
 }
 

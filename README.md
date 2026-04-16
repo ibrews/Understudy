@@ -183,7 +183,9 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 *(Latest first. Every version shipped is a real commit + push; the "Next up" list is intentional future work.)*
 
 ### Next up
-- [ ] **v0.9 — LiDAR room capture + shared mesh.** Scan a location with an iPhone Pro's LiDAR, broadcast the mesh as a new `NetMessage.roomMesh` chunk, render it as a wireframe ghost on visionOS. Director stands in their actual office but sees the scouted room — camera marks land in the scouted coordinate system.
+- [ ] Migrate Monitoring code to AgileLensMultiplayer SPM dependency (currently copied in)
+- [ ] Interactive overlay controls on visionOS — grab + rotate + scale the room-scan ghost to align scouted location to rehearsal room
+- [ ] Android LiDAR pass-through (ARCore Depth API on supported devices)
 - [ ] QR-code anchor as a more precise alternative to the "stand here, face upstage" calibration ceremony
 - [ ] Android floating script panels (feature parity with visionOS)
 - [ ] Android Audience mode + camera marks
@@ -192,6 +194,13 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] Lens/sensor pickers with real-world presets (ARRI, RED, Sony FX, cine primes)
 - [ ] Public-domain Chekhov + Beckett in the Script Browser
 - [ ] TestFlight
+
+### v0.9 · LiDAR room capture + Mission Control fleet visibility
+- **LiDAR scan on iPhone Pro.** `MeshCapture` turns on `ARWorldTrackingConfiguration.sceneReconstruction = .mesh` on the shared ARKit session, polls mesh anchors as the user walks, and on "Finish" flattens every `ARMeshAnchor` into a single world-space mesh. "Scan room" button appears automatically in Author mode on LiDAR-capable devices (iPhone 12 Pro+, iPad Pro). Progress strip shows live triangle count during capture.
+- **`RoomScan` wire type** — positions (Float32 big-endian) + indices (UInt32 big-endian), base64-wrapped inside the existing JSON envelope. `Blocking.roomScan` is optional so older files still load. Two new `NetMessage` cases: `roomScanUpdated(RoomScan?)` (nil clears) and `roomScanOverlay(Pose)` (move/rotate the scan without re-transmitting the mesh — so a scouted Manhattan loft can be aligned to a Brooklyn rehearsal studio).
+- **visionOS renders scan as wireframe ghost** — `RoomScanMesh` builds a RealityKit `MeshResource` from the scan and hangs it off the stage root as a translucent cyan "architectural drawing" material. The director stands in their actual office and sees the scouted location superimposed on their real room. Marks live in the scan's coordinate system, so tripod placements already reflect where they'd sit on location.
+- **Mission Control integration** — Understudy now advertises `_agilelens-mon._tcp` over Bonjour alongside its MPC / WebSocket transports, using the same `MonitoringBroadcaster` / `MonitoringEvent` schema that WhoAmI, LaserTag, and SharedScanner use (copied from `AgileLensMultiplayer` SPM; migration to a proper dep is a v1.0 item). Fleet-wide Mission Control observers pick up live pose updates, player joins/leaves, room scan mesh chunks, and heartbeats — Understudy shows up in the 2D / 3D / heatmap / character views automatically.
+- **Registered with Dev Control Center** at `http://sam:3333` with `id=understudy`, `bundle_id=agilelens.Understudy`, color `#C7232D` — fleet build dashboard tracks every push.
 
 ### v0.8 · Film mode — camera marks + virtual viewfinder
 - **Two kinds of marks**: `MarkKind.actor` (the existing behavior) and `MarkKind.camera`. Both placed via the same tap-to-drop gesture in Author mode; a segmented picker + lens-preset pills at the top of the screen choose what you're dropping.

@@ -21,6 +21,12 @@ nonisolated public enum NetMessage: Codable, Sendable {
     case markRemoved(ID)
     case cueFired(markID: ID, cueID: ID, by: ID)
     case playbackState(t: Double?)
+    /// A fresh LiDAR room scan, or nil to clear any previously-shared scan.
+    /// Typically large (~100 KB base64); sent once per scan, not per frame.
+    case roomScanUpdated(RoomScan?)
+    /// Just the overlay transform — used by the director to align the scouted
+    /// location to their actual rehearsal room without re-transmitting the mesh.
+    case roomScanOverlay(Pose)
 }
 
 nonisolated public struct Envelope: Codable, Sendable {

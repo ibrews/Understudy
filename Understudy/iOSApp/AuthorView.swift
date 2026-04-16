@@ -30,6 +30,12 @@ struct AuthorView: View {
     @State private var placementFeedback: Date?
     @State private var dropKind: MarkKind = .actor
     @State private var cameraPreset: CameraSpec = .preset35mm
+    @State private var meshCapture: MeshCapture?
+    @State private var scanState: MeshCapture.State = .idle
+    @State private var scanTriangles: Int = 0
+    @State private var scanRefreshTimer: Timer?
+    @State private var scanNameDraft: String = "Room scan"
+    @State private var showingScanNameSheet: Bool = false
 
     private var gradientOpacity: Double { showARStage ? 0.30 : 1.0 }
 
@@ -230,46 +236,200 @@ struct AuthorView: View {
     }
 
     private var bottomBar: some View {
-        HStack(spacing: 14) {
-            Button {
-                exportItem = BlockingDocument(blocking: store.blocking)
-            } label: {
-                Label("Export", systemImage: "square.and.arrow.up")
-                    .labelStyle(.iconOnly)
-                    .font(.title2)
-                    .padding(12)
-                    .background(.white.opacity(0.08), in: Circle())
-                    .foregroundStyle(.white)
+        VStack(spacing: 10) {
+            if MeshCapture.isSupported {
+                scanStrip
             }
-            .accessibilityLabel("Export blocking")
+            HStack(spacing: 14) {
+                Button {
+                    exportItem = BlockingDocument(blocking: store.blocking)
+                } label: {
+                    Label("Export", systemImage: "square.and.arrow.up")
+                        .labelStyle(.iconOnly)
+                        .font(.title2)
+                        .padding(12)
+                        .background(.white.opacity(0.08), in: Circle())
+                        .foregroundStyle(.white)
+                }
+                .accessibilityLabel("Export blocking")
 
-            Button {
-                showingImporter = true
-            } label: {
-                Label("Import", systemImage: "square.and.arrow.down")
-                    .labelStyle(.iconOnly)
-                    .font(.title2)
-                    .padding(12)
-                    .background(.white.opacity(0.08), in: Circle())
-                    .foregroundStyle(.white)
+                Button {
+                    showingImporter = true
+                } label: {
+                    Label("Import", systemImage: "square.and.arrow.down")
+                        .labelStyle(.iconOnly)
+                        .font(.title2)
+                        .padding(12)
+                        .background(.white.opacity(0.08), in: Circle())
+                        .foregroundStyle(.white)
+                }
+                .accessibilityLabel("Import blocking")
+
+                Spacer()
+
+                Button {
+                    confirmClear = true
+                } label: {
+                    Label("Clear", systemImage: "trash")
+                        .labelStyle(.iconOnly)
+                        .font(.title2)
+                        .padding(12)
+                        .background(.red.opacity(0.5), in: Circle())
+                        .foregroundStyle(.white)
+                }
+                .disabled(store.blocking.marks.isEmpty)
+                .accessibilityLabel("Clear marks")
             }
-            .accessibilityLabel("Import blocking")
+        }
+    }
+
+    /// Appears only on LiDAR-capable devices (iPhone 12 Pro+). Starts a
+    /// scene-reconstruction capture, shows live triangle count, and on
+    /// finish broadcasts the mesh as a RoomScan.
+    @ViewBuilder private var scanStrip: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "cube.transparent")
+                .foregroundStyle(.orange)
+
+            switch scanState {
+            case .idle:
+                Button {
+                    beginScan()
+                } label: {
+                    Text(store.blocking.roomScan == nil ? "Scan room" : "Re-scan room")
+                        .font(.subheadline.bold())
+                        .padding(.horizontal, 14).padding(.vertical, 7)
+                        .background(Color.orange.opacity(0.8), in: Capsule())
+                        .foregroundStyle(.white)
+                }
+                if let scan = store.blocking.roomScan {
+                    Text("\(scan.triangleCount) tris • \(scan.wireKB) KB")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.white.opacity(0.55))
+                }
+            case .scanning:
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(.orange)
+                Text("\(scanTriangles) triangles")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.white.opacity(0.85))
+                Spacer()
+                Button {
+                    showingScanNameSheet = true
+                } label: {
+                    Text("Finish")
+                        .font(.subheadline.bold())
+                        .padding(.horizontal, 14).padding(.vertical, 7)
+                        .background(.white.opacity(0.18), in: Capsule())
+                        .foregroundStyle(.white)
+                }
+                Button(role: .destructive) {
+                    cancelScan()
+                } label: {
+                    Image(systemName: "xmark")
+                        .foregroundStyle(.white)
+                }
+            case .done:
+                Text("Scan complete")
+                    .font(.caption.bold())
+                    .foregroundStyle(.green)
+            }
 
             Spacer()
 
-            Button {
-                confirmClear = true
-            } label: {
-                Label("Clear", systemImage: "trash")
-                    .labelStyle(.iconOnly)
-                    .font(.title2)
-                    .padding(12)
-                    .background(.red.opacity(0.5), in: Circle())
-                    .foregroundStyle(.white)
+            if store.blocking.roomScan != nil {
+                Button(role: .destructive) {
+                    store.blocking.roomScan = nil
+                    store.blocking.modifiedAt = Date()
+                    BlockingAutosave.save(store.blocking)
+                    session.broadcastRoomScan(nil)
+                } label: {
+                    Image(systemName: "trash")
+                        .foregroundStyle(.red)
+                }
+                .accessibilityLabel("Remove scan")
             }
-            .disabled(store.blocking.marks.isEmpty)
-            .accessibilityLabel("Clear marks")
         }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(.black.opacity(0.45), in: RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+        )
+        .sheet(isPresented: $showingScanNameSheet) {
+            NavigationStack {
+                Form {
+                    Section {
+                        TextField("e.g. Brooklyn studio 4F", text: $scanNameDraft)
+                    } header: { Text("Name this scan") } footer: {
+                        Text("Shown to other peers as the overlay label. Captured at \(Date().formatted(date: .abbreviated, time: .shortened)).")
+                    }
+                }
+                .navigationTitle("Finish scan")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { showingScanNameSheet = false }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            finishScan(name: scanNameDraft)
+                            showingScanNameSheet = false
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Scan lifecycle
+
+    private func beginScan() {
+        guard let arSession = PerformerARHost.shared.arView?.session else {
+            // Need the shared ARKit session to swap in scene-reconstruction.
+            return
+        }
+        let capture = MeshCapture(session: arSession)
+        if capture.start() {
+            meshCapture = capture
+            scanState = .scanning
+            scanTriangles = 0
+            scanRefreshTimer?.invalidate()
+            scanRefreshTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+                Task { @MainActor in
+                    capture.refreshProgress()
+                    scanTriangles = capture.triangleCountSoFar
+                }
+            }
+        }
+    }
+
+    private func finishScan(name: String) {
+        scanRefreshTimer?.invalidate()
+        scanRefreshTimer = nil
+        guard let capture = meshCapture, let scan = capture.finish(nameForScan: name) else {
+            scanState = .idle
+            return
+        }
+        store.blocking.roomScan = scan
+        store.blocking.modifiedAt = Date()
+        BlockingAutosave.save(store.blocking)
+        session.broadcastRoomScan(scan)
+        meshCapture = nil
+        scanState = .done
+        // Flicker back to idle after a beat.
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            scanState = .idle
+        }
+    }
+
+    private func cancelScan() {
+        scanRefreshTimer?.invalidate()
+        scanRefreshTimer = nil
+        meshCapture?.stopAndDiscard()
+        meshCapture = nil
+        scanState = .idle
     }
 
     // MARK: - Tap → place / edit

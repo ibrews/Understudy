@@ -80,11 +80,15 @@ public final class SessionController {
         if !store.blocking.marks.isEmpty {
             transport.send(.blockingSnapshot(store.blocking), from: me.id)
         }
+        // Start Mission Control monitoring on the same session key so fleet
+        // observers (Mission Control app) can pick us up automatically.
+        MonitoringIntegration.shared.start(store: store, sessionKey: roomCode)
     }
 
     public func stop() {
         transport.stop()
         isRunning = false
+        MonitoringIntegration.shared.stop()
     }
 
     private func restart() {
@@ -100,6 +104,9 @@ public final class SessionController {
         poseTickCounter += 1
         if poseTickCounter % 3 != 0 { return } // assume ~30Hz callers
         transport.send(.performerUpdate(me), from: me.id)
+        // Forward to Mission Control at the same cadence so observers see
+        // live movement without us sending a second stream.
+        MonitoringIntegration.shared.forwardPoseUpdate(me)
     }
 
     public func broadcastMarkAdded(_ mark: Mark) {
@@ -128,14 +135,17 @@ public final class SessionController {
         switch env.message {
         case .hello(let p):
             store.upsertPerformer(p)
+            MonitoringIntegration.shared.forwardPlayerJoined(p)
             // If we're the director (have marks), send a snapshot to the newcomer.
             if let me = store.localPerformer, me.role == .director, !store.blocking.marks.isEmpty {
                 transport.send(.blockingSnapshot(store.blocking), from: me.id)
             }
         case .goodbye(let id):
             store.removePerformer(id: id)
+            MonitoringIntegration.shared.forwardPlayerLeft(id)
         case .performerUpdate(let p):
             store.upsertPerformer(p)
+            MonitoringIntegration.shared.forwardPoseUpdate(p)
         case .blockingSnapshot(let b):
             // Prefer newer snapshots; ignore older.
             if b.modifiedAt >= store.blocking.modifiedAt {
@@ -158,6 +168,31 @@ public final class SessionController {
             break
         case .playbackState(let t):
             store.playbackT = t
+        case .roomScanUpdated(let scan):
+            store.blocking.roomScan = scan
+            store.blocking.modifiedAt = Date()
+            BlockingAutosave.save(store.blocking)
+        case .roomScanOverlay(let pose):
+            if store.blocking.roomScan != nil {
+                store.blocking.roomScan?.overlayOffset = pose
+                store.blocking.modifiedAt = Date()
+                BlockingAutosave.save(store.blocking)
+            }
         }
+    }
+
+    public func broadcastRoomScan(_ scan: RoomScan?) {
+        guard let me = store.localPerformer else { return }
+        transport.send(.roomScanUpdated(scan), from: me.id)
+        // Also forward the mesh to Mission Control so fleet observers can
+        // render it in their 3D viewer.
+        if let scan {
+            MonitoringIntegration.shared.forwardRoomScan(scan)
+        }
+    }
+
+    public func broadcastScanOverlay(_ pose: Pose) {
+        guard let me = store.localPerformer else { return }
+        transport.send(.roomScanOverlay(pose), from: me.id)
     }
 }

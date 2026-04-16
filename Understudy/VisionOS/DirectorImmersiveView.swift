@@ -27,6 +27,11 @@ struct DirectorImmersiveView: View {
     @State private var stageLight: ModelEntity = ModelEntity()
     @State private var ghostEntity: Entity = Entity()
     @State private var lastRenderedFlashID: UUID?
+    /// Currently-rendered room scan entity (the LiDAR ghost of the scouted
+    /// location). Nil when no scan is present.
+    @State private var roomScanEntity: ModelEntity?
+    /// Hash of the last rendered scan so we don't rebuild the mesh every frame.
+    @State private var renderedScanHash: Int?
 
     /// Entities that host a floating SwiftUI script card for each mark.
     /// Parented under the mark entity so they move with the mark.
@@ -86,6 +91,7 @@ struct DirectorImmersiveView: View {
                 syncGhost()
                 syncFlash()
                 syncMarkCards(attachments: attachments)
+                syncRoomScan()
             }
         } attachments: {
             ForEach(store.blocking.marks, id: \.id) { mark in
@@ -118,6 +124,43 @@ struct DirectorImmersiveView: View {
                     session.broadcastMarkAdded(mark)
                 }
         )
+    }
+
+    // MARK: - Room scan ghost
+
+    /// Mount the scouted room's LiDAR mesh as a translucent cyan "ghost"
+    /// inside the stage root. Rebuilds only when the scan itself changes
+    /// (hashed by vertex-count + triangle-count + name — cheap and stable).
+    private func syncRoomScan() {
+        guard let scan = store.blocking.roomScan else {
+            roomScanEntity?.removeFromParent()
+            roomScanEntity = nil
+            renderedScanHash = nil
+            return
+        }
+
+        let hash = scan.vertexCount &+ scan.triangleCount &* 31 &+ scan.name.hashValue
+        if let entity = roomScanEntity, hash == renderedScanHash {
+            // Still apply overlay offset in case that changed.
+            applyScanOffset(entity, offset: scan.overlayOffset)
+            return
+        }
+
+        guard let mesh = RoomScanMesh.make(from: scan) else {
+            return
+        }
+        roomScanEntity?.removeFromParent()
+        let entity = ModelEntity(mesh: mesh, materials: [RoomScanMesh.ghostMaterial()])
+        entity.name = "roomScan"
+        stageRoot.addChild(entity)
+        applyScanOffset(entity, offset: scan.overlayOffset)
+        roomScanEntity = entity
+        renderedScanHash = hash
+    }
+
+    private func applyScanOffset(_ entity: Entity, offset: Pose) {
+        entity.position = [offset.x, offset.y, offset.z]
+        entity.orientation = simd_quatf(angle: offset.yaw, axis: [0, 1, 0])
     }
 
     // MARK: - Floating script cards
