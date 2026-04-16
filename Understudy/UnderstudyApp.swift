@@ -63,6 +63,17 @@ struct UnderstudyApp: App {
                         let rxPort = UInt16(ud.string(forKey: "oscReceivePort") ?? "53001") ?? 53001
                         let rxEnabled = ud.bool(forKey: "oscReceiveEnabled")
                         fx.configureOSCReceive(port: rxPort, enabled: rxEnabled)
+                        // Restore DMX config (universe + multicast/unicast destination).
+                        let dmxEnabled = ud.bool(forKey: "dmxEnabled")
+                        let dmxUniverse = Int(ud.string(forKey: "dmxUniverse") ?? "1") ?? 1
+                        let dmxKind = ud.string(forKey: "dmxDestinationKind") ?? "multicast"
+                        let dmxIp = ud.string(forKey: "dmxDestinationIp") ?? ""
+                        fx.configureDMX(
+                            enabled: dmxEnabled,
+                            universe: dmxUniverse,
+                            destinationKind: dmxKind,
+                            destinationIp: dmxIp
+                        )
                         hasOnboarded = true
                     }
                 }
