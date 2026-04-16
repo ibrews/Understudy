@@ -89,6 +89,14 @@ struct UnderstudyApp: App {
                 .environment(fx)
         }
         .defaultSize(width: 720, height: 900)
+
+        // QR calibration target — a floating sheet the director can pin to
+        // a wall (or hand out a printed version). Performers scan it with
+        // iPhones to auto-calibrate to a shared origin.
+        WindowGroup(id: "QRTarget") {
+            QRCalibrationView()
+        }
+        .defaultSize(width: 540, height: 720)
         #endif
     }
 }

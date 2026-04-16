@@ -412,6 +412,7 @@ struct SettingsSheet: View {
     @AppStorage("oscPort") private var oscPortStr: String = "53000"
     @AppStorage("oscReceiveEnabled") private var oscReceiveEnabled: Bool = false
     @AppStorage("oscReceivePort") private var oscReceivePortStr: String = "53001"
+    @State private var showingQRTarget: Bool = false
 
     private var appMode: AppMode {
         get { AppMode(rawValue: appModeRaw) ?? .perform }
@@ -508,6 +509,17 @@ struct SettingsSheet: View {
                     }
                 } header: { Text("Stage Manager (inbound)") }
 
+                Section {
+                    Button {
+                        showingQRTarget = true
+                    } label: {
+                        Label("Show QR for performers to scan", systemImage: "qrcode")
+                    }
+                } header: { Text("Shared-origin calibration") } footer: {
+                    Text("Display or print at \(Int(QRCalibration.defaultPhysicalSizeM * 1000))mm wide. Any Understudy device pointed at it auto-calibrates to the same origin. Works alongside the manual compass ceremony.")
+                        .font(.caption)
+                }
+
                 Section("About") {
                     LabeledContent("Version", value: AppVersion.formatted)
                     Text(store.blocking.title).foregroundStyle(.secondary)
@@ -523,6 +535,9 @@ struct SettingsSheet: View {
                         dismiss()
                     }
                 }
+            }
+            .sheet(isPresented: $showingQRTarget) {
+                QRCalibrationView()
             }
         }
     }

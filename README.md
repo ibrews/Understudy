@@ -200,12 +200,20 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] Gestural rotation on visionOS 2.0 target — v0.12 translates via drag but rotates via ±15° buttons (1.0 has no `RotateGesture3D`). Uniform scale still unbuilt — add when there's a use case beyond "1:1 scale is what I want."
 - [ ] Android LiDAR pass-through (ARCore Depth API on supported devices)
 - [ ] More modern plays — `parse_modern.py` works for Chekhov + Wilde; try Cherry Orchard, Ghosts (Ibsen), Three Sisters, Salomé. Beckett's copyright expires in 2059 in Europe so is off the table.
-- [ ] QR-code anchor as a more precise alternative to the "stand here, face upstage" calibration ceremony
 - [ ] Android floating script panels (feature parity with visionOS)
 - [ ] Android Audience mode + camera marks
 - [ ] DMX direct output (sACN / Art-Net)
 - [ ] Lens/sensor pickers with real-world presets (ARRI, RED, Sony FX, cine primes)
 - [ ] TestFlight
+
+### v0.16 · QR-code calibration — precise shared origin in one glance
+Upgrades v0.7's "stand at stage center, face upstage, tap compass at the same time" manual ceremony. A printed or on-screen QR target becomes the shared anchor; performer phones auto-calibrate the moment they see it.
+
+- **`QRCalibration`** — `generateQR(payload:pixelSize:)` renders a QR via `CIFilter.qrCodeGenerator`. `buildDetectionImageSet()` wraps the fixed `understudy://calibrate` payload as an `ARReferenceImage` at 210 mm physical width. `calibration(from: simd_float4x4)` converts the detected image's world transform into a `DeviceCalibration` (yaw derived from the image's +X axis, position from column 3). Manual ceremony still works as fallback.
+- **`ARPoseProvider.session(_:didAdd:)` + `didUpdate:`** — ARKit callback fires when the reference image comes into view; writes the derived `DeviceCalibration` into `PerformerARHost.shared.calibration` directly. Performers don't tap anything.
+- **`ARWorldTrackingConfiguration.detectionImages`** wired on session start in `ARStageContainer.makeUIView`, so image tracking is always on. Zero runtime overhead when no target is visible.
+- **`QRCalibrationView`** — cross-platform SwiftUI. On iPhone: opens from Settings → "Show QR for performers to scan" as a bright-white sheet (ramps screen brightness to max for detection reliability). On visionOS: a dedicated `WindowGroup(id: "QRTarget")` opened from the director panel's "QR Target" button; can be pinned anywhere in the director's space.
+- One fixed target for the whole fleet — payload is `understudy://calibrate`, no per-room state. If you need to distinguish rehearsal rooms, use different room codes in Settings (that's already how MPC / WebSocket / Mission Control identify sessions).
 
 ### v0.15 · Live scan visualization on iPhone
 You're walking with Scan Room on, the triangle counter ticks up, but the screen shows you nothing — v0.14 and earlier only visualized the mesh on visionOS. Fixed.

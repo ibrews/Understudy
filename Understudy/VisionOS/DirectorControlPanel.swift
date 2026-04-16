@@ -241,6 +241,11 @@ struct DirectorControlPanel: View {
                 } label: {
                     Label("Teleprompter", systemImage: "text.quote")
                 }
+                Button {
+                    openWindow(id: "QRTarget")
+                } label: {
+                    Label("QR Target", systemImage: "qrcode")
+                }
             }
             HStack {
                 Label("Transport", systemImage: "antenna.radiowaves.left.and.right")

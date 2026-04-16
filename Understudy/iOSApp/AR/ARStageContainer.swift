@@ -57,6 +57,13 @@ struct ARStageContainer: UIViewRepresentable {
         let config = ARWorldTrackingConfiguration()
         config.planeDetection = [.horizontal]
         config.environmentTexturing = .none
+        // Image-based calibration — if we can generate the Understudy
+        // calibration QR, register it so ARKit will fire an ARImageAnchor
+        // callback when the printed/displayed target comes into view.
+        if let refImages = QRCalibration.buildDetectionImageSet() {
+            config.detectionImages = refImages
+            config.maximumNumberOfTrackedImages = 1
+        }
         arView.session.run(config, options: [.resetTracking, .removeExistingAnchors])
 
         // World anchor — everything we add hangs off here at origin.

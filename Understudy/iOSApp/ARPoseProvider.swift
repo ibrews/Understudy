@@ -22,6 +22,14 @@ final class ARPoseProvider: NSObject, ARSessionDelegate {
     /// (snapshot this as `DeviceCalibration.anchor` when the user taps
     /// "Set Origin Here").
     private(set) var latestRawPose: Pose = Pose()
+    /// When image-based calibration is desired, we detect a Vision request
+    /// every ~1 s rather than re-detecting per frame — the QR doesn't move
+    /// and per-frame is wasteful. Timestamp-gated.
+    private var lastImageScanAt: Date = .distantPast
+    /// Detected QR calibrations are written to PerformerARHost.shared
+    /// directly (same place the compass button writes). This closure lets
+    /// the host know when we've updated.
+    var onDetectedCalibration: ((DeviceCalibration, String) -> Void)?
 
     /// Original init — provider creates and runs its own ARSession.
     init(store: BlockingStore, sessionController: SessionController) {
@@ -91,6 +99,41 @@ final class ARPoseProvider: NSObject, ARSessionDelegate {
             }
             self.store?.updateLocalPose(reported, quality: q)
             self.sessionController?.broadcastLocalPose()
+        }
+    }
+
+    // MARK: - Image-detected calibration
+
+    /// ARKit calls this when a registered reference image is detected.
+    /// We keep a single "understudy" reference image; when it's seen, we
+    /// derive a DeviceCalibration from its world transform and push it
+    /// into PerformerARHost. Performers don't need to tap the compass.
+    nonisolated func session(_ session: ARSession, didAdd anchors: [ARAnchor]) {
+        for anchor in anchors {
+            guard let ia = anchor as? ARImageAnchor,
+                  let payload = ia.referenceImage.name,
+                  let (room, _) = QRCalibration.parse(payload) else { continue }
+            let transform = ia.transform
+            Task { @MainActor [weak self] in
+                let calibration = QRCalibration.calibration(from: transform)
+                PerformerARHost.shared.calibration = calibration
+                self?.onDetectedCalibration?(calibration, room)
+            }
+        }
+    }
+
+    /// As the image moves / we re-detect (e.g. after tracking loss), we
+    /// keep the calibration current. Cheap — it's one struct assignment.
+    nonisolated func session(_ session: ARSession, didUpdate anchors: [ARAnchor]) {
+        for anchor in anchors {
+            guard let ia = anchor as? ARImageAnchor,
+                  let payload = ia.referenceImage.name,
+                  let _ = QRCalibration.parse(payload),
+                  ia.isTracked else { continue }
+            let transform = ia.transform
+            Task { @MainActor in
+                PerformerARHost.shared.calibration = QRCalibration.calibration(from: transform)
+            }
         }
     }
 }
