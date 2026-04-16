@@ -2,14 +2,22 @@ package agilelens.understudy
 
 import agilelens.understudy.ar.ArPoseProvider
 import agilelens.understudy.model.Id
+import agilelens.understudy.model.Mark
 import agilelens.understudy.net.NetMessage
-import agilelens.understudy.net.WebSocketTransport
+import agilelens.understudy.ui.AuthorScreen
+import agilelens.understudy.ui.MarkEditor
+import agilelens.understudy.ui.ModePickerScreen
 import agilelens.understudy.ui.PerformerScreen
 import agilelens.understudy.ui.SettingsScreen
 import agilelens.understudy.ui.SettingsState
+import agilelens.understudy.ui.buildShareIntent
+import agilelens.understudy.ui.parseBlockingJson
+import agilelens.understudy.ui.readTextFromUri
 import agilelens.understudy.ui.theme.UnderstudyTheme
+import agilelens.understudy.ui.writeBlockingToShareableFile
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -82,7 +90,6 @@ class MainActivity : ComponentActivity() {
         if (hasCameraPermission()) {
             arProvider.resume(this)
         }
-        // (Re)start transport with the latest prefs each time we resume.
         lifecycleScope.launch {
             val name = app.prefs.displayName.first()
             val room = app.prefs.roomCode.first()
@@ -95,7 +102,6 @@ class MainActivity : ComponentActivity() {
                 localID = app.localId,
                 displayName = name
             )
-            // Introduce ourselves
             app.transport.send(NetMessage.Hello(app.store.localPerformer.value), app.localId)
         }
     }
@@ -117,7 +123,6 @@ class MainActivity : ComponentActivity() {
     private fun App() {
         val ctx = LocalContext.current
         val haveCamera = remember { mutableStateOf(hasCameraPermission()) }
-        var showSettings by remember { mutableStateOf(false) }
 
         val permLauncher = rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission()
@@ -131,53 +136,157 @@ class MainActivity : ComponentActivity() {
             return
         }
 
+        // Load all prefs up-front into composition state.
+        val prefsState = remember { mutableStateOf<PrefsSnapshot?>(null) }
+        LaunchedEffect(Unit) {
+            prefsState.value = PrefsSnapshot(
+                displayName = app.prefs.displayName.first(),
+                roomCode = app.prefs.roomCode.first(),
+                relayUrl = app.prefs.relayUrl.first(),
+                appMode = app.prefs.appMode.first(),
+                showArStage = app.prefs.showARStage.first()
+            )
+        }
+
+        val snap = prefsState.value ?: return
+        val scope = rememberCoroutineScope()
+
+        // First-launch mode picker
+        if (snap.appMode == AppMode.UNSET) {
+            ModePickerScreen(onPick = { picked ->
+                scope.launch {
+                    app.prefs.setAppMode(picked)
+                    prefsState.value = snap.copy(appMode = picked)
+                }
+            })
+            return
+        }
+
+        var showSettings by remember { mutableStateOf(false) }
+        var editingMarkId by remember { mutableStateOf<Id?>(null) }
+
+        // Import launcher
+        val openDocLauncher = rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocument()
+        ) { uri ->
+            if (uri != null) {
+                val text = readTextFromUri(ctx, uri)
+                val parsed = text?.let { parseBlockingJson(it) }
+                if (parsed != null) {
+                    app.store.replaceBlocking(parsed)
+                    app.transport.send(NetMessage.BlockingSnapshot(parsed), app.localId)
+                }
+            }
+        }
+
         if (showSettings) {
-            val state = remember { mutableStateOf<SettingsState?>(null) }
-            LaunchedEffect(Unit) {
-                val name = app.prefs.displayName.first()
-                val room = app.prefs.roomCode.first()
-                val url = app.prefs.relayUrl.first()
-                state.value = SettingsState(name, room, url)
-            }
-            state.value?.let { s ->
-                val scope = rememberCoroutineScope()
-                SettingsScreen(
-                    initial = s,
-                    onSave = { saved ->
-                        scope.launch {
-                            app.prefs.setDisplayName(saved.displayName)
-                            app.prefs.setRoomCode(saved.roomCode)
-                            app.prefs.setRelayUrl(saved.relayUrl)
-                            app.store.updateLocalDisplayName(saved.displayName)
-                            // Reconnect with new settings
-                            app.transport.stop()
-                            app.transport.start(
-                                relayUrl = saved.relayUrl,
-                                roomCode = saved.roomCode,
-                                localID = app.localId,
-                                displayName = saved.displayName
-                            )
-                        }
-                    },
-                    onBack = { showSettings = false }
-                )
-            }
+            SettingsScreen(
+                initial = SettingsState(
+                    displayName = snap.displayName,
+                    roomCode = snap.roomCode,
+                    relayUrl = snap.relayUrl,
+                    appMode = snap.appMode,
+                    showARStage = snap.showArStage
+                ),
+                onSave = { saved ->
+                    scope.launch {
+                        app.prefs.setDisplayName(saved.displayName)
+                        app.prefs.setRoomCode(saved.roomCode)
+                        app.prefs.setRelayUrl(saved.relayUrl)
+                        app.prefs.setAppMode(saved.appMode)
+                        app.prefs.setShowARStage(saved.showARStage)
+                        app.store.updateLocalDisplayName(saved.displayName)
+                        prefsState.value = snap.copy(
+                            displayName = saved.displayName,
+                            roomCode = saved.roomCode,
+                            relayUrl = saved.relayUrl,
+                            appMode = saved.appMode,
+                            showArStage = saved.showARStage
+                        )
+                        // Reconnect with new settings
+                        app.transport.stop()
+                        app.transport.start(
+                            relayUrl = saved.relayUrl,
+                            roomCode = saved.roomCode,
+                            localID = app.localId,
+                            displayName = saved.displayName
+                        )
+                    }
+                },
+                onBack = { showSettings = false }
+            )
             return
         }
 
         val blocking by app.store.blocking.collectAsState()
         val local by app.store.localPerformer.collectAsState()
         val peers by app.transport.peerCount.collectAsState()
-        val roomCode = remember { mutableStateOf("rehearsal") }
-        LaunchedEffect(Unit) { roomCode.value = app.prefs.roomCode.first() }
 
-        PerformerScreen(
-            blocking = blocking,
-            local = local,
-            peerCount = peers,
-            roomCode = roomCode.value,
-            onOpenSettings = { showSettings = true }
-        )
+        // Mark-editor sheet (full-screen)
+        val editingMark: Mark? = editingMarkId?.let { id ->
+            blocking.marks.firstOrNull { it.id == id }
+        }
+        if (editingMark != null) {
+            MarkEditor(
+                initial = editingMark,
+                onChange = { updated ->
+                    app.store.markUpdated(updated)
+                    app.transport.send(NetMessage.MarkUpdated(updated), app.localId)
+                },
+                onDelete = {
+                    app.store.markRemoved(editingMark.id)
+                    app.transport.send(NetMessage.MarkRemoved(editingMark.id), app.localId)
+                    editingMarkId = null
+                },
+                onBack = { editingMarkId = null }
+            )
+            return
+        }
+
+        when (snap.appMode) {
+            AppMode.AUTHOR -> AuthorScreen(
+                blocking = blocking,
+                local = local,
+                peerCount = peers,
+                roomCode = snap.roomCode,
+                onDropMarkHere = {
+                    val pose = app.store.localPerformer.value.pose
+                    val nextIndex = (blocking.marks.maxOfOrNull { it.sequenceIndex } ?: -1) + 1
+                    val newMark = Mark(
+                        id = Id(),
+                        name = "Mark ${nextIndex + 1}",
+                        pose = pose,
+                        radius = 0.6f,
+                        cues = emptyList(),
+                        sequenceIndex = nextIndex
+                    )
+                    app.store.markAdded(newMark)
+                    app.transport.send(NetMessage.MarkAdded(newMark), app.localId)
+                    editingMarkId = newMark.id
+                },
+                onEditMark = { m -> editingMarkId = m.id },
+                onExport = {
+                    try {
+                        val uri = writeBlockingToShareableFile(ctx, blocking)
+                        val share = buildShareIntent(uri, blocking.title)
+                        startActivity(Intent.createChooser(share, "Export blocking"))
+                    } catch (_: Throwable) { /* swallow — can't realistically bubble to UI yet */ }
+                },
+                onImport = {
+                    openDocLauncher.launch(arrayOf("application/json", "text/*", "*/*"))
+                },
+                onOpenSettings = { showSettings = true }
+            )
+            AppMode.PERFORM, AppMode.UNSET -> PerformerScreen(
+                blocking = blocking,
+                local = local,
+                peerCount = peers,
+                roomCode = snap.roomCode,
+                onOpenSettings = { showSettings = true },
+                arProvider = arProvider,
+                showArStage = snap.showArStage
+            )
+        }
     }
 
     @Composable
@@ -267,3 +376,11 @@ class MainActivity : ComponentActivity() {
         )
     }
 }
+
+private data class PrefsSnapshot(
+    val displayName: String,
+    val roomCode: String,
+    val relayUrl: String,
+    val appMode: AppMode,
+    val showArStage: Boolean
+)

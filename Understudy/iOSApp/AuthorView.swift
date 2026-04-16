@@ -368,6 +368,7 @@ private final class PassthroughTapView: UIView {
 struct MarkEditorSheet: View {
     @Environment(BlockingStore.self) private var store
     @Environment(SessionController.self) private var session
+    @Environment(CueFXEngine.self) private var fx
     @Environment(\.dismiss) private var dismiss
 
     @State var mark: Mark
@@ -504,15 +505,23 @@ struct MarkEditorSheet: View {
                             Text(mark.cues[i].humanLabel)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                                .lineLimit(1)
+                                .lineLimit(2)
                             Spacer()
+                            Button {
+                                fx.preview(mark.cues[i])
+                            } label: {
+                                Image(systemName: "play.circle")
+                                    .foregroundStyle(.purple)
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel("Preview this cue")
                         }
                     }
                     .onDelete { mark.cues.remove(atOffsets: $0) }
                 } header: {
                     Text("All Cues (\(mark.cues.count))")
                 } footer: {
-                    Text("Cues fire in order when a performer enters this mark.")
+                    Text("Cues fire in order when a performer enters this mark. Tap ▷ to preview.")
                 }
 
                 Section {

@@ -56,11 +56,16 @@ class UnderstudyApp : Application() {
 
 private val Context.dataStore by preferencesDataStore(name = "understudy_prefs")
 
+/** App-wide mode — matches the two iOS author/performer cards. */
+enum class AppMode { UNSET, PERFORM, AUTHOR }
+
 class PrefsRepo(private val context: Context) {
     private val KEY_LOCAL_ID = stringPreferencesKey("local_id")
     private val KEY_DISPLAY_NAME = stringPreferencesKey("display_name")
     private val KEY_ROOM = stringPreferencesKey("room_code")
     private val KEY_RELAY = stringPreferencesKey("relay_url")
+    private val KEY_APP_MODE = stringPreferencesKey("app_mode")
+    private val KEY_SHOW_AR_STAGE = stringPreferencesKey("show_ar_stage")
 
     val displayName: kotlinx.coroutines.flow.Flow<String> =
         context.dataStore.data.map { it[KEY_DISPLAY_NAME] ?: defaultDisplayName() }
@@ -70,6 +75,18 @@ class PrefsRepo(private val context: Context) {
 
     val relayUrl: kotlinx.coroutines.flow.Flow<String> =
         context.dataStore.data.map { it[KEY_RELAY] ?: "ws://192.168.1.1:8765" }
+
+    val appMode: kotlinx.coroutines.flow.Flow<AppMode> =
+        context.dataStore.data.map {
+            when (it[KEY_APP_MODE]) {
+                "perform" -> AppMode.PERFORM
+                "author" -> AppMode.AUTHOR
+                else -> AppMode.UNSET
+            }
+        }
+
+    val showARStage: kotlinx.coroutines.flow.Flow<Boolean> =
+        context.dataStore.data.map { (it[KEY_SHOW_AR_STAGE] ?: "true") == "true" }
 
     suspend fun loadOrInitLocalId(): String {
         val existing = context.dataStore.data.map { it[KEY_LOCAL_ID] }.first()
@@ -87,6 +104,18 @@ class PrefsRepo(private val context: Context) {
     }
     suspend fun setRelayUrl(v: String) {
         context.dataStore.edit { it[KEY_RELAY] = v }
+    }
+    suspend fun setAppMode(v: AppMode) {
+        context.dataStore.edit {
+            it[KEY_APP_MODE] = when (v) {
+                AppMode.PERFORM -> "perform"
+                AppMode.AUTHOR -> "author"
+                AppMode.UNSET -> ""
+            }
+        }
+    }
+    suspend fun setShowARStage(v: Boolean) {
+        context.dataStore.edit { it[KEY_SHOW_AR_STAGE] = if (v) "true" else "false" }
     }
 
     private fun defaultDisplayName(): String = android.os.Build.MODEL ?: "Android"

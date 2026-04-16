@@ -303,6 +303,7 @@ struct DirectorControlPanel: View {
 struct MarkEditor: View {
     @Environment(BlockingStore.self) private var store
     @Environment(SessionController.self) private var session
+    @Environment(CueFXEngine.self) private var fx
     @Environment(\.dismiss) private var dismiss
 
     @State var mark: Mark
@@ -328,7 +329,18 @@ struct MarkEditor: View {
                 }
                 Section("Cues") {
                     ForEach(mark.cues, id: \.id) { cue in
-                        Text(cue.humanLabel)
+                        HStack {
+                            Text(cue.humanLabel)
+                                .lineLimit(2)
+                            Spacer()
+                            Button {
+                                fx.preview(cue)
+                            } label: {
+                                Image(systemName: "play.circle")
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel("Preview")
+                        }
                     }
                     .onDelete { idx in
                         mark.cues.remove(atOffsets: idx)

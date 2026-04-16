@@ -21,6 +21,8 @@ import SwiftUI
 
 struct ScriptBrowser: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(BlockingStore.self) private var store
+    @Environment(SessionController.self) private var session
 
     /// The mark currently being edited. Selected lines are appended to /
     /// removed from its `cues` in place.
@@ -32,6 +34,7 @@ struct ScriptBrowser: View {
     @State private var query: String = ""
     @State private var sceneFilter: SceneFilter = .all
     @FocusState private var searchFocused: Bool
+    @State private var droppingScene: PlayScript.Scene?
 
     enum SceneFilter: Hashable, Identifiable {
         case all
@@ -77,7 +80,46 @@ struct ScriptBrowser: View {
                 }
             }
             .preferredColorScheme(.dark)
+            .alert(
+                "Drop whole scene?",
+                isPresented: Binding(
+                    get: { droppingScene != nil },
+                    set: { if !$0 { droppingScene = nil } }
+                ),
+                presenting: droppingScene
+            ) { scene in
+                Button("Drop \(beatCount(for: scene)) marks", role: .destructive) {
+                    dropScene(scene)
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: { scene in
+                Text("Adds marks in front of your current pose arranged in a zig-zag path, pre-populated with the lines from \"\(scene.location)\".")
+            }
         }
+    }
+
+    private func beatCount(for scene: PlayScript.Scene) -> Int {
+        // Ballpark preview; matches ScenePlacer's bucket() logic.
+        ScenePlacer.layout(
+            scene: scene,
+            origin: Pose(),
+            sequenceOffset: 0
+        ).count
+    }
+
+    private func dropScene(_ scene: PlayScript.Scene) {
+        let origin = store.localPerformer?.pose ?? Pose()
+        let nextIndex = (store.blocking.marks.map(\.sequenceIndex).max() ?? -1) + 1
+        let newMarks = ScenePlacer.layout(
+            scene: scene,
+            origin: origin,
+            sequenceOffset: nextIndex
+        )
+        for mark in newMarks {
+            store.addMark(mark)
+            session.broadcastMarkAdded(mark)
+        }
+        dismiss()
     }
 
     // MARK: - Header
@@ -151,11 +193,26 @@ struct ScriptBrowser: View {
                             .listRowSeparatorTint(.white.opacity(0.08))
                         }
                     } header: {
-                        ScriptSceneHeader(
-                            actRoman: group.first?.actRoman ?? "",
-                            sceneRoman: group.first?.sceneRoman ?? "",
-                            location: group.first?.location ?? ""
-                        )
+                        HStack(alignment: .bottom) {
+                            ScriptSceneHeader(
+                                actRoman: group.first?.actRoman ?? "",
+                                sceneRoman: group.first?.sceneRoman ?? "",
+                                location: group.first?.location ?? ""
+                            )
+                            Spacer()
+                            if let scene = sceneMatching(key: "\(group.first?.actRoman ?? "").\(group.first?.sceneRoman ?? "")") {
+                                Button {
+                                    droppingScene = scene
+                                } label: {
+                                    Label("Drop whole scene", systemImage: "square.and.arrow.down")
+                                        .font(.caption2.bold())
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 10).padding(.vertical, 5)
+                                        .background(Color.red.opacity(0.75), in: Capsule())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
                     }
                 }
             }
@@ -205,6 +262,16 @@ struct ScriptBrowser: View {
             }
             return false
         }
+    }
+
+    /// Find a Scene struct by its "<actRoman>.<sceneRoman>" key.
+    private func sceneMatching(key: String) -> PlayScript.Scene? {
+        for act in script.acts {
+            for scene in act.scenes {
+                if "\(act.roman).\(scene.roman)" == key { return scene }
+            }
+        }
+        return nil
     }
 
     private func toggle(_ line: PlayScript.LocatedLine) {

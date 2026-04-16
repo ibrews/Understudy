@@ -1,6 +1,7 @@
 package agilelens.understudy.ui
 
 import agilelens.understudy.BuildConfig
+import agilelens.understudy.ar.ArPoseProvider
 import agilelens.understudy.model.Blocking
 import agilelens.understudy.model.Cue
 import agilelens.understudy.model.Mark
@@ -67,7 +68,9 @@ fun PerformerScreen(
     roomCode: String,
     onOpenSettings: () -> Unit,
     isRecording: Boolean = false,
-    onToggleRecording: () -> Unit = {}
+    onToggleRecording: () -> Unit = {},
+    arProvider: ArPoseProvider? = null,
+    showArStage: Boolean = false
 ) {
     val currentMark: Mark? = local.currentMarkID?.let { id ->
         blocking.marks.firstOrNull { it.id == id }
@@ -79,6 +82,16 @@ fun PerformerScreen(
             .fillMaxSize()
             .background(CurtainGradient)
     ) {
+        // AR stage lives BEHIND the teleprompter UI.
+        if (showArStage && arProvider != null) {
+            ArStageView(
+                arProvider = arProvider,
+                marks = blocking.marks,
+                nextMarkId = nextMark?.id,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+
         Column(
             Modifier
                 .fillMaxSize()
@@ -94,19 +107,31 @@ fun PerformerScreen(
             CurrentCueCard(mark = currentMark, nextMark = nextMark)
             Spacer(Modifier.height(12.dp))
 
-            // Guidance ring over radar
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(300.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                RadarOverlay(
-                    selfPose = local.pose,
-                    marks = blocking.marks,
-                    modifier = Modifier.size(280.dp)
-                )
-                GuidanceRing(local = local, next = nextMark ?: currentMark)
+            if (!showArStage) {
+                // Guidance ring over radar (fallback view)
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(300.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    RadarOverlay(
+                        selfPose = local.pose,
+                        marks = blocking.marks,
+                        modifier = Modifier.size(280.dp)
+                    )
+                    GuidanceRing(local = local, next = nextMark ?: currentMark)
+                }
+            } else {
+                // Minimal guidance ring overlay when AR stage is showing.
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(260.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    GuidanceRing(local = local, next = nextMark ?: currentMark)
+                }
             }
 
             Spacer(Modifier.weight(1f))

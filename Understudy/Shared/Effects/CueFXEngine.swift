@@ -111,6 +111,20 @@ public final class CueFXEngine {
         }
     }
 
+    /// Fire a cue once, without requiring it to be enqueued by mark entry.
+    /// Used by the mark editor "preview" buttons so authors can hear/see
+    /// a cue immediately while they're building it.
+    public func preview(_ cue: Cue) {
+        appendLog(cue: cue, markName: "Preview")
+        switch cue {
+        case .line: break
+        case .sfx(_, let name): playSFX(named: name)
+        case .light(_, let color, let intensity): flash(color: color, intensity: intensity)
+        case .wait(_, let seconds): beginHold(seconds)
+        case .note: break
+        }
+    }
+
     private func dispatch(_ fired: BlockingStore.FiredCue) {
         appendLog(cue: fired.cue, markName: fired.markName)
         switch fired.cue {

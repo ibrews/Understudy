@@ -181,12 +181,16 @@ Then in every app's Settings → Transport → WebSocket, enter `ws://<relay-hos
 - **Full Hamlet bundled** — 5 acts, 20 scenes, 1108 lines of dialogue, 217 stage directions, parsed from Project Gutenberg #1524. Lives in `Resources/hamlet.json` (~330KB).
 - **Script Browser** in Author mode — tap a line, it's on the mark. Search by character or word. Scene filter menu. Already-used lines show a green check.
 - **Structured `PlayScript` model** — open to more plays via `Scripts.all`; see `scripts/parse_hamlet.py` for the parser.
-- Android picked up author mode + real AR background (see `android/` agent output).
+
+### v0.5  ·  Drop a whole scene, preview a cue, see the script in space
+- **Drop Whole Scene** — one-tap in the Script Browser auto-lays out a zig-zag path of marks along your current forward direction, bucketed by speaker (max 4 lines per beat), with stage directions attached as `.note` cues. A 20-beat scene becomes a walkable blocking in under a second.
+- **Floating script panels on visionOS** — every mark in the immersive stage gets a translucent "manuscript page" floating at shoulder height nearby. The director sees the cues *in the room*, next to where the action happens. Ambient script-in-space — exactly what AVP is for.
+- **Cue preview** — a ▷ next to every cue in the mark editor. Tap it to fire the cue immediately: hear the bell, see the amber flash, feel the beat. Essential for the authoring loop.
 
 ### Next up
 - [ ] Shared-origin ceremony — QR-code anchor so every device agrees on where (0,0) is in the real room
 - [ ] DMX / QLab bridge for real theater rigs on the director side
-- [ ] Visible script on visionOS (floating page by each mark)
+- [ ] Android catches up — Author mode + live AR camera (in flight)
 - [ ] More bundled plays — Public-domain Chekhov, Beckett's shorter works
 - [ ] TestFlight
 

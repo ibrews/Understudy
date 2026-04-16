@@ -60,6 +60,19 @@ class ArPoseProvider(
     private val _availability = MutableStateFlow(Availability.Unknown)
     val availability: StateFlow<Availability> = _availability.asStateFlow()
 
+    /** Expose the underlying ARCore Session so the stage renderer can share it. */
+    fun session(): Session? = session
+
+    /** Latest view matrix captured from the camera (16 floats, column-major OpenGL). */
+    @Volatile
+    var lastViewMatrix: FloatArray = FloatArray(16).also { android.opengl.Matrix.setIdentityM(it, 0) }
+        private set
+
+    /** Latest projection matrix with near=0.1, far=100.0 (16 floats, column-major). */
+    @Volatile
+    var lastProjectionMatrix: FloatArray = FloatArray(16).also { android.opengl.Matrix.setIdentityM(it, 0) }
+        private set
+
     /**
      * Try to create and resume a Session. Must be called on an Activity with
      * CAMERA permission already granted. If ARCore needs installing this will
@@ -150,6 +163,17 @@ class ArPoseProvider(
                 TrackingState.STOPPED -> 0.0f
                 else -> 0.0f
             }
+
+            // Capture matrices for the stage overlay. These are only meaningful while
+            // tracking; a stale matrix is fine because the overlay draws transparently.
+            try {
+                val vm = FloatArray(16)
+                val pm = FloatArray(16)
+                cam.getViewMatrix(vm, 0)
+                cam.getProjectionMatrix(pm, 0, 0.1f, 100.0f)
+                lastViewMatrix = vm
+                lastProjectionMatrix = pm
+            } catch (_: Throwable) { /* keep previous */ }
 
             _latest.value = Sample(
                 pose = Pose(x = tx, y = ty, z = tz, yaw = yaw),

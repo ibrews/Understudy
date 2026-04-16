@@ -28,8 +28,12 @@ struct DirectorImmersiveView: View {
     @State private var ghostEntity: Entity = Entity()
     @State private var lastRenderedFlashID: UUID?
 
+    /// Entities that host a floating SwiftUI script card for each mark.
+    /// Parented under the mark entity so they move with the mark.
+    @State private var markCardEntities: [ID: Entity] = [:]
+
     var body: some View {
-        RealityView { content in
+        RealityView { content, _ in
             // Root — positioned 1m in front of the viewer, slightly below eye.
             stageRoot.position = [0, -1.0, -0.5]
             content.add(stageRoot)
@@ -74,13 +78,23 @@ struct DirectorImmersiveView: View {
             ghost.isEnabled = false
             stageRoot.addChild(ghost)
             ghostEntity = ghost
-        } update: { _ in
+        } update: { _, attachments in
             Task { @MainActor in
                 syncMarks()
                 syncPerformers()
                 syncRibbon()
                 syncGhost()
                 syncFlash()
+                syncMarkCards(attachments: attachments)
+            }
+        } attachments: {
+            ForEach(store.blocking.marks, id: \.id) { mark in
+                Attachment(id: mark.id.raw) {
+                    MarkScriptCard(
+                        mark: mark,
+                        isNext: mark.id == store.nextMark(after: store.localPerformer?.currentMarkID)?.id
+                    )
+                }
             }
         }
         .gesture(
@@ -104,6 +118,37 @@ struct DirectorImmersiveView: View {
                     session.broadcastMarkAdded(mark)
                 }
         )
+    }
+
+    // MARK: - Floating script cards
+
+    /// Attach a SwiftUI MarkScriptCard next to each mark. The attachment's
+    /// entity is positioned slightly up and to the side of the mark so the
+    /// card hovers at readable height without blocking the floor disc.
+    private func syncMarkCards(attachments: RealityViewAttachments) {
+        let liveIDs = Set(store.blocking.marks.map(\.id))
+        // Remove cards for deleted marks.
+        for (id, entity) in markCardEntities where !liveIDs.contains(id) {
+            entity.removeFromParent()
+            markCardEntities.removeValue(forKey: id)
+        }
+        // Add / update cards.
+        for mark in store.blocking.marks {
+            guard let attach = attachments.entity(for: mark.id.raw) else { continue }
+            // Position: 0.4m up from the floor, 0.6m offset toward +X (stage right).
+            // Attachment entity sits in world space of stageRoot.
+            attach.position = [mark.pose.x + 0.6, 0.9, mark.pose.z]
+            // Billboard — face the viewer. Simple yaw-only face: rotate around Y.
+            // Real billboard behavior needs per-frame update via a subscription;
+            // for now we pick a fixed yaw so cards face roughly toward stage center.
+            let toCenter = SIMD3<Float>(-mark.pose.x - 0.6, 0, -mark.pose.z)
+            let yaw = atan2f(toCenter.x, -toCenter.z)
+            attach.orientation = simd_quatf(angle: yaw, axis: [0, 1, 0])
+            if attach.parent !== stageRoot {
+                stageRoot.addChild(attach)
+            }
+            markCardEntities[mark.id] = attach
+        }
     }
 
     // MARK: - Scene diffing

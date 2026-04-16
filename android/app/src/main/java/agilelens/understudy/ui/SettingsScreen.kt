@@ -1,11 +1,14 @@
 package agilelens.understudy.ui
 
+import agilelens.understudy.AppMode
 import agilelens.understudy.BuildConfig
 import agilelens.understudy.ui.theme.CurtainBlack
 import agilelens.understudy.ui.theme.CurtainRed
+import agilelens.understudy.ui.theme.StageRed
 import agilelens.understudy.ui.theme.WhiteDim
 import agilelens.understudy.ui.theme.WhiteText
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +18,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -23,6 +28,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -32,8 +39,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -44,7 +53,9 @@ private val CurtainGradient = Brush.verticalGradient(colors = listOf(CurtainRed,
 data class SettingsState(
     val displayName: String,
     val roomCode: String,
-    val relayUrl: String
+    val relayUrl: String,
+    val appMode: AppMode = AppMode.PERFORM,
+    val showARStage: Boolean = true
 )
 
 @Composable
@@ -56,6 +67,8 @@ fun SettingsScreen(
     var displayName by remember { mutableStateOf(initial.displayName) }
     var roomCode by remember { mutableStateOf(initial.roomCode) }
     var relayUrl by remember { mutableStateOf(initial.relayUrl) }
+    var mode by remember { mutableStateOf(if (initial.appMode == AppMode.UNSET) AppMode.PERFORM else initial.appMode) }
+    var showAR by remember { mutableStateOf(initial.showARStage) }
 
     Box(
         Modifier
@@ -70,7 +83,15 @@ fun SettingsScreen(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = {
-                    onSave(SettingsState(displayName.trim(), roomCode.trim(), relayUrl.trim()))
+                    onSave(
+                        SettingsState(
+                            displayName.trim(),
+                            roomCode.trim(),
+                            relayUrl.trim(),
+                            mode,
+                            showAR
+                        )
+                    )
                     onBack()
                 }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = WhiteText)
@@ -80,6 +101,17 @@ fun SettingsScreen(
             }
             Spacer(Modifier.height(12.dp))
 
+            SectionTitle("Mode")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ModePill(label = "Perform", selected = mode == AppMode.PERFORM) {
+                    mode = AppMode.PERFORM
+                }
+                ModePill(label = "Author", selected = mode == AppMode.AUTHOR) {
+                    mode = AppMode.AUTHOR
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
             SectionTitle("Identity")
             Field(
                 label = "Display name",
@@ -113,6 +145,32 @@ fun SettingsScreen(
                 autocap = false
             )
 
+            Spacer(Modifier.height(16.dp))
+            SectionTitle("Display")
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("AR stage view", color = WhiteText, fontSize = 14.sp)
+                    Text(
+                        "Render the camera feed with floor-anchored mark discs. Off falls back to the top-down radar.",
+                        color = WhiteDim,
+                        fontSize = 11.sp
+                    )
+                }
+                Switch(
+                    checked = showAR,
+                    onCheckedChange = { showAR = it },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = WhiteText,
+                        checkedTrackColor = StageRed,
+                        uncheckedThumbColor = WhiteDim,
+                        uncheckedTrackColor = Color.White.copy(alpha = 0.08f)
+                    )
+                )
+            }
+
             Spacer(Modifier.height(24.dp))
             SectionTitle("About")
             Text(
@@ -121,6 +179,19 @@ fun SettingsScreen(
                 fontSize = 14.sp
             )
         }
+    }
+}
+
+@Composable
+private fun ModePill(label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) StageRed else Color.White.copy(alpha = 0.08f))
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+    ) {
+        Text(label, color = WhiteText, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
