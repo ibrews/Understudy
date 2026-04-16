@@ -379,6 +379,7 @@ struct MarkEditorSheet: View {
     @State private var lightIntensity: Double = 0.8
     @State private var waitSeconds: Double = 1.0
     @State private var confirmDelete = false
+    @State private var showingScriptBrowser = false
 
     private let sfxNames = ["bell", "thunder", "chime", "knock", "applause"]
 
@@ -424,10 +425,16 @@ struct MarkEditorSheet: View {
                         let drop = offsets.map { lineIndices[$0] }
                         mark.cues.remove(atOffsets: IndexSet(drop))
                     }
+                    Button {
+                        showingScriptBrowser = true
+                    } label: {
+                        Label("Pick from Hamlet…", systemImage: "text.book.closed")
+                    }
+                    .tint(.purple)
                     TextField("Character (optional)", text: $newCharacter)
                     TextField("Add a line…", text: $newLine, axis: .vertical)
                         .lineLimit(1...4)
-                    Button("Add Line") {
+                    Button("Add Custom Line") {
                         mark.cues.append(.line(
                             id: ID(),
                             text: newLine.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -538,6 +545,9 @@ struct MarkEditorSheet: View {
                     session.broadcastMarkRemoved(mark.id)
                     dismiss()
                 }
+            }
+            .sheet(isPresented: $showingScriptBrowser) {
+                ScriptBrowser(mark: $mark)
             }
         }
     }

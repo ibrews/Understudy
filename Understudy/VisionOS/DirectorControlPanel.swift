@@ -309,6 +309,7 @@ struct MarkEditor: View {
     @State private var newLine: String = ""
     @State private var newCharacter: String = ""
     @State private var newNote: String = ""
+    @State private var showingScriptBrowser = false
 
     var body: some View {
         NavigationStack {
@@ -332,10 +333,15 @@ struct MarkEditor: View {
                     .onDelete { idx in
                         mark.cues.remove(atOffsets: idx)
                     }
+                    Button {
+                        showingScriptBrowser = true
+                    } label: {
+                        Label("Pick from Hamlet…", systemImage: "text.book.closed")
+                    }
                     VStack(alignment: .leading) {
                         TextField("Character (optional)", text: $newCharacter)
                         TextField("Add a line…", text: $newLine)
-                        Button("Add Line") {
+                        Button("Add Custom Line") {
                             guard !newLine.isEmpty else { return }
                             mark.cues.append(.line(id: ID(),
                                                    text: newLine,
@@ -367,6 +373,10 @@ struct MarkEditor: View {
                         dismiss()
                     }
                 }
+            }
+            .sheet(isPresented: $showingScriptBrowser) {
+                ScriptBrowser(mark: $mark)
+                    .frame(minWidth: 560, minHeight: 640)
             }
         }
     }
