@@ -146,22 +146,24 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Understudy/Understudy.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = C624J4S2F8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "$(TARGET_NAME)/Info.plist";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Camera is used for AR world tracking so the app knows where you are on stage.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Microphone is used to listen to performers reading their lines so the teleprompter can auto-advance.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Speech recognition matches your spoken words against the script so the teleprompter can follow you in real time. Runs entirely on-device.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Understudy discovers nearby directors and performers over your local network.";
-				INFOPLIST_KEY_NSBonjourServices = "_und-stage._tcp,_und-stage._udp";
+				INFOPLIST_KEY_NSBonjourServices = "_und-stage._tcp,_und-stage._udp,_agilelens-mon._tcp";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.12;
+				MARKETING_VERSION = 0.13;
 				PRODUCT_BUNDLE_IDENTIFIER = agilelens.Understudy;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -183,22 +185,24 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Understudy/Understudy.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_TEAM = C624J4S2F8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "$(TARGET_NAME)/Info.plist";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Camera is used for AR world tracking so the app knows where you are on stage.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Microphone is used to listen to performers reading their lines so the teleprompter can auto-advance.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Speech recognition matches your spoken words against the script so the teleprompter can follow you in real time. Runs entirely on-device.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Understudy discovers nearby directors and performers over your local network.";
-				INFOPLIST_KEY_NSBonjourServices = "_und-stage._tcp,_und-stage._udp";
+				INFOPLIST_KEY_NSBonjourServices = "_und-stage._tcp,_und-stage._udp,_agilelens-mon._tcp";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.12;
+				MARKETING_VERSION = 0.13;
 				PRODUCT_BUNDLE_IDENTIFIER = agilelens.Understudy;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;

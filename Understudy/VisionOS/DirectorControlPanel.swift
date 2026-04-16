@@ -15,6 +15,7 @@ struct DirectorControlPanel: View {
     @Environment(CueFXEngine.self) private var fx
     @Environment(\.openImmersiveSpace) private var openImmersiveSpace
     @Environment(\.dismissImmersiveSpace) private var dismissImmersiveSpace
+    @Environment(\.openWindow) private var openWindow
 
     @State private var immersiveActive = false
     @State private var editingMark: Mark?
@@ -233,6 +234,12 @@ struct DirectorControlPanel: View {
                         if on { _ = await openImmersiveSpace(id: "Stage") }
                         else { await dismissImmersiveSpace() }
                     }
+                }
+
+                Button {
+                    openWindow(id: "Teleprompter")
+                } label: {
+                    Label("Teleprompter", systemImage: "text.quote")
                 }
             }
             HStack {

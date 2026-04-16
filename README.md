@@ -193,9 +193,9 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 *(Latest first. Every version shipped is a real commit + push; the "Next up" list is intentional future work.)*
 
 ### Next up
-- [ ] **Voice-driven cue advance.** Inspired by Alex's Gemini-Live-ToDo AI Glasses teleprompter: use on-device `SFSpeechRecognizer` (iOS) / `SpeechRecognizer` (Android) to listen to the performer reading their line, substring-match the last 1-3 spoken words against the script within a small forward window, and auto-advance the cue cursor when the match lands. Closes the loop — no stage manager, no OSC GO, the show just fires itself off the actor's voice. Alex's implementation is at `ai-samples/samples/gemini-live-todo/.../teleprompter/TeleprompterControlActivity.kt` (see `processSpokenText`).
-- [ ] **Active reading window on the teleprompter.** Same inspiration source: 3-color rendering (past / active / future) where the "active" 30-char window is cyan and stays anchored at the visual center via `TextLayoutResult`. Small change, huge legibility win during rehearsal.
-- [ ] Google AI Glasses companion mode — paired to an iPhone, 480×480 glasses canvas shows current mark's line cues only. Same wire protocol, much tighter UI.
+- [ ] **Voice-driven cue *firing*** — v0.13 added voice-driven teleprompter *scrolling*; next step is wiring the match against line-cue boundaries so finishing a line auto-fires its mark's subsequent SFX/light/wait cues. Closes the whole loop: no stage manager, no OSC GO, the show runs itself off the actor's voice.
+- [ ] Google AI Glasses companion mode — paired to an iPhone, 480×480 glasses canvas shows the current mark's line cues only. Same wire protocol, same `TeleprompterView` rendering, tighter UI. Alex's reference implementation at `ai-samples/samples/gemini-live-todo/.../teleprompter/`.
+- [ ] Android voice mode — port `VoiceMatcher` to Kotlin (trivial — algorithm is pure) and wire to Android's `SpeechRecognizer` (Alex already has this working in the Gemini Live teleprompter).
 - [ ] Migrate Monitoring code to AgileLensMultiplayer SPM dependency (currently copied in)
 - [ ] Gestural rotation on visionOS 2.0 target — v0.12 translates via drag but rotates via ±15° buttons (1.0 has no `RotateGesture3D`). Uniform scale still unbuilt — add when there's a use case beyond "1:1 scale is what I want."
 - [ ] Android LiDAR pass-through (ARCore Depth API on supported devices)
@@ -206,6 +206,21 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] DMX direct output (sACN / Art-Net)
 - [ ] Lens/sensor pickers with real-world presets (ARRI, RED, Sony FX, cine primes)
 - [ ] TestFlight
+
+### v0.13 · Teleprompter with voice-driven karaoke scroll
+Inspired by Alex's Gemini-Live-ToDo AI Glasses teleprompter (the `processSpokenText` algorithm in `TeleprompterControlActivity.kt`). Before today the teleprompter was per-mark cue cards; now there's a unified full-script view that scrolls four ways.
+
+- **`TeleprompterDocument`** — flattens a Blocking into one flowing script with per-mark character offsets. Only actor marks with sequenceIndex ≥ 0 (camera/freeform marks stay out). Dialogue ranges are tracked separately so voice matching can search only spoken text.
+- **`TeleprompterView`** — cross-platform SwiftUI. Karaoke rendering: past text is 35%-gray, a 30-char active window is cyan, future is white. Serif body, configurable 18-56pt size, rule-of-thirds vertical anchoring so the active text sits high in the viewport.
+- **Four scroll inputs** contend for `scrollProgress`:
+  1. **Manual drag** — any vertical gesture
+  2. **Auto-scroll** — timer at a user-set chars-per-second rate (default 14cps ≈ theatrical pace)
+  3. **Voice mode** — on-device `SFSpeechRecognizer` (iOS + visionOS); each partial result calls `VoiceMatcher.nextProgress` which takes the last 1-3 spoken words and substring-matches inside a 50-char forward window from the cursor. Only ever moves forward. On-device only (`requiresOnDeviceRecognition = true`) so lines never leave the device.
+  4. **Mark follow** — when the local performer walks onto a new mark, the teleprompter snaps to that mark's header offset, unless the user manually dragged within the last 3 seconds (polite deference).
+- **`VoiceMatcher.nextProgress`** — direct port of Alex's Kotlin algorithm to Swift; tolerant of re-reads, pauses, and the recognizer's rolling partial results.
+- **Entry points** — a 📜 button in every iPhone mode's top bar (Perform / Author / Audience) opens it as a `fullScreenCover`. On visionOS, a "Teleprompter" button on the director panel opens it as a floating window the director can position anywhere. Same view, same state.
+- **Permissions** — Info.plist + project.pbxproj now carry `NSMicrophoneUsageDescription` and `NSSpeechRecognitionUsageDescription`. First-time voice toggle prompts the system dialog; subsequent sessions skip it.
+- **Heard indicator** — a small "heard: …" caption at the bottom of the teleprompter shows the last 64 chars of recognized speech, so you can see what the recognizer's actually matching on.
 
 ### v0.12 · Align the scouted room to the rehearsal room
 Completes the v0.9 LiDAR story. The scan was capturable and visible, but not alignable — so if your Brooklyn rehearsal studio and your scouted Manhattan loft weren't already sharing a coordinate frame (and they never are), the ghost floated in the wrong place.

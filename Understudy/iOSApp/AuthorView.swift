@@ -36,6 +36,7 @@ struct AuthorView: View {
     @State private var scanRefreshTimer: Timer?
     @State private var scanNameDraft: String = "Room scan"
     @State private var showingScanNameSheet: Bool = false
+    @State private var showingTeleprompter: Bool = false
 
     private var gradientOpacity: Double { showARStage ? 0.30 : 1.0 }
 
@@ -106,6 +107,11 @@ struct AuthorView: View {
                 .environment(store)
                 .environment(session)
         }
+        .fullScreenCover(isPresented: $showingTeleprompter) {
+            TeleprompterView()
+                .environment(store)
+                .environment(session)
+        }
         .fileExporter(
             isPresented: Binding(
                 get: { exportItem != nil },
@@ -166,6 +172,14 @@ struct AuthorView: View {
             Spacer()
             CalibrationButton()
                 .environment(store)
+            Button { showingTeleprompter = true } label: {
+                Image(systemName: "text.quote")
+                    .font(.title3)
+                    .padding(10)
+                    .background(.white.opacity(0.08), in: Circle())
+                    .foregroundStyle(.white)
+            }
+            .accessibilityLabel("Open teleprompter")
             Button { showingSettings = true } label: {
                 Image(systemName: "gearshape")
                     .font(.title3)

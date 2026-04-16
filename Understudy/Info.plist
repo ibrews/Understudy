@@ -13,12 +13,17 @@
     </array>
     <key>NSCameraUsageDescription</key>
     <string>Camera is used for AR world tracking so the app knows where you are on stage.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Microphone is used to listen to performers reading their lines so the teleprompter can auto-advance.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>Speech recognition matches your spoken words against the script so the teleprompter can follow you in real time. Runs entirely on-device.</string>
     <key>NSLocalNetworkUsageDescription</key>
     <string>Understudy discovers nearby directors and performers over your local network.</string>
     <key>NSBonjourServices</key>
     <array>
         <string>_und-stage._tcp</string>
         <string>_und-stage._udp</string>
+        <string>_agilelens-mon._tcp</string>
     </array>
     <key>UIRequiresFullScreen</key>
     <true/>

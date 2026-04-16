@@ -79,6 +79,16 @@ struct UnderstudyApp: App {
                 .environment(fx)
         }
         .immersionStyle(selection: .constant(.mixed), in: .mixed)
+
+        // Teleprompter floats as its own window the director can position
+        // anywhere in their space.
+        WindowGroup(id: "Teleprompter") {
+            TeleprompterView()
+                .environment(store)
+                .environment(sessionController)
+                .environment(fx)
+        }
+        .defaultSize(width: 720, height: 900)
         #endif
     }
 }

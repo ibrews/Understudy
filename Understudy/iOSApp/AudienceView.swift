@@ -31,6 +31,7 @@ struct AudienceView: View {
     @State private var started: Bool = false
     @State private var lastFiredMarkID: ID?
     @State private var showingSettings = false
+    @State private var showingTeleprompter = false
 
     var body: some View {
         ZStack {
@@ -82,6 +83,11 @@ struct AudienceView: View {
         .sheet(isPresented: $showingSettings) {
             SettingsSheet().environment(store).environment(session)
         }
+        .fullScreenCover(isPresented: $showingTeleprompter) {
+            TeleprompterView()
+                .environment(store)
+                .environment(session)
+        }
     }
 
     // MARK: - UI
@@ -109,6 +115,14 @@ struct AudienceView: View {
             Spacer()
             CalibrationButton()
                 .environment(store)
+            Button { showingTeleprompter = true } label: {
+                Image(systemName: "text.quote")
+                    .font(.title3)
+                    .padding(10)
+                    .background(.white.opacity(0.08), in: Circle())
+                    .foregroundStyle(.white)
+            }
+            .accessibilityLabel("Open teleprompter")
             Button { showingSettings = true } label: {
                 Image(systemName: "gearshape")
                     .font(.title3)

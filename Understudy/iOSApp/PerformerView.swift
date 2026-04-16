@@ -23,6 +23,7 @@ struct PerformerView: View {
     @State private var lastMarkID: ID?
     @State private var showingMarksList = false
     @State private var showingSettings = false
+    @State private var showingTeleprompter = false
     /// True while this device is advancing playbackT locally.
     @State private var isPlayingGhost: Bool = false
     @State private var playbackStartedAt: Date?
@@ -109,6 +110,11 @@ struct PerformerView: View {
                 .environment(store)
                 .environment(session)
         }
+        .fullScreenCover(isPresented: $showingTeleprompter) {
+            TeleprompterView()
+                .environment(store)
+                .environment(session)
+        }
     }
 
     // MARK: - UI pieces
@@ -125,6 +131,14 @@ struct PerformerView: View {
             Spacer()
             CalibrationButton()
                 .environment(store)
+            Button { showingTeleprompter = true } label: {
+                Image(systemName: "text.quote")
+                    .font(.title3)
+                    .padding(10)
+                    .background(.white.opacity(0.08), in: Circle())
+                    .foregroundStyle(.white)
+            }
+            .accessibilityLabel("Open teleprompter")
             Button { showingSettings = true } label: {
                 Image(systemName: "gearshape")
                     .font(.title3)
