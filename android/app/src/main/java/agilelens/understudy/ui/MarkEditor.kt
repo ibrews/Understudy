@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,12 +31,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -63,11 +66,19 @@ fun MarkEditor(
     initial: Mark,
     onChange: (Mark) -> Unit,
     onDelete: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    // v0.21 — Script Browser needs these to be able to "Drop whole scene"
+    // from the browser, which spawns N new marks in front of the performer.
+    // Callers that don't support drop-scene (e.g. early-version tests) can
+    // pass empty/no-op defaults.
+    performerPose: agilelens.understudy.model.Pose = agilelens.understudy.model.Pose(),
+    existingMarks: List<Mark> = emptyList(),
+    onMarksDrop: (List<Mark>) -> Unit = {},
 ) {
     var name by remember { mutableStateOf(initial.name) }
     var radius by remember { mutableStateOf(initial.radius) }
     var cues by remember { mutableStateOf(initial.cues) }
+    var showScriptBrowser by remember { mutableStateOf(false) }
 
     // Helpers — commit whenever any field changes
     fun commit(
@@ -147,7 +158,10 @@ fun MarkEditor(
             }
             Spacer(Modifier.height(12.dp))
 
-            AddLineRow { line -> commit(newCues = cues + line) }
+            AddLineRow(
+                onAdd = { line -> commit(newCues = cues + line) },
+                onOpenScriptBrowser = { showScriptBrowser = true }
+            )
             Spacer(Modifier.height(8.dp))
             AddSfxRow { sfx -> commit(newCues = cues + sfx) }
             Spacer(Modifier.height(8.dp))
@@ -159,11 +173,57 @@ fun MarkEditor(
             Spacer(Modifier.height(48.dp))
         }
     }
+
+    if (showScriptBrowser) {
+        ScriptBrowserDialog(
+            currentMark = initial.copy(name = name, radius = radius, cues = cues),
+            performerPose = performerPose,
+            existingMarks = existingMarks,
+            onMarkChange = { updated ->
+                cues = updated.cues
+                onChange(initial.copy(name = name, radius = radius, cues = updated.cues))
+            },
+            onMarksDrop = { marks ->
+                onMarksDrop(marks)
+                showScriptBrowser = false
+            },
+            onDismiss = { showScriptBrowser = false }
+        )
+    }
 }
 
 @Composable
 private fun SectionLabel(text: String) {
     Text(text.uppercase(), color = WhiteDim, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+}
+
+@Composable
+private fun PickFromScriptButton(onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        color = Color(0xFF9C27B0).copy(alpha = 0.78f),   // theatrical purple
+        shape = RoundedCornerShape(10.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Filled.MenuBook,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "Pick from script…",
+                color = Color.White,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
 }
 
 @Composable
@@ -193,7 +253,10 @@ private fun CueListRow(cue: Cue, onRemove: () -> Unit) {
 }
 
 @Composable
-private fun AddLineRow(onAdd: (Cue.Line) -> Unit) {
+private fun AddLineRow(
+    onAdd: (Cue.Line) -> Unit,
+    onOpenScriptBrowser: () -> Unit = {},
+) {
     var character by remember { mutableStateOf("") }
     var text by remember { mutableStateOf("") }
     Column(
@@ -205,9 +268,11 @@ private fun AddLineRow(onAdd: (Cue.Line) -> Unit) {
     ) {
         SectionLabel("Add line")
         Spacer(Modifier.height(6.dp))
+        PickFromScriptButton(onClick = onOpenScriptBrowser)
+        Spacer(Modifier.height(8.dp))
         DarkField(character, onChange = { character = it }, placeholder = "Character (optional)")
         Spacer(Modifier.height(6.dp))
-        DarkField(text, onChange = { text = it }, placeholder = "Line text")
+        DarkField(text, onChange = { text = it }, placeholder = "Custom line text")
         Spacer(Modifier.height(6.dp))
         AddButton(enabled = text.isNotBlank()) {
             onAdd(

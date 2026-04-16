@@ -209,6 +209,18 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] Lens/sensor pickers with real-world presets (ARRI, RED, Sony FX, cine primes)
 - [ ] `HANDOFF_GOOGLE_PLAY.md` — Android internal-testing track (parallel to `HANDOFF_TESTFLIGHT.md`). Needs release keystore + Play Console click-through.
 
+### v0.21 · Android Script Browser + Drop Whole Scene
+Android Author mode grows the full script-picker UX that iOS + visionOS have had since v0.4/v0.5. A stage manager handed an Android phone can now tap Bernardo's "Who's there?" out of Hamlet just like they can on iPhone. One-tap Drop Whole Scene auto-lays out a zig-zag walk of marks with dialogue pre-populated.
+
+- **5 plays bundled as Android assets** — `hamlet.json`, `macbeth.json`, `midsummer.json`, `seagull.json`, `earnest.json` copied byte-for-byte from `Understudy/Resources/` into `android/app/src/main/assets/`. Total ~1 MB. Loaded lazily + cached via `Scripts.load(context, assetName)`.
+- **`teleprompter/PlayScript.kt`** — Kotlin mirror of Swift's `PlayScript`. Same `Act → Scene → Entry` shape, same `LocatedLine` flat-list helper, same case-insensitive `linesMatching(query)` filter. Custom `EntrySerializer` matches the `{"kind": "line"|"stage", …}` JSON shape.
+- **`teleprompter/Scripts.kt`** — lazy loader + cache, `PlayRef` list.
+- **`teleprompter/ScenePlacer.kt`** — Kotlin port of Swift's layout algorithm. Same beat bucketing (one beat per speaker turn, max 4 lines/beat, stage directions on as `.note` cues), same zig-zag geometry (1.2m forward spacing, 0.8m lateral offset alternating sides, yaw toward the next beat).
+- **`ui/ScriptBrowser.kt`** — Compose dialog mirroring iOS's. Top bar with play-picker menu + scene-filter menu, search field, 3-color karaoke-style line list (character label uppercase monospace red, line body serif white), green check when a line is already on the current mark, "Drop scene" chip on every scene header with a confirmation dialog showing the expected mark count.
+- **`ui/MarkEditor.kt`** — new purple "Pick from script…" button above the custom-line fields. Opens the Script Browser with the current mark pre-selected; drops from the browser commit to the mark via `onChange` (line toggles) or spawn multiple new marks via `onMarksDrop` (Drop Whole Scene).
+
+Same wire format as iOS end-to-end — an Android author dropping Act I Scene I of Hamlet via "Drop whole scene" produces JSON that iOS/visionOS peers can render and walk without distinction from a blocking authored on an iPhone.
+
 ### v0.20 · Android wire compat — Mark.kind, CameraSpec, Blocking.roomScan
 Closes a silent-data-loss path: iOS/visionOS were ahead of Android by two schema revisions Android was dropping on decode.
 

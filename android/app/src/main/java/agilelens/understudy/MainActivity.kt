@@ -247,7 +247,18 @@ class MainActivity : ComponentActivity() {
                     app.transport.send(NetMessage.MarkRemoved(editingMark.id), app.localId)
                     editingMarkId = null
                 },
-                onBack = { editingMarkId = null }
+                onBack = { editingMarkId = null },
+                // v0.21 — Script Browser "Drop whole scene" feeds back through
+                // these so a scene drop adds its marks and broadcasts each.
+                performerPose = app.store.localPerformer.value.pose,
+                existingMarks = blocking.marks,
+                onMarksDrop = { newMarks ->
+                    for (m in newMarks) {
+                        app.store.markAdded(m)
+                        app.transport.send(NetMessage.MarkAdded(m), app.localId)
+                    }
+                    editingMarkId = null
+                },
             )
             return
         }
