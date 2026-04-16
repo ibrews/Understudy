@@ -55,7 +55,8 @@ data class SettingsState(
     val roomCode: String,
     val relayUrl: String,
     val appMode: AppMode = AppMode.PERFORM,
-    val showARStage: Boolean = true
+    val showARStage: Boolean = true,
+    val showDepthOverlay: Boolean = false,
 )
 
 @Composable
@@ -69,6 +70,7 @@ fun SettingsScreen(
     var relayUrl by remember { mutableStateOf(initial.relayUrl) }
     var mode by remember { mutableStateOf(if (initial.appMode == AppMode.UNSET) AppMode.PERFORM else initial.appMode) }
     var showAR by remember { mutableStateOf(initial.showARStage) }
+    var showDepth by remember { mutableStateOf(initial.showDepthOverlay) }
 
     Box(
         Modifier
@@ -89,7 +91,8 @@ fun SettingsScreen(
                             roomCode.trim(),
                             relayUrl.trim(),
                             mode,
-                            showAR
+                            showAR,
+                            showDepth,
                         )
                     )
                     onBack()
@@ -165,6 +168,32 @@ fun SettingsScreen(
                 Switch(
                     checked = showAR,
                     onCheckedChange = { showAR = it },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = WhiteText,
+                        checkedTrackColor = StageRed,
+                        uncheckedThumbColor = WhiteDim,
+                        uncheckedTrackColor = Color.White.copy(alpha = 0.08f)
+                    )
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Depth overlay", color = WhiteText, fontSize = 14.sp)
+                    Text(
+                        "Colorize per-pixel depth from ARCore (warm = near, cool = far). " +
+                            "Requires a depth-capable device; silently does nothing otherwise.",
+                        color = WhiteDim,
+                        fontSize = 11.sp
+                    )
+                }
+                Switch(
+                    checked = showDepth,
+                    onCheckedChange = { showDepth = it },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = WhiteText,
                         checkedTrackColor = StageRed,

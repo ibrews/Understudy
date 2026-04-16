@@ -145,7 +145,8 @@ class MainActivity : ComponentActivity() {
                 roomCode = app.prefs.roomCode.first(),
                 relayUrl = app.prefs.relayUrl.first(),
                 appMode = app.prefs.appMode.first(),
-                showArStage = app.prefs.showARStage.first()
+                showArStage = app.prefs.showARStage.first(),
+                showDepthOverlay = app.prefs.showDepthOverlay.first(),
             )
         }
 
@@ -196,7 +197,8 @@ class MainActivity : ComponentActivity() {
                     roomCode = snap.roomCode,
                     relayUrl = snap.relayUrl,
                     appMode = snap.appMode,
-                    showARStage = snap.showArStage
+                    showARStage = snap.showArStage,
+                    showDepthOverlay = snap.showDepthOverlay,
                 ),
                 onSave = { saved ->
                     scope.launch {
@@ -205,13 +207,15 @@ class MainActivity : ComponentActivity() {
                         app.prefs.setRelayUrl(saved.relayUrl)
                         app.prefs.setAppMode(saved.appMode)
                         app.prefs.setShowARStage(saved.showARStage)
+                        app.prefs.setShowDepthOverlay(saved.showDepthOverlay)
                         app.store.updateLocalDisplayName(saved.displayName)
                         prefsState.value = snap.copy(
                             displayName = saved.displayName,
                             roomCode = saved.roomCode,
                             relayUrl = saved.relayUrl,
                             appMode = saved.appMode,
-                            showArStage = saved.showARStage
+                            showArStage = saved.showARStage,
+                            showDepthOverlay = saved.showDepthOverlay,
                         )
                         // Reconnect with new settings
                         app.transport.stop()
@@ -303,6 +307,7 @@ class MainActivity : ComponentActivity() {
                 // naturally. If AR isn't on, onDropMarkAt is never called.
                 arProvider = arProvider,
                 showArStage = snap.showArStage,
+                showDepthOverlay = snap.showDepthOverlay,
                 onDropMarkAt = { worldX, worldZ ->
                     val localPose = app.store.localPerformer.value.pose
                     val nextIndex = (blocking.marks.maxOfOrNull { it.sequenceIndex } ?: -1) + 1
@@ -341,6 +346,7 @@ class MainActivity : ComponentActivity() {
                 onOpenSettings = { showSettings = true },
                 arProvider = arProvider,
                 showArStage = snap.showArStage,
+                showDepthOverlay = snap.showDepthOverlay,
                 onOpenTeleprompter = { showTeleprompter = true }
             )
         }
@@ -439,5 +445,6 @@ private data class PrefsSnapshot(
     val roomCode: String,
     val relayUrl: String,
     val appMode: AppMode,
-    val showArStage: Boolean
+    val showArStage: Boolean,
+    val showDepthOverlay: Boolean,
 )

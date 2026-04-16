@@ -72,6 +72,7 @@ class PrefsRepo(private val context: Context) {
     private val KEY_RELAY = stringPreferencesKey("relay_url")
     private val KEY_APP_MODE = stringPreferencesKey("app_mode")
     private val KEY_SHOW_AR_STAGE = stringPreferencesKey("show_ar_stage")
+    private val KEY_SHOW_DEPTH_OVERLAY = stringPreferencesKey("show_depth_overlay")
 
     val displayName: kotlinx.coroutines.flow.Flow<String> =
         context.dataStore.data.map { it[KEY_DISPLAY_NAME] ?: defaultDisplayName() }
@@ -94,6 +95,9 @@ class PrefsRepo(private val context: Context) {
 
     val showARStage: kotlinx.coroutines.flow.Flow<Boolean> =
         context.dataStore.data.map { (it[KEY_SHOW_AR_STAGE] ?: "true") == "true" }
+
+    val showDepthOverlay: kotlinx.coroutines.flow.Flow<Boolean> =
+        context.dataStore.data.map { (it[KEY_SHOW_DEPTH_OVERLAY] ?: "false") == "true" }
 
     suspend fun loadOrInitLocalId(): String {
         val existing = context.dataStore.data.map { it[KEY_LOCAL_ID] }.first()
@@ -124,6 +128,9 @@ class PrefsRepo(private val context: Context) {
     }
     suspend fun setShowARStage(v: Boolean) {
         context.dataStore.edit { it[KEY_SHOW_AR_STAGE] = if (v) "true" else "false" }
+    }
+    suspend fun setShowDepthOverlay(v: Boolean) {
+        context.dataStore.edit { it[KEY_SHOW_DEPTH_OVERLAY] = if (v) "true" else "false" }
     }
 
     private fun defaultDisplayName(): String = android.os.Build.MODEL ?: "Android"

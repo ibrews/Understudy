@@ -63,6 +63,12 @@ class ArPoseProvider(
     /** Expose the underlying ARCore Session so the stage renderer can share it. */
     fun session(): Session? = session
 
+    @Volatile
+    private var _depthSupported: Boolean = false
+
+    /** True when `Config.DepthMode.AUTOMATIC` is supported on this device. */
+    fun isDepthSupported(): Boolean = _depthSupported
+
     /** Latest view matrix captured from the camera (16 floats, column-major OpenGL). */
     @Volatile
     var lastViewMatrix: FloatArray = FloatArray(16).also { android.opengl.Matrix.setIdentityM(it, 0) }
@@ -89,14 +95,20 @@ class ArPoseProvider(
                 ArCoreApk.InstallStatus.INSTALLED -> { /* good */ }
             }
             val s = session ?: Session(activity).also {
+                val depthSupported = try {
+                    it.isDepthModeSupported(Config.DepthMode.AUTOMATIC)
+                } catch (_: Throwable) { false }
                 val config = Config(it).apply {
                     updateMode = Config.UpdateMode.LATEST_CAMERA_IMAGE
                     focusMode = Config.FocusMode.AUTO
-                    depthMode = Config.DepthMode.DISABLED
+                    // AUTOMATIC depth when the device supports it; otherwise DISABLED.
+                    // The DepthRenderer no-ops gracefully when depth frames are unavailable.
+                    depthMode = if (depthSupported) Config.DepthMode.AUTOMATIC else Config.DepthMode.DISABLED
                     planeFindingMode = Config.PlaneFindingMode.DISABLED
                     lightEstimationMode = Config.LightEstimationMode.DISABLED
                 }
                 it.configure(config)
+                _depthSupported = depthSupported
             }
             session = s
             s.resume()

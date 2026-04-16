@@ -2,6 +2,7 @@ package agilelens.understudy.ui
 
 import agilelens.understudy.ar.ArPoseProvider
 import agilelens.understudy.ar.BackgroundRenderer
+import agilelens.understudy.ar.DepthRenderer
 import agilelens.understudy.model.CameraSpec
 import agilelens.understudy.model.Id
 import agilelens.understudy.model.Mark
@@ -61,6 +62,7 @@ fun ArStageView(
     nextMarkId: Id?,
     modifier: Modifier = Modifier,
     onFloorTap: ((worldX: Float, worldZ: Float) -> Unit)? = null,
+    showDepthOverlay: Boolean = false,
 ) {
     // Force recomposition at ~30Hz for the overlay.
     var tick by remember { mutableStateOf(0L) }
@@ -78,7 +80,10 @@ fun ArStageView(
         AndroidView(
             modifier = Modifier.fillMaxSize(),
             factory = { ctx -> ArGlView(ctx, arProvider) },
-            update = { view -> view.requestRender() }
+            update = { view ->
+                view.showDepthOverlay = showDepthOverlay
+                view.requestRender()
+            }
         )
 
         // Read latest matrices — tick dependency forces redraw each frame.
@@ -318,7 +323,11 @@ private fun DrawScope.drawCameraFovWedge(
  */
 private class ArGlView(context: Context, private val arProvider: ArPoseProvider) : GLSurfaceView(context) {
     private val bg = BackgroundRenderer()
+    private val depth = DepthRenderer()
     private var textureBound = false
+
+    /** Volatile flip-flopped from the Compose side each frame. */
+    @Volatile var showDepthOverlay: Boolean = false
 
     init {
         setEGLContextClientVersion(2)
@@ -333,6 +342,7 @@ private class ArGlView(context: Context, private val arProvider: ArPoseProvider)
         override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
             GLES20.glClearColor(0f, 0f, 0f, 1f)
             bg.createOnGlThread()
+            depth.createOnGlThread()
             textureBound = false
         }
 
@@ -354,6 +364,13 @@ private class ArGlView(context: Context, private val arProvider: ArPoseProvider)
                 }
                 val frame = session.update() ?: return
                 bg.draw(frame)
+                // Per-pixel depth ramp on top of the camera feed. Only when
+                // the user toggled the overlay on AND the device actually
+                // supports ARCore's AUTOMATIC depth mode — otherwise the
+                // renderer would just be burning CPU on no-data frames.
+                if (showDepthOverlay && arProvider.isDepthSupported()) {
+                    depth.draw(frame)
+                }
             } catch (_: Throwable) {
                 // Session may be paused or racing; just skip this frame.
             }
