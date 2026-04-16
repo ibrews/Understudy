@@ -55,7 +55,8 @@ data class SettingsState(
     val roomCode: String,
     val relayUrl: String,
     val appMode: AppMode = AppMode.PERFORM,
-    val showARStage: Boolean = true
+    val showARStage: Boolean = true,
+    val showFloatingScript: Boolean = false,
 )
 
 @Composable
@@ -69,6 +70,7 @@ fun SettingsScreen(
     var relayUrl by remember { mutableStateOf(initial.relayUrl) }
     var mode by remember { mutableStateOf(if (initial.appMode == AppMode.UNSET) AppMode.PERFORM else initial.appMode) }
     var showAR by remember { mutableStateOf(initial.showARStage) }
+    var showFloatingScript by remember { mutableStateOf(initial.showFloatingScript) }
 
     Box(
         Modifier
@@ -89,7 +91,8 @@ fun SettingsScreen(
                             roomCode.trim(),
                             relayUrl.trim(),
                             mode,
-                            showAR
+                            showAR,
+                            showFloatingScript,
                         )
                     )
                     onBack()
@@ -162,6 +165,31 @@ fun SettingsScreen(
                 Switch(
                     checked = showAR,
                     onCheckedChange = { showAR = it },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = WhiteText,
+                        checkedTrackColor = StageRed,
+                        uncheckedThumbColor = WhiteDim,
+                        uncheckedTrackColor = Color.White.copy(alpha = 0.08f)
+                    )
+                )
+            }
+
+            Spacer(Modifier.height(12.dp))
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Floating script panels", color = WhiteText, fontSize = 14.sp)
+                    Text(
+                        "Show the next line as a world-anchored card above the mark you're walking toward (performer mode, AR stage only).",
+                        color = WhiteDim,
+                        fontSize = 11.sp
+                    )
+                }
+                Switch(
+                    checked = showFloatingScript,
+                    onCheckedChange = { showFloatingScript = it },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = WhiteText,
                         checkedTrackColor = StageRed,

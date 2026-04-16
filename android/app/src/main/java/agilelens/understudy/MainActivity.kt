@@ -144,7 +144,8 @@ class MainActivity : ComponentActivity() {
                 roomCode = app.prefs.roomCode.first(),
                 relayUrl = app.prefs.relayUrl.first(),
                 appMode = app.prefs.appMode.first(),
-                showArStage = app.prefs.showARStage.first()
+                showArStage = app.prefs.showARStage.first(),
+                showFloatingScript = app.prefs.showFloatingScript.first(),
             )
         }
 
@@ -195,7 +196,8 @@ class MainActivity : ComponentActivity() {
                     roomCode = snap.roomCode,
                     relayUrl = snap.relayUrl,
                     appMode = snap.appMode,
-                    showARStage = snap.showArStage
+                    showARStage = snap.showArStage,
+                    showFloatingScript = snap.showFloatingScript,
                 ),
                 onSave = { saved ->
                     scope.launch {
@@ -204,13 +206,15 @@ class MainActivity : ComponentActivity() {
                         app.prefs.setRelayUrl(saved.relayUrl)
                         app.prefs.setAppMode(saved.appMode)
                         app.prefs.setShowARStage(saved.showARStage)
+                        app.prefs.setShowFloatingScript(saved.showFloatingScript)
                         app.store.updateLocalDisplayName(saved.displayName)
                         prefsState.value = snap.copy(
                             displayName = saved.displayName,
                             roomCode = saved.roomCode,
                             relayUrl = saved.relayUrl,
                             appMode = saved.appMode,
-                            showArStage = saved.showARStage
+                            showArStage = saved.showARStage,
+                            showFloatingScript = saved.showFloatingScript,
                         )
                         // Reconnect with new settings
                         app.transport.stop()
@@ -331,6 +335,7 @@ class MainActivity : ComponentActivity() {
                 onOpenSettings = { showSettings = true },
                 arProvider = arProvider,
                 showArStage = snap.showArStage,
+                showFloatingScript = snap.showFloatingScript,
                 onOpenTeleprompter = { showTeleprompter = true }
             )
         }
@@ -429,5 +434,6 @@ private data class PrefsSnapshot(
     val roomCode: String,
     val relayUrl: String,
     val appMode: AppMode,
-    val showArStage: Boolean
+    val showArStage: Boolean,
+    val showFloatingScript: Boolean,
 )

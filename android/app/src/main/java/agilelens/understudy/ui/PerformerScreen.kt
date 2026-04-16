@@ -72,6 +72,7 @@ fun PerformerScreen(
     onToggleRecording: () -> Unit = {},
     arProvider: ArPoseProvider? = null,
     showArStage: Boolean = false,
+    showFloatingScript: Boolean = false,
     onOpenTeleprompter: () -> Unit = {}
 ) {
     val currentMark: Mark? = local.currentMarkID?.let { id ->
@@ -90,7 +91,8 @@ fun PerformerScreen(
                 arProvider = arProvider,
                 marks = blocking.marks,
                 nextMarkId = nextMark?.id,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                showFloatingScript = showFloatingScript,
             )
         }
 

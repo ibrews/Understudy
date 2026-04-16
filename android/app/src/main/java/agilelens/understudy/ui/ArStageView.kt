@@ -53,6 +53,7 @@ fun ArStageView(
     nextMarkId: Id?,
     modifier: Modifier = Modifier,
     onFloorTap: ((worldX: Float, worldZ: Float) -> Unit)? = null,
+    showFloatingScript: Boolean = false,
 ) {
     // Force recomposition at ~30Hz for the overlay.
     var tick by remember { mutableStateOf(0L) }
@@ -145,6 +146,17 @@ fun ArStageView(
                     center = Offset(sx, sy)
                 )
             }
+        }
+
+        // Floating script panel — visionOS-style card anchored above the
+        // next mark. Optional; off by default to keep author-mode uncluttered.
+        if (showFloatingScript) {
+            val nextMark = nextMarkId?.let { id -> marks.firstOrNull { it.id == id } }
+            ScriptPanelOverlay(
+                nextMark = nextMark,
+                viewMatrix = viewMatrix,
+                projMatrix = projMatrix,
+            )
         }
     }
 }
