@@ -1,6 +1,10 @@
 package agilelens.understudy.cuefx
 
+import agilelens.understudy.R
+import android.content.Context
+import android.media.AudioAttributes
 import android.media.AudioManager
+import android.media.SoundPool
 import android.media.ToneGenerator
 
 /**
@@ -13,24 +17,46 @@ import android.media.ToneGenerator
  * PCM assets only exist on Apple platforms — Android has no equivalent
  * library we can hit without shipping our own audio files.
  *
- * Rather than bloat the APK with custom WAVs for a prototype, this player
- * synthesizes brief dial-tone bursts via `ToneGenerator` that are distinct
- * enough per cue name to serve as placeholders during rehearsals. When
- * production assets ship, swap `ToneGenerator` for `SoundPool` pointing at
- * `res/raw/` WAV/OGG assets — the engine-facing API (`play(name)`) stays identical.
+ * On Android we ship a handful of short PD/self-generated WAVs under
+ * `res/raw/` (see `LICENSE-SOUNDS.md`) and load them into a [SoundPool].
+ * For any cue name we don't have a matching WAV for — including runtime-
+ * authored custom names — we fall back to the original [ToneGenerator]
+ * dial-tone bursts so at least *something* audible fires.
  *
- * All tone bursts are ≤1 s and the generator is released explicitly, so
- * this class is safe to instantiate per-app and never hang audio focus.
+ * The engine-facing API stays identical: `play(name)` and `release()`.
+ *
+ * Unit tests construct the player without a context — in that mode the
+ * SoundPool path is skipped and every cue falls through to ToneGenerator.
  */
-class CueAudioPlayer {
+class CueAudioPlayer(
+    private val context: Context? = null,
+) {
 
-    // Volume at 70 %. ToneGenerator clamps 0..100.
+    // Volume 0..1 for SoundPool, 0..100 for ToneGenerator.
+    private val sfxVolume: Float = 0.9f
+
+    private val soundPool: SoundPool? = context?.let { buildSoundPool() }
+    /** Map cue name → loaded sample id. Null entries mean "still loading". */
+    private val sampleIds: Map<String, Int> = soundPool?.let { pool ->
+        val ctx = context
+        // Keep this table in sync with the iOS systemSoundID table in
+        // CueFXEngine.swift. Filename stems must match the cue names exactly.
+        val catalog = mapOf(
+            "thunder"  to R.raw.thunder,
+            "bell"     to R.raw.bell,
+            "chime"    to R.raw.chime,
+            "knock"    to R.raw.knock,
+            "applause" to R.raw.applause,
+        )
+        catalog.mapValues { (_, resId) -> pool.load(ctx, resId, 1) }
+    } ?: emptyMap()
+
+    // ToneGenerator fallback for unknown cue names.
     private var tone: ToneGenerator? = null
 
-    /** Map a cue name to a tone type + duration. Unknown names get a neutral ping. */
     private data class ToneRecipe(val toneType: Int, val durationMs: Int)
 
-    private fun recipe(name: String): ToneRecipe = when (name.lowercase()) {
+    private fun toneRecipe(name: String): ToneRecipe = when (name.lowercase()) {
         "thunder"  -> ToneRecipe(ToneGenerator.TONE_CDMA_LOW_L, 800)
         "bell"     -> ToneRecipe(ToneGenerator.TONE_PROP_BEEP,  450)
         "chime"    -> ToneRecipe(ToneGenerator.TONE_PROP_ACK,   600)
@@ -39,12 +65,38 @@ class CueAudioPlayer {
         else       -> ToneRecipe(ToneGenerator.TONE_PROP_BEEP2, 250)
     }
 
+    private fun buildSoundPool(): SoundPool {
+        val attrs = AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_MEDIA)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+        return SoundPool.Builder()
+            .setMaxStreams(4)
+            .setAudioAttributes(attrs)
+            .build()
+    }
+
     /**
-     * Play a short burst for the given cue name. Creates a fresh generator
-     * if needed (generators die when the app goes to background).
+     * Play a short burst for the given cue name. Tries SoundPool first; if
+     * we didn't ship a matching WAV (or the player was built without a
+     * context, e.g. in unit tests), falls back to [ToneGenerator].
      */
     fun play(name: String) {
-        val recipe = recipe(name)
+        val key = name.lowercase()
+        val pool = soundPool
+        val sampleId = sampleIds[key]
+        if (pool != null && sampleId != null) {
+            // SoundPool.play returns 0 on failure (e.g. sample still loading).
+            // Any non-zero stream id means the shot is in flight.
+            val stream = pool.play(sampleId, sfxVolume, sfxVolume, 1, 0, 1.0f)
+            if (stream != 0) return
+            // fall through to ToneGenerator — better a beep than silence
+        }
+        playTone(key)
+    }
+
+    private fun playTone(name: String) {
+        val recipe = toneRecipe(name)
         try {
             if (tone == null) {
                 tone = ToneGenerator(AudioManager.STREAM_MUSIC, 70)
@@ -59,6 +111,7 @@ class CueAudioPlayer {
     }
 
     fun release() {
+        try { soundPool?.release() } catch (_: Throwable) { /* ignore */ }
         try { tone?.release() } catch (_: Throwable) { /* ignore */ }
         tone = null
     }

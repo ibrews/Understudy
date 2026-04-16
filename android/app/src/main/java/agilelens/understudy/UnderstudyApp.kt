@@ -58,7 +58,7 @@ class UnderstudyApp : Application() {
 
         store = BlockingStore(localID = localId, localDisplayName = name)
         transport = WebSocketTransport(appScope)
-        fx = CueFXEngine().also { it.attach(store) }
+        fx = CueFXEngine(context = this).also { it.attach(store) }
     }
 
     override fun onTerminate() {
