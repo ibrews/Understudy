@@ -76,6 +76,7 @@ fun AuthorScreen(
     onOpenTeleprompter: () -> Unit = {},
     arProvider: ArPoseProvider? = null,
     showArStage: Boolean = false,
+    showDepthOverlay: Boolean = false,
     onDropMarkAt: (worldX: Float, worldZ: Float) -> Unit = { _, _ -> },
 ) {
     val nextMark: Mark? = blocking.marks.sortedBy { it.sequenceIndex }
@@ -99,6 +100,7 @@ fun AuthorScreen(
                 nextMarkId = nextMark?.id,
                 modifier = Modifier.fillMaxSize(),
                 onFloorTap = onDropMarkAt,
+                showDepthOverlay = showDepthOverlay,
             )
         }
         Column(
