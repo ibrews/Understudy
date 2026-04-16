@@ -4,6 +4,7 @@ import agilelens.understudy.model.Cue
 import agilelens.understudy.model.Id
 import agilelens.understudy.model.LightColor
 import agilelens.understudy.store.BlockingStore
+import android.content.Context
 import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,7 +42,14 @@ import kotlin.math.min
  * computes which line cues were crossed during a voice jump and asks the
  * engine to fire the trailing SFX/light/wait cues on each.
  */
-class CueFXEngine {
+class CueFXEngine(
+    /**
+     * Optional application context used by [CueAudioPlayer] to load WAV
+     * assets from `res/raw/` into a [android.media.SoundPool]. When null
+     * (e.g. unit tests), SFX falls back to ToneGenerator dial-tone bursts.
+     */
+    context: Context? = null,
+) {
 
     /** Snapshot of a transient lighting flash; the overlay reads this. */
     data class FlashState(
@@ -87,7 +95,7 @@ class CueFXEngine {
     // --- Private ---
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    private val audio = CueAudioPlayer()
+    private val audio = CueAudioPlayer(context)
     private var store: BlockingStore? = null
     private var drainJob: Job? = null
     private var flashClearJob: Job? = null
