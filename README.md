@@ -91,6 +91,16 @@ For the full multi-device flow (Apple + Android + relay), see **[QUICKSTART.md](
 
 ---
 
+## Things to Try
+
+1. **Launch on an iPhone simulator, pick Perform, and walk toward the first glowing disc** — your phone should pulse with haptics and "Francisco" speaks his opening line from Hamlet in serif type over the camera feed.
+2. **Switch to Author mode, tap the floor three times to drop marks, then tap a mark and hit "Pick from Hamlet…"** — the full Script Browser opens; search for "Bernardo" and tap a line to attach it to the mark instantly.
+3. **Tap "Drop Whole Scene" on any scene in the Script Browser** — Understudy auto-lays out a zig-zag path of marks with every line pre-populated; a 20-beat scene becomes walkable in under a second.
+4. **Run the visionOS scheme to a simulator alongside the iOS scheme on a real iPhone on the same Wi-Fi** — both devices find each other over Bonjour automatically; the AVP director sees the iPhone performer as a ghost avatar moving through the virtual stage.
+5. **Start the Python relay (`cd relay && python3 server.py`), switch both apps to WebSocket transport in Settings, and join from an Android device** — all three clients share the same marks and fire the same cues in sync across platforms.
+
+---
+
 ## What's in this repo
 
 ```
