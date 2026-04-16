@@ -44,16 +44,16 @@ Open https://appstoreconnect.apple.com/access/integrations/api
 4. **Generate**.
 5. Apple shows a **one-time download link** for `AuthKey_XXXXXXXXXX.p8`. Download it.
 6. Note the **Key ID** (e.g. `ABCD123456`) and the **Issuer ID** (UUID at the top of the Keys page).
-7. Move the key to the expected location:
+7. Move the key to the fleet-standard location (from `testflight-autonomous-upload.md`):
    ```bash
-   mkdir -p ~/.appstoreconnect/private_keys
-   mv ~/Downloads/AuthKey_*.p8 ~/.appstoreconnect/private_keys/
+   mkdir -p ~/.private_keys
+   mv ~/Downloads/AuthKey_*.p8 ~/.private_keys/
    ```
-8. Export the credentials for the ship script (add to `~/.zshrc` for permanence). This matches the convention the fleet's `testflight-add-testers.sh` already uses:
+8. Export the credentials (add to `~/.zshrc` for permanence):
    ```bash
    export ASC_KEY_ID=ABCD123456
    export ASC_ISSUER_ID=11111111-2222-3333-4444-555555555555
-   export ASC_KEY_PATH=$HOME/.appstoreconnect/private_keys/AuthKey_ABCD123456.p8
+   export ASC_KEY_PATH=$HOME/.private_keys/AuthKey_ABCD123456.p8
    ```
 
 ---
@@ -67,15 +67,19 @@ scripts/ship-testflight.sh       # archives, exports, uploads
 ```
 
 The script:
-1. Archives Release config for iOS device.
-2. Exports an `.ipa` with App Store distribution signing.
-3. Uploads via `xcrun altool --upload-app` using your API key.
+1. **Preflight**: verifies API credentials + probes App Store Connect to confirm the bundle ID resolves to a real app record in this team. Fails fast if the record doesn't exist yet.
+2. **Archive** for iOS device (Release config, automatic signing, team `C624J4S2F8`).
+3. **Export + upload in one pass** via `xcodebuild -exportArchive` with `destination: upload` in `ExportOptions.plist` — no separate `altool` step. Matches the cookbook's canonical flow.
+4. **Chain into `testflight-add-testers.sh`** in the sibling `dev-control-center` repo — creates the "Dev Team" beta group + adds `alex@`/`info@`/`crew@agilelens.com` if not already there.
+5. **Log to Dev Control Center** (`http://sam:3333/api/apps/understudy/builds`) with status `testflight`.
 
-**Expected duration**: ~3-5 minutes. Output ends with *"Uploaded. It takes ~5-30 minutes for App Store Connect to process."*
+**Expected duration**: ~3-5 minutes. Output ends with the canonical `** EXPORT SUCCEEDED **` then an upload-complete line.
 
-Want to rehearse the pipeline without uploading? `scripts/ship-testflight.sh --dry-run`.
-
-For visionOS: `scripts/ship-testflight.sh --platform visionos`. Separate archive, same app record.
+Flags:
+- `--dry-run` — archive + export only, no upload. Good for rehearsing.
+- `--no-testers` — skip the tester-add chain (useful if you're shipping to a different group).
+- `--skip-preflight` — bypass the ASC-API bundle-ID probe (if you've manually verified the record).
+- `--platform visionos` — archives + uploads for visionOS. See the `REVIEW_NEEDED.md` caveat — no visionOS archive has shipped from this fleet yet, so edge cases are unexplored.
 
 ---
 
@@ -120,14 +124,15 @@ Done. Internal testers get a push notification; external testers get it after Ap
 
 ---
 
-## Gotchas I've hit before
+## Gotchas (from the fleet cookbook + my additions)
 
-- **"No matching profiles found"** → run `scripts/ship-testflight.sh --dry-run` once to let Xcode auto-create the distribution profile, then re-run without `--dry-run`.
-- **"ITC.apps.preRelease.binary_notifying_missing_export_compliance"** → App Store Connect wants the compliance answer. It's set via `INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO` which we have — but occasionally Apple doesn't pick it up automatically. Manually set the answer in App Store Connect → your build → Export Compliance.
-- **visionOS separate distribution profile** → uploading both iOS and visionOS archives to the same app record takes two ship-script runs. Order doesn't matter; Apple links them by bundle ID.
+- **"No matching profiles found"** → `-allowProvisioningUpdates` (which the script passes) triggers Xcode to fetch/create the profile automatically. If it still fails, run Xcode once to prime the profiles cache, then try again.
+- **"ITC.apps.preRelease.binary_notifying_missing_export_compliance"** → `INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO` is already in the pbxproj. The cookbook confirms this handles compliance automatically in every Agile Lens app so far. If it slips through, manually set the answer in App Store Connect → your build → Export Compliance.
 - **Bundle ID case sensitivity** → Apple's records are case-sensitive. Our bundle is `agilelens.Understudy` (lower `a`, capital `U`). If App Store Connect ever shows `agilelens.understudy`, something's wrong in the identifier registration — recreate it.
-- **Screen-recording in TestFlight review** → not required for internal testing. Required for external beta review of any build with camera / mic use. When that day comes, make a 20-second loom showing walking up to a mark + the line firing.
+- **Screen-recording in TestFlight review** → not required for internal testing. Required for external beta review of any build with camera / mic use. When that day comes, make a 20-second Loom showing walking up to a mark + the line firing.
 - **macOS Catalyst / Mac** → not in the supported platforms list (`SUPPORTED_PLATFORMS = "iphoneos iphonesimulator xros xrsimulator"`). Leave it that way; adding Mac Catalyst at this stage would add a whole review axis.
+- **Build-available email spam** → Apple emails you every time a build finishes processing. Disable per-Apple-ID only (no API): App Store Connect → your name top-right → Notifications → uncheck TestFlight "Build Processing Complete". Each team member has to do this in their own account.
+- **visionOS unknown** → see `REVIEW_NEEDED.md`. No visionOS archive has shipped from this fleet before; the separate-supported-platforms question is unresolved. First run of `--platform visionos` is the experiment.
 
 ---
 
