@@ -75,6 +75,7 @@ fun PerformerScreen(
     arProvider: ArPoseProvider? = null,
     showArStage: Boolean = false,
     showDepthOverlay: Boolean = false,
+    showFloatingScript: Boolean = false,
     onOpenTeleprompter: () -> Unit = {}
 ) {
     val currentMark: Mark? = local.currentMarkID?.let { id ->
@@ -95,6 +96,7 @@ fun PerformerScreen(
                 nextMarkId = nextMark?.id,
                 modifier = Modifier.fillMaxSize(),
                 showDepthOverlay = showDepthOverlay,
+                showFloatingScript = showFloatingScript,
             )
 
             // v0.23 — if the performer is standing on a CAMERA mark, overlay

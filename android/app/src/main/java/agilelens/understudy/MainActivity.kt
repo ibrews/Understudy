@@ -147,6 +147,7 @@ class MainActivity : ComponentActivity() {
                 appMode = app.prefs.appMode.first(),
                 showArStage = app.prefs.showARStage.first(),
                 showDepthOverlay = app.prefs.showDepthOverlay.first(),
+                showFloatingScript = app.prefs.showFloatingScript.first(),
             )
         }
 
@@ -199,6 +200,7 @@ class MainActivity : ComponentActivity() {
                     appMode = snap.appMode,
                     showARStage = snap.showArStage,
                     showDepthOverlay = snap.showDepthOverlay,
+                    showFloatingScript = snap.showFloatingScript,
                 ),
                 onSave = { saved ->
                     scope.launch {
@@ -208,6 +210,7 @@ class MainActivity : ComponentActivity() {
                         app.prefs.setAppMode(saved.appMode)
                         app.prefs.setShowARStage(saved.showARStage)
                         app.prefs.setShowDepthOverlay(saved.showDepthOverlay)
+                        app.prefs.setShowFloatingScript(saved.showFloatingScript)
                         app.store.updateLocalDisplayName(saved.displayName)
                         prefsState.value = snap.copy(
                             displayName = saved.displayName,
@@ -216,6 +219,7 @@ class MainActivity : ComponentActivity() {
                             appMode = saved.appMode,
                             showArStage = saved.showARStage,
                             showDepthOverlay = saved.showDepthOverlay,
+                            showFloatingScript = saved.showFloatingScript,
                         )
                         // Reconnect with new settings
                         app.transport.stop()
@@ -347,6 +351,7 @@ class MainActivity : ComponentActivity() {
                 arProvider = arProvider,
                 showArStage = snap.showArStage,
                 showDepthOverlay = snap.showDepthOverlay,
+                showFloatingScript = snap.showFloatingScript,
                 onOpenTeleprompter = { showTeleprompter = true }
             )
         }
@@ -447,4 +452,5 @@ private data class PrefsSnapshot(
     val appMode: AppMode,
     val showArStage: Boolean,
     val showDepthOverlay: Boolean,
+    val showFloatingScript: Boolean,
 )
