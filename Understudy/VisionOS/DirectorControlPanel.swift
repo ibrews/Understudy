@@ -201,6 +201,26 @@ struct DirectorControlPanel: View {
                     Circle().fill(.green).frame(width: 8, height: 8)
                         .accessibilityLabel("OSC enabled")
                 }
+                Spacer()
+                // Manual cue-stack GO — same semantics as an inbound
+                // /understudy/go OSC message. Useful when a stage manager
+                // is running the show straight from the director panel.
+                Button(role: .destructive) {
+                    fx.goBack()
+                } label: {
+                    Image(systemName: "backward.end.fill")
+                }
+                .buttonStyle(.bordered)
+                .tint(.orange)
+                Button {
+                    fx.goForward()
+                } label: {
+                    Label("GO", systemImage: "play.fill")
+                        .fontWeight(.bold)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.red)
+                .keyboardShortcut(.return, modifiers: [])
             }
         }
     }

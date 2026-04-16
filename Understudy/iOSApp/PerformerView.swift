@@ -396,6 +396,8 @@ struct SettingsSheet: View {
     @AppStorage("oscEnabled") private var oscEnabled: Bool = false
     @AppStorage("oscHost") private var oscHost: String = ""
     @AppStorage("oscPort") private var oscPortStr: String = "53000"
+    @AppStorage("oscReceiveEnabled") private var oscReceiveEnabled: Bool = false
+    @AppStorage("oscReceivePort") private var oscReceivePortStr: String = "53001"
 
     private var appMode: AppMode {
         get { AppMode(rawValue: appModeRaw) ?? .perform }
@@ -475,7 +477,22 @@ struct SettingsSheet: View {
                                                args: [.string("ping from \(UIDevice.current.name)")])
                         }
                     }
-                } header: { Text("OSC Bridge") }
+                } header: { Text("OSC Bridge (outbound)") } footer: {
+                    Text("Sends /understudy/cue/... messages when cues fire.")
+                        .font(.caption)
+                }
+
+                Section {
+                    Toggle("Listen for OSC GO from QLab", isOn: $oscReceiveEnabled)
+                        .onChange(of: oscReceiveEnabled) { _, _ in applyOSCReceive() }
+                    if oscReceiveEnabled {
+                        TextField("Listen port", text: $oscReceivePortStr)
+                            .keyboardType(.numberPad)
+                            .onSubmit { applyOSCReceive() }
+                        Text("Point QLab's OSC destination at this device's LAN IP : port \(oscReceivePortStr). Send `/understudy/go` to advance the cue stack; `/understudy/back` or `/understudy/reset` also work.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                } header: { Text("Stage Manager (inbound)") }
 
                 Section("About") {
                     LabeledContent("Version", value: AppVersion.formatted)
@@ -488,6 +505,7 @@ struct SettingsSheet: View {
                     Button("Done") {
                         applyName()
                         applyOSC()
+                        applyOSCReceive()
                         dismiss()
                     }
                 }
@@ -502,6 +520,11 @@ struct SettingsSheet: View {
             port: port,
             enabled: oscEnabled
         )
+    }
+
+    private func applyOSCReceive() {
+        let port = UInt16(oscReceivePortStr) ?? 53001
+        fx.configureOSCReceive(port: port, enabled: oscReceiveEnabled)
     }
 
     private func applyName() {

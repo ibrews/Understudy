@@ -79,6 +79,17 @@ public final class CueFXEngine {
     /// also sent out over UDP to a listening host (QLab, TouchDesigner, etc.).
     public let osc = OSCBridge()
 
+    /// Inbound OSC receiver. When a stage manager sends `/understudy/go`
+    /// from QLab, we fire the next mark's cues as though a performer had
+    /// just walked onto it. Gives stage management control of pacing
+    /// without requiring performers to actually move.
+    public let oscIn = OSCReceiver()
+
+    /// Sequence index of the last mark advanced by an OSC /go. -1 means
+    /// "no GO has been sent yet; next /go fires the first mark." Survives
+    /// across performer moves — purely driven by the inbound bus.
+    public var goCursor: Int = -1
+
     public init() {}
 
     /// Attach the engine to a store. Safe to call once at app launch.
@@ -87,6 +98,91 @@ public final class CueFXEngine {
         drainTask?.cancel()
         drainTask = Task { [weak self] in
             await self?.runDrainLoop()
+        }
+        // Wire the inbound OSC receiver.
+        oscIn.onMessage = { [weak self] msg in
+            self?.handleOSCInbound(msg)
+        }
+    }
+
+    /// Configure and optionally start the inbound OSC receiver. Called
+    /// when the user edits the OSC settings.
+    public func configureOSCReceive(port: UInt16, enabled: Bool) {
+        if enabled {
+            oscIn.start(port: port)
+        } else {
+            oscIn.stop()
+        }
+    }
+
+    private func handleOSCInbound(_ msg: OSCReceiver.Message) {
+        switch msg.address {
+        case "/understudy/go", "/understudy/next":
+            goForward()
+        case "/understudy/back":
+            goBack()
+        case "/understudy/reset":
+            goCursor = -1
+        case "/understudy/mark":
+            if let idx = msg.firstInt {
+                goToMark(sequenceIndex: Int(idx))
+            }
+        default:
+            break
+        }
+    }
+
+    /// Advance the cursor and fire the next mark's cues.
+    public func goForward() {
+        guard let store else { return }
+        let ordered = store.blocking.marks
+            .filter { $0.sequenceIndex >= 0 }
+            .sorted { $0.sequenceIndex < $1.sequenceIndex }
+        guard !ordered.isEmpty else { return }
+        let next = goCursor + 1
+        if next < ordered.count {
+            let mark = ordered[next]
+            goCursor = next
+            fireMarkAsIfEntered(mark)
+        }
+    }
+
+    public func goBack() {
+        guard let store else { return }
+        let ordered = store.blocking.marks
+            .filter { $0.sequenceIndex >= 0 }
+            .sorted { $0.sequenceIndex < $1.sequenceIndex }
+        guard !ordered.isEmpty else { return }
+        let prev = goCursor - 1
+        if prev >= 0 && prev < ordered.count {
+            let mark = ordered[prev]
+            goCursor = prev
+            fireMarkAsIfEntered(mark)
+        }
+    }
+
+    public func goToMark(sequenceIndex: Int) {
+        guard let store else { return }
+        let ordered = store.blocking.marks
+            .filter { $0.sequenceIndex >= 0 }
+            .sorted { $0.sequenceIndex < $1.sequenceIndex }
+        guard let idx = ordered.firstIndex(where: { $0.sequenceIndex == sequenceIndex }) else {
+            return
+        }
+        goCursor = idx
+        fireMarkAsIfEntered(ordered[idx])
+    }
+
+    /// Enqueue every cue on the given mark as though a performer just entered
+    /// it. The rest of the system (UI + OSC outbound + FX) treats it
+    /// identically to a real walk-on.
+    private func fireMarkAsIfEntered(_ mark: Mark) {
+        guard let store else { return }
+        let performer = store.localPerformer?.id ?? ID("stage-manager")
+        for cue in mark.cues {
+            store.cueQueue.append(BlockingStore.FiredCue(
+                cue: cue, markName: mark.name, performerID: performer
+            ))
         }
     }
 

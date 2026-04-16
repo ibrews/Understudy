@@ -186,6 +186,7 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] Migrate Monitoring code to AgileLensMultiplayer SPM dependency (currently copied in)
 - [ ] Interactive overlay controls on visionOS — grab + rotate + scale the room-scan ghost to align scouted location to rehearsal room
 - [ ] Android LiDAR pass-through (ARCore Depth API on supported devices)
+- [ ] Second parser for modern plays (Chekhov / Wilde / Beckett) — the existing `scripts/parse_hamlet.py` assumes Shakespeare's format (`CHARACTER.` on its own line, SCENE headings). Chekhov has inline dialogue and no scenes, so it needs a distinct parser. Hamlet + Macbeth + Midsummer work today; The Seagull / Cherry Orchard are blocked by this.
 - [ ] QR-code anchor as a more precise alternative to the "stand here, face upstage" calibration ceremony
 - [ ] Android floating script panels (feature parity with visionOS)
 - [ ] Android Audience mode + camera marks
@@ -194,6 +195,13 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] Lens/sensor pickers with real-world presets (ARRI, RED, Sony FX, cine primes)
 - [ ] Public-domain Chekhov + Beckett in the Script Browser
 - [ ] TestFlight
+
+### v0.10 · Bidirectional OSC — QLab can GO the show
+- **Inbound OSC receiver.** `OSCReceiver` listens on UDP 53001 (default) for `/understudy/go`, `/understudy/back`, `/understudy/reset`, `/understudy/mark <seq:int>`. Enable from Settings → Stage Manager on iPhone or the OSC sheet on visionOS.
+- **`/go` fires the next mark's cues.** Same path as a real walk-on: cues enqueue into `cueQueue`, the teleprompter shows the line, SFX plays, light flashes, and **the outbound OSC stream mirrors it right back** — so QLab's GO (bound to the space bar via a Network cue at `<device>:53001/understudy/go`) advances Understudy AND QLab's show cues fire in lock-step via the outbound `/understudy/cue/*` echo.
+- **Manual GO on the director panel.** Red "GO" button (keyboard shortcut: Return) + amber back-step, for when there's no QLab in the room and the director is stage-managing themselves.
+- `CueFXEngine` tracks a `goCursor` independent of performer movement — so cues advance at the SM's pace even when performers are ahead or behind.
+- See [OSC.md](OSC.md) for the full inbound + outbound protocol.
 
 ### v0.9 · LiDAR room capture + Mission Control fleet visibility
 - **LiDAR scan on iPhone Pro.** `MeshCapture` turns on `ARWorldTrackingConfiguration.sceneReconstruction = .mesh` on the shared ARKit session, polls mesh anchors as the user walks, and on "Finish" flattens every `ARMeshAnchor` into a single world-space mesh. "Scan room" button appears automatically in Author mode on LiDAR-capable devices (iPhone 12 Pro+, iPad Pro). Progress strip shows live triangle count during capture.
