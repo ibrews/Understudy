@@ -131,11 +131,21 @@ public enum Scripts {
     /// ~870 lines, 3 acts. Parsed with the modern parser.
     public static let earnest: PlayScript = load("earnest", fallbackTitle: "The Importance of Being Earnest")
 
+    /// The Cherry Orchard (Chekhov) — Project Gutenberg eBook #7986
+    /// (Julius West translation). ~640 lines, 4 acts. Parsed with the modern
+    /// (speaker-inline) parser.
+    public static let cherryOrchard: PlayScript = load("cherry-orchard", fallbackTitle: "The Cherry Orchard")
+
+    /// Three Sisters (Chekhov) — Project Gutenberg eBook #7986
+    /// (Julius West translation). ~750 lines, 4 acts. Parsed with the modern
+    /// (speaker-inline) parser.
+    public static let threeSisters: PlayScript = load("three-sisters", fallbackTitle: "Three Sisters")
+
     /// All currently-bundled scripts. Extend when more plays are added to
     /// Resources/ and update this list — ScriptBrowser will pick up the new
     /// entries automatically.
     public static let all: [PlayScript] = [
-        hamlet, macbeth, midsummerNightsDream, seagull, earnest,
+        hamlet, macbeth, midsummerNightsDream, seagull, earnest, cherryOrchard, threeSisters,
     ]
 }
 
