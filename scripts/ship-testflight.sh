@@ -101,23 +101,27 @@ fi
 if [[ "$DO_PREFLIGHT" == "true" && "$DRY_RUN" == "false" ]]; then
   echo "▶ Preflight — checking App Store Connect for $BUNDLE_ID…"
 
-  # Generate short-lived JWT using the same crypto path as the existing
-  # dev-control-center/scripts/testflight-add-testers.sh.
-  NOW=$(date +%s)
-  EXP=$((NOW + 600))
-  HEADER_B64=$(printf '{"alg":"ES256","kid":"%s","typ":"JWT"}' "$ASC_KEY_ID" \
-    | openssl base64 -e | tr -d '=\n' | tr '/+' '_-')
-  PAYLOAD_B64=$(printf '{"iss":"%s","iat":%d,"exp":%d,"aud":"appstoreconnect-v1"}' \
-    "$ASC_ISSUER_ID" "$NOW" "$EXP" \
-    | openssl base64 -e | tr -d '=\n' | tr '/+' '_-')
-  SIG_B64=$(printf '%s.%s' "$HEADER_B64" "$PAYLOAD_B64" \
-    | openssl dgst -sha256 -sign "$ASC_KEY_PATH" \
-    | openssl base64 -e | tr -d '=\n' | tr '/+' '_-')
-  TOKEN="$HEADER_B64.$PAYLOAD_B64.$SIG_B64"
+  # Source the fleet JWT helper so we get the correct DER→raw R||S signature
+  # conversion. Rolling our own openssl produces DER-encoded ECDSA which JWT
+  # ES256 rejects (401). Per testflight-app-record-creation.md "Known Traps".
+  ASC_JWT_SH="$REPO_ROOT/../dev-control-center/scripts/asc-jwt.sh"
+  if [[ ! -f "$ASC_JWT_SH" ]]; then
+    echo "✗ Preflight needs $ASC_JWT_SH — clone dev-control-center alongside" >&2
+    echo "  this repo or re-run with --skip-preflight." >&2
+    exit 3
+  fi
+  # shellcheck disable=SC1090
+  source "$ASC_JWT_SH"
+  TOKEN=$(generate_jwt)
 
-  FOUND_APPS=$(curl -s \
+  # curl --globoff keeps literal [] in the URL; --data-urlencode handles
+  # the filter= payload safely. asc_curl already does --globoff but we
+  # use a raw curl here so preflight doesn't hard-depend on its stderr
+  # conventions.
+  FOUND_APPS=$(curl -sS --globoff -G \
     -H "Authorization: Bearer $TOKEN" \
-    "https://api.appstoreconnect.apple.com/v1/apps?filter[bundleId]=$BUNDLE_ID" \
+    --data-urlencode "filter[bundleId]=$BUNDLE_ID" \
+    "https://api.appstoreconnect.apple.com/v1/apps" \
     | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d.get('data',[])))" \
     2>/dev/null || echo 0)
 

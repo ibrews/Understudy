@@ -15,7 +15,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				Understudy.entitlements,
 			);
 			target = UDY0000000000000000TGT01 /* Understudy */;
 		};
@@ -43,20 +42,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		UDY0000000000000000ROT01 = {
-			isa = PBXGroup;
-			children = (
-				UDY0000000000000000GRP01 /* Understudy */,
-				UDY0000000000000000PRD01 /* Products */,
-			);
-			sourceTree = "<group>";
-		};
 		UDY0000000000000000PRD01 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				UDY0000000000000000APP01 /* Understudy.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		UDY0000000000000000ROT01 = {
+			isa = PBXGroup;
+			children = (
+				UDY0000000000000000GRP01 /* Understudy */,
+				UDY0000000000000000PRD01 /* Products */,
+			);
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -152,11 +151,12 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "$(TARGET_NAME)/Info.plist";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSBonjourServices = "_und-stage._tcp,_und-stage._udp,_agilelens-mon._tcp";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Camera is used for AR world tracking so the app knows where you are on stage.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Understudy discovers nearby directors and performers over your local network.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Microphone is used to listen to performers reading their lines so the teleprompter can auto-advance.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Speech recognition matches your spoken words against the script so the teleprompter can follow you in real time. Runs entirely on-device.";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Understudy discovers nearby directors and performers over your local network.";
-				INFOPLIST_KEY_NSBonjourServices = "_und-stage._tcp,_und-stage._udp,_agilelens-mon._tcp";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -191,11 +191,12 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "$(TARGET_NAME)/Info.plist";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_NSBonjourServices = "_und-stage._tcp,_und-stage._udp,_agilelens-mon._tcp";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Camera is used for AR world tracking so the app knows where you are on stage.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Understudy discovers nearby directors and performers over your local network.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Microphone is used to listen to performers reading their lines so the teleprompter can auto-advance.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Speech recognition matches your spoken words against the script so the teleprompter can follow you in real time. Runs entirely on-device.";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Understudy discovers nearby directors and performers over your local network.";
-				INFOPLIST_KEY_NSBonjourServices = "_und-stage._tcp,_und-stage._udp,_agilelens-mon._tcp";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -270,6 +271,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -278,7 +280,6 @@
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				XROS_DEPLOYMENT_TARGET = 1.0;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 			};
 			name = Debug;
 		};
@@ -329,6 +330,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -336,7 +338,6 @@
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 				XROS_DEPLOYMENT_TARGET = 1.0;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 			};
 			name = Release;
 		};
