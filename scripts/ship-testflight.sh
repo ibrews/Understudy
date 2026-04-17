@@ -60,7 +60,7 @@ done
 
 case "$PLATFORM" in
   ios)      DESTINATION='generic/platform=iOS' ;;
-  visionos) DESTINATION='generic/platform=visionOS' ;;
+  visionos) DESTINATION='generic/platform=xros' ;;
   *) echo "Unknown --platform '$PLATFORM' (ios / visionos)" >&2; exit 1 ;;
 esac
 
@@ -147,8 +147,19 @@ fi
 
 # ─── ExportOptions.plist ──────────────────────────────────────────────────
 # destination: upload means a single -exportArchive invocation also uploads
-# to App Store Connect — no separate altool call needed. Matches the
-# cookbook's Step 3 quick-reference flow.
+# to App Store Connect — no separate altool call needed.
+#
+# Signing: **manual** with an explicit App Store profile name. Manual
+# signing sidesteps Xcode's `-allowProvisioningUpdates` code path, which
+# always calls the cloud-managed-certificates API endpoint that requires
+# a separate "Access to Cloud Managed App Distribution Certificate"
+# permission Apple gates per-key. Our App Manager keys don't have it.
+#
+# The profile must be bootstrapped ONCE via `scripts/bootstrap-asc-profile.sh`
+# (POST /v1/profiles works fine on App Manager keys — it's only the
+# Cloud Signing cert path that's gated). After that, every subsequent
+# build reuses the same profile, no human touches needed.
+PROFILE_NAME="Understudy App Store"
 cat > "$EXPORT_OPTIONS_PLIST" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -156,8 +167,13 @@ cat > "$EXPORT_OPTIONS_PLIST" <<PLIST
 <dict>
   <key>method</key>        <string>app-store-connect</string>
   <key>destination</key>   <string>$( if [[ "$DRY_RUN" == "true" ]]; then echo export; else echo upload; fi )</string>
-  <key>signingStyle</key>  <string>automatic</string>
+  <key>signingStyle</key>  <string>manual</string>
   <key>teamID</key>        <string>$TEAM_ID</string>
+  <key>signingCertificate</key>  <string>Apple Distribution</string>
+  <key>provisioningProfiles</key>
+  <dict>
+    <key>$BUNDLE_ID</key>  <string>$PROFILE_NAME</string>
+  </dict>
   <key>stripSwiftSymbols</key> <true/>
   <key>uploadSymbols</key>     <true/>
   <key>uploadBitcode</key>     <false/>
@@ -201,10 +217,13 @@ xcodebuild -exportArchive \
   -archivePath "$ARCHIVE_PATH" \
   -exportOptionsPlist "$EXPORT_OPTIONS_PLIST" \
   -exportPath "$EXPORT_PATH" \
-  -allowProvisioningUpdates \
   -authenticationKeyID "$ASC_KEY_ID" \
   -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
   -authenticationKeyPath "$ASC_KEY_PATH"
+# Note: -allowProvisioningUpdates is OMITTED intentionally with manual
+# signing. That flag triggers Xcode's cloud-managed-cert refresh call
+# which fails without the separate per-key permission. Manual signing
+# reads the on-disk profile directly; no refresh needed.
 
 if [[ "$DRY_RUN" == "true" ]]; then
   IPA_PATH="$(find "$EXPORT_PATH" -name '*.ipa' | head -1)"
