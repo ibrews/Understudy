@@ -23,6 +23,32 @@ android {
         buildConfigField("int", "APP_BUILD", "28")
     }
 
+    // Release signing — read keystore path + passwords from env so secrets
+    // never land in git. The values are sourced from
+    // ~/.private_keys/understudy-release.jks and the matching password file
+    // on the fleet machine; see HANDOFF_GOOGLE_PLAY.md. Fleet convention:
+    //   UNDERSTUDY_KEYSTORE_PATH     absolute path to .jks
+    //   UNDERSTUDY_KEYSTORE_PASSWORD store + key password (single value; we
+    //                                use the same for both to simplify
+    //                                scripts/ship-playstore.sh)
+    //   UNDERSTUDY_KEY_ALIAS         defaults to "understudy"
+    // If any env var is missing, releaseSigning is null and :app:bundleRelease
+    // falls back to the debug keystore (fine for local validation, NOT for
+    // Play Console upload).
+    signingConfigs {
+        val keystorePath = System.getenv("UNDERSTUDY_KEYSTORE_PATH")
+        val keystorePwd = System.getenv("UNDERSTUDY_KEYSTORE_PASSWORD")
+        val keyAlias = System.getenv("UNDERSTUDY_KEY_ALIAS") ?: "understudy"
+        if (!keystorePath.isNullOrBlank() && !keystorePwd.isNullOrBlank()) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = keystorePwd
+                this.keyAlias = keyAlias
+                keyPassword = keystorePwd
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -30,6 +56,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Only wire the release signingConfig if env vars set it up.
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 
