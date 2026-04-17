@@ -141,11 +141,26 @@ public enum Scripts {
     /// (speaker-inline) parser.
     public static let threeSisters: PlayScript = load("three-sisters", fallbackTitle: "Three Sisters")
 
+    /// Ghosts (Ibsen) — Project Gutenberg eBook #8492.
+    /// ~1120 lines, 3 acts, William Archer translation.
+    public static let ghosts: PlayScript = load("ghosts", fallbackTitle: "Ghosts")
+
+    /// Uncle Vanya (Chekhov) — Project Gutenberg eBook #1756.
+    /// ~520 lines, 4 acts.
+    public static let uncleVanya: PlayScript = load("uncle_vanya", fallbackTitle: "Uncle Vanya")
+
+    /// Salomé (Wilde) — Project Gutenberg eBook #42704.
+    /// ~360 lines, single act, Lord Alfred Douglas translation.
+    public static let salome: PlayScript = load("salome", fallbackTitle: "Salomé")
+
     /// All currently-bundled scripts. Extend when more plays are added to
     /// Resources/ and update this list — ScriptBrowser will pick up the new
     /// entries automatically.
     public static let all: [PlayScript] = [
-        hamlet, macbeth, midsummerNightsDream, seagull, earnest, cherryOrchard, threeSisters,
+        hamlet, macbeth, midsummerNightsDream,
+        seagull, cherryOrchard, threeSisters, uncleVanya,
+        earnest, salome,
+        ghosts,
     ]
 }
 

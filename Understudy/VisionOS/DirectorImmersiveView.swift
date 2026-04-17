@@ -45,6 +45,9 @@ struct DirectorImmersiveView: View {
     // Prop objects (set-construction placeholders).
     @State private var propEntities: [ID: Entity] = [:]
 
+    // Scan rotation gesture state.
+    @State private var scanRotateStartYaw: Float?
+
     var body: some View {
         RealityView { content, _ in
             // stageContainer wraps stageRoot so we can scale the whole stage
@@ -147,38 +150,57 @@ struct DirectorImmersiveView: View {
         .gesture(
             DragGesture()
                 .targetedToAnyEntity()
+                .simultaneously(with: RotateGesture3D(constrainedToAxis: .y).targetedToAnyEntity())
                 .onChanged { value in
-                    guard value.entity.name == "roomScan",
+                    let drag = value.first
+                    let rotate = value.second
+                    guard (drag?.entity.name == "roomScan" || rotate?.entity.name == "roomScan"),
                           !store.scanAlignmentLocked,
                           let entity = roomScanEntity else { return }
-                    if scanDragStartOffset == nil {
-                        scanDragStartOffset = store.blocking.roomScan?.overlayOffset ?? Pose()
+
+                    let baseOffset = store.blocking.roomScan?.overlayOffset ?? Pose()
+
+                    // Translation
+                    if let drag, drag.entity.name == "roomScan" {
+                        if scanDragStartOffset == nil { scanDragStartOffset = baseOffset }
+                        guard let start = scanDragStartOffset else { return }
+                        let t = drag.convert(drag.translation3D, from: .local, to: stageRoot)
+                        var updated = Pose(x: start.x + Float(t.x), y: start.y,
+                                          z: start.z + Float(t.z), yaw: start.yaw)
+                        // Merge rotation if happening simultaneously
+                        if let r = rotate {
+                            if scanRotateStartYaw == nil { scanRotateStartYaw = baseOffset.yaw }
+                            let delta = Float(r.rotation.eulerAngles(order: .xyz).angles.y)
+                            updated.yaw = (scanRotateStartYaw ?? start.yaw) + delta
+                        }
+                        applyScanOffset(entity, offset: updated)
+                    } else if let rotate {
+                        if scanRotateStartYaw == nil { scanRotateStartYaw = baseOffset.yaw }
+                        let delta = Float(rotate.rotation.eulerAngles(order: .xyz).angles.y)
+                        var updated = baseOffset
+                        updated.yaw = (scanRotateStartYaw ?? baseOffset.yaw) + delta
+                        applyScanOffset(entity, offset: updated)
                     }
-                    guard let start = scanDragStartOffset else { return }
-                    let t = value.convert(value.translation3D, from: .local, to: stageRoot)
-                    let newOffset = Pose(
-                        x: start.x + Float(t.x),
-                        y: start.y,
-                        z: start.z + Float(t.z),
-                        yaw: start.yaw
-                    )
-                    applyScanOffset(entity, offset: newOffset)
                 }
                 .onEnded { value in
-                    guard value.entity.name == "roomScan",
-                          let start = scanDragStartOffset else {
-                        scanDragStartOffset = nil
-                        return
+                    let drag = value.first
+                    let rotate = value.second
+                    guard !store.scanAlignmentLocked,
+                          drag?.entity.name == "roomScan" || rotate?.entity.name == "roomScan" else {
+                        scanDragStartOffset = nil; scanRotateStartYaw = nil; return
                     }
-                    let t = value.convert(value.translation3D, from: .local, to: stageRoot)
-                    let committed = Pose(
-                        x: start.x + Float(t.x),
-                        y: start.y,
-                        z: start.z + Float(t.z),
-                        yaw: start.yaw
-                    )
+                    let baseOffset = store.blocking.roomScan?.overlayOffset ?? Pose()
+                    var committed = scanDragStartOffset ?? baseOffset
+                    if let drag, drag.entity.name == "roomScan" {
+                        let t = drag.convert(drag.translation3D, from: .local, to: stageRoot)
+                        committed.x += Float(t.x); committed.z += Float(t.z)
+                    }
+                    if let rotate {
+                        let delta = Float(rotate.rotation.eulerAngles(order: .xyz).angles.y)
+                        committed.yaw = (scanRotateStartYaw ?? committed.yaw) + delta
+                    }
                     commitScanOffset(committed)
-                    scanDragStartOffset = nil
+                    scanDragStartOffset = nil; scanRotateStartYaw = nil
                 }
         )
     }

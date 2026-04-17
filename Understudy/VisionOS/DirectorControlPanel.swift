@@ -8,6 +8,7 @@
 
 #if os(visionOS)
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct DirectorControlPanel: View {
     @Environment(BlockingStore.self) private var store
@@ -19,6 +20,8 @@ struct DirectorControlPanel: View {
 
     @State private var immersiveActive = false
     @State private var editingMark: Mark?
+    @State private var editingProp: PropObject?
+    @State private var showingCSVImport = false
     @State private var newCueText: String = ""
     @State private var newCueCharacter: String = ""
     @State private var directorIsPlaying: Bool = false
@@ -37,6 +40,7 @@ struct DirectorControlPanel: View {
                 stageToolbar
                 rehearsalTimerStrip
                 marksList
+                propsList
                 transportStrip
                 scanAlignStrip
                 Spacer()
@@ -50,6 +54,19 @@ struct DirectorControlPanel: View {
                     .environment(session)
                     .environment(fx)
                     .frame(minWidth: 420, minHeight: 520)
+            }
+            .sheet(item: $editingProp) { prop in
+                PropEditor(prop: prop)
+                    .environment(store)
+                    .frame(minWidth: 380, minHeight: 360)
+            }
+            .fileImporter(
+                isPresented: $showingCSVImport,
+                allowedContentTypes: [.commaSeparatedText, .plainText],
+                allowsMultipleSelection: false
+            ) { result in
+                guard let url = try? result.get().first else { return }
+                importCSVCueSheet(from: url)
             }
             .sheet(isPresented: $showingOSCSettings) {
                 OSCSettingsSheet(enabled: $oscEnabled, host: $oscHost, port: $oscPortStr)
@@ -407,12 +424,62 @@ struct DirectorControlPanel: View {
         }
     }
 
+    @ViewBuilder private var propsList: some View {
+        if !store.blocking.props.isEmpty {
+            VStack(alignment: .leading) {
+                HStack {
+                    Text("Props")
+                        .font(.headline)
+                    Spacer()
+                    Button(role: .destructive) {
+                        store.blocking.props.removeAll()
+                    } label: {
+                        Label("Clear", systemImage: "trash")
+                            .font(.caption)
+                    }
+                }
+                List {
+                    ForEach(store.blocking.props) { prop in
+                        Button { editingProp = prop } label: {
+                            HStack {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(Color(red: Double(prop.r), green: Double(prop.g), blue: Double(prop.b)))
+                                    .frame(width: 18, height: 18)
+                                Image(systemName: prop.shape == .cube ? "cube" : prop.shape == .sphere ? "circle" : "cylinder")
+                                    .foregroundStyle(.secondary)
+                                Text(prop.name).font(.headline)
+                                Spacer()
+                                Text(String(format: "%.1f×%.1fm", prop.width, prop.height))
+                                    .font(.caption.monospacedDigit())
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .onDelete { idx in
+                        var sorted = store.blocking.props
+                        for i in idx.reversed() { sorted.remove(at: i) }
+                        store.blocking.props = sorted
+                        BlockingAutosave.save(store.blocking)
+                    }
+                }
+                .frame(minHeight: 120)
+            }
+        }
+    }
+
     @ViewBuilder private var marksList: some View {
         VStack(alignment: .leading) {
             HStack {
                 Text("Marks")
                     .font(.headline)
                 Spacer()
+                Button {
+                    showingCSVImport = true
+                } label: {
+                    Label("CSV", systemImage: "doc.badge.arrow.up")
+                        .font(.caption)
+                }
                 Button {
                     // Quick-add a mark at the origin — mostly for testing without
                     // entering the immersive space.
@@ -531,6 +598,104 @@ struct DirectorControlPanel: View {
             }
         }
         return nil
+    }
+
+    /// Import a CSV cue sheet. Expected columns (first row = header, ignored):
+    ///   name, note   — creates marks with a .note cue for each row.
+    /// Extra columns are ignored. Marks are placed in a column at x=0, spaced
+    /// 0.8 m apart so they're immediately visible in the stage space.
+    private func importCSVCueSheet(from url: URL) {
+        guard url.startAccessingSecurityScopedResource() else { return }
+        defer { url.stopAccessingSecurityScopedResource() }
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return }
+        let rows = text.components(separatedBy: .newlines).filter { !$0.isEmpty }
+        guard rows.count > 1 else { return }
+        // Skip header row (index 0)
+        var idx = store.blocking.marks.count
+        for row in rows.dropFirst() {
+            let cols = row.components(separatedBy: ",").map {
+                $0.trimmingCharacters(in: .init(charactersIn: "\" \t"))
+            }
+            guard cols.count >= 1, !cols[0].isEmpty else { continue }
+            let name = cols[0]
+            let note = cols.count >= 2 ? cols[1] : ""
+            let pose = Pose(x: 0, y: 0, z: -Float(idx) * 0.8)
+            var mark = Mark(name: name, pose: pose, sequenceIndex: idx)
+            if !note.isEmpty {
+                mark.cues = [.note(id: ID(), text: note)]
+            }
+            store.addMark(mark)
+            session.broadcastMarkAdded(mark)
+            idx += 1
+        }
+    }
+}
+
+/// Prop editor sheet — edit name, size, shape, and color.
+struct PropEditor: View {
+    @Environment(BlockingStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @State var prop: PropObject
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Identity") {
+                    TextField("Name", text: $prop.name)
+                    Picker("Shape", selection: $prop.shape) {
+                        Label("Cube", systemImage: "cube").tag(PropShape.cube)
+                        Label("Sphere", systemImage: "circle").tag(PropShape.sphere)
+                        Label("Cylinder", systemImage: "cylinder").tag(PropShape.cylinder)
+                    }
+                }
+                Section("Size (meters)") {
+                    LabeledContent("Width") {
+                        Stepper(String(format: "%.1f m", prop.width),
+                                value: $prop.width, in: 0.1...5.0, step: 0.1)
+                    }
+                    LabeledContent("Height") {
+                        Stepper(String(format: "%.1f m", prop.height),
+                                value: $prop.height, in: 0.1...5.0, step: 0.1)
+                    }
+                    if prop.shape == .cube {
+                        LabeledContent("Depth") {
+                            Stepper(String(format: "%.1f m", prop.depth),
+                                    value: $prop.depth, in: 0.1...5.0, step: 0.1)
+                        }
+                    }
+                }
+                Section("Color") {
+                    ColorPicker("Prop color", selection: Binding(
+                        get: { Color(red: Double(prop.r), green: Double(prop.g), blue: Double(prop.b)) },
+                        set: { c in
+                            let ui = UIColor(c)
+                            var r: CGFloat = 0; var g: CGFloat = 0; var b: CGFloat = 0
+                            ui.getRed(&r, green: &g, blue: &b, alpha: nil)
+                            prop.r = Float(r); prop.g = Float(g); prop.b = Float(b)
+                        }
+                    ))
+                }
+                Section("Position") {
+                    HStack {
+                        Text("x"); TextField("x", value: $prop.pose.x, format: .number.precision(.fractionLength(2)))
+                        Text("z"); TextField("z", value: $prop.pose.z, format: .number.precision(.fractionLength(2)))
+                    }
+                    .textFieldStyle(.roundedBorder)
+                }
+            }
+            .navigationTitle(prop.name)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { store.updateProp(prop); dismiss() }
+                }
+                ToolbarItem(placement: .destructiveAction) {
+                    Button("Delete", role: .destructive) {
+                        store.removeProp(id: prop.id); dismiss()
+                    }
+                }
+            }
+        }
     }
 }
 

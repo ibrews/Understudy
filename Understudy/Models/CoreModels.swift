@@ -236,8 +236,50 @@ nonisolated public struct CameraSpec: Codable, Hashable, Sendable {
     public static let preset50mm = CameraSpec(focalLengthMM: 50)
     public static let preset85mm = CameraSpec(focalLengthMM: 85)
     public static let preset135mm = CameraSpec(focalLengthMM: 135)
+    /// Full-frame generic primes (36×24 mm sensor).
     public static let presets: [CameraSpec] = [
         preset14mm, preset24mm, preset35mm, preset50mm, preset85mm, preset135mm,
+    ]
+
+    // MARK: Real-world camera body presets
+
+    /// ARRI Alexa 35 — 27.99×19.22 mm sensor, Super35-ish.
+    public static func arri35(_ fmm: Float) -> CameraSpec {
+        CameraSpec(focalLengthMM: fmm, sensorWidthMM: 27.99, sensorHeightMM: 19.22)
+    }
+    /// ARRI Alexa Mini LF — 36.70×25.54 mm large-format sensor.
+    public static func arriLF(_ fmm: Float) -> CameraSpec {
+        CameraSpec(focalLengthMM: fmm, sensorWidthMM: 36.70, sensorHeightMM: 25.54)
+    }
+    /// RED Monstro 8K — 40.96×21.60 mm (8K Vista Vision).
+    public static func redMonstro(_ fmm: Float) -> CameraSpec {
+        CameraSpec(focalLengthMM: fmm, sensorWidthMM: 40.96, sensorHeightMM: 21.60)
+    }
+    /// RED Komodo 6K — 27.03×14.26 mm Super35.
+    public static func redKomodo(_ fmm: Float) -> CameraSpec {
+        CameraSpec(focalLengthMM: fmm, sensorWidthMM: 27.03, sensorHeightMM: 14.26)
+    }
+    /// Sony Venice 2 (full-frame mode) — 35.9×24.0 mm.
+    public static func sonyVenice(_ fmm: Float) -> CameraSpec {
+        CameraSpec(focalLengthMM: fmm, sensorWidthMM: 35.90, sensorHeightMM: 24.00)
+    }
+    /// BMPCC 6K Pro — 23.10×12.99 mm Super35.
+    public static func bmpcc6K(_ fmm: Float) -> CameraSpec {
+        CameraSpec(focalLengthMM: fmm, sensorWidthMM: 23.10, sensorHeightMM: 12.99)
+    }
+    /// iPhone 15 Pro wide lens — approximate for viewfinder reference.
+    public static let iPhoneWide = CameraSpec(focalLengthMM: 24, sensorWidthMM: 7.60, sensorHeightMM: 5.70)
+
+    /// Named preset groups for the camera body picker UI.
+    public static let presetGroups: [(camera: String, specs: [CameraSpec])] = [
+        ("Full Frame", [preset24mm, preset35mm, preset50mm, preset85mm, preset135mm]),
+        ("ARRI Alexa 35",    [arri35(18), arri35(25), arri35(35), arri35(50), arri35(75)]),
+        ("ARRI Alexa Mini LF", [arriLF(24), arriLF(35), arriLF(50), arriLF(75)]),
+        ("RED Monstro 8K",   [redMonstro(24), redMonstro(35), redMonstro(50), redMonstro(85)]),
+        ("RED Komodo 6K",    [redKomodo(18), redKomodo(25), redKomodo(35), redKomodo(50)]),
+        ("Sony Venice 2",    [sonyVenice(24), sonyVenice(35), sonyVenice(50), sonyVenice(85)]),
+        ("BMPCC 6K Pro",     [bmpcc6K(16), bmpcc6K(24), bmpcc6K(35), bmpcc6K(50)]),
+        ("iPhone 15 Pro",    [iPhoneWide]),
     ]
 }
 

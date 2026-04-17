@@ -1,0 +1,3245 @@
+{
+  "title": "Uncle Vanya",
+  "author": "Anton Chekhov",
+  "source": "Project Gutenberg",
+  "acts": [
+    {
+      "number": 1,
+      "roman": "I",
+      "scenes": [
+        {
+          "number": 1,
+          "roman": "i",
+          "location": "A room in the house",
+          "entries": [
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "Take a little tea, my son.",
+              "lineID": "1.1.1"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Somehow, I don't seem to\n        want any.",
+              "lineID": "1.1.2"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "Then will you have a little vodka instead?",
+              "lineID": "1.1.3"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "No, I don't drink vodka every day, and besides, it is too hot\n        now.  Tell me, nurse, how long have we known each other?",
+              "lineID": "1.1.4"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "Let me see, how long is it? Lord\u2014help me to\n        remember. You first came here, into our parts\u2014let me think\u2014when\n        was it? Sonia's mother was still alive\u2014it was two winters before\n        she died; that was eleven years ago\u2014 perhaps more.",
+              "lineID": "1.1.5"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Have I changed much since then?",
+              "lineID": "1.1.6"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "Oh, yes. You were handsome and young then, and now you are an\n        old man and not handsome any more. You drink, too.",
+              "lineID": "1.1.7"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Yes, ten years have made me another man. And why? Because I am\n        overworked. Nurse, I am on my feet from dawn till dusk. I know no rest;\n        at night I tremble under my blankets for fear of being dragged out to\n        visit some one who is sick; I have toiled without repose or a day's\n        freedom since I have known you; could I help growing old? And then,\n        existence is tedious, anyway; it is a senseless, dirty business, this\n        life, and goes heavily. Every one about here is silly, and after living\n        with them for two or three years one grows silly oneself. It is\n        inevitable.  See what a long moustache I have\n        grown. A foolish, long moustache. Yes, I am as silly as the rest, nurse,\n        but not as stupid; no, I have not grown stupid. Thank God, my brain is\n        not addled yet, though my feelings have grown numb. I ask nothing, I\n        need nothing, I love no one, unless it is yourself alone. [He kisses her\n        head] I had a nurse just like you when I was a child.",
+              "lineID": "1.1.8"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "Don't you want a bite of something to eat?",
+              "lineID": "1.1.9"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "No. During the third week of Lent I went to the epidemic at\n        Malitskoi. It was eruptive typhoid. The peasants were all lying side by\n        side in their huts, and the calves and pigs were running about the floor\n        among the sick. Such dirt there was, and smoke! Unspeakable! I slaved\n        among those people all day, not a crumb passed my lips, but when I got\n        home there was still no rest for me; a switchman was carried in from the\n        railroad; I laid him on the operating table and he went and died in my\n        arms under chloroform, and then my feelings that should have been\n        deadened awoke again, my conscience tortured me as if I had killed the\n        man. I sat down and closed my eyes\u2014like this\u2014and thought:\n        will our descendants two hundred years from now, for whom we are\n        breaking the road, remember to give us a kind word? No, nurse, they will\n        forget.",
+              "lineID": "1.1.10"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "Man is forgetful, but God remembers.",
+              "lineID": "1.1.11"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Thank you for that. You have spoken the truth.",
+              "lineID": "1.1.12"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "H'm. Yes.  Yes.",
+              "lineID": "1.1.13"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Have you been asleep?",
+              "lineID": "1.1.14"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Yes, very much so.  Ever since the Professor and his\n        wife have come, our daily life seems to have jumped the track. I sleep\n        at the wrong time, drink wine, and eat all sorts of messes for luncheon\n        and dinner. It isn't wholesome. Sonia and I used to work together and\n        never had an idle moment, but now Sonia works alone and I only eat and\n        drink and sleep. Something is wrong.",
+              "lineID": "1.1.15"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "Such a confusion in the house! The Professor\n        gets up at twelve, the samovar is kept boiling all the morning, and\n        everything has to wait for him. Before they came we used to have dinner\n        at one o'clock, like everybody else, but now we have it at seven. The\n        Professor sits up all night writing and reading, and suddenly, at two\n        o'clock, there goes the bell! Heavens, what is that? The Professor wants\n        some tea! Wake the servants, light the samovar! Lord, what disorder!",
+              "lineID": "1.1.16"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Will they be here long?",
+              "lineID": "1.1.17"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "A hundred years! The Professor has decided to make his home\n        here.",
+              "lineID": "1.1.18"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "Look at this now! The samovar has been on the table for two\n        hours, and they are all out walking!",
+              "lineID": "1.1.19"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "All right, don't get excited; here they come.",
+              "lineID": "1.1.20"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Superb! Superb! What beautiful views!",
+              "lineID": "1.1.21"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "They are wonderful, your Excellency.",
+              "lineID": "1.1.22"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "To-morrow we shall go into the woods, shall we, papa?",
+              "lineID": "1.1.23"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Ladies and gentlemen, tea is ready.",
+              "lineID": "1.1.24"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Won't you please be good enough to send my tea into the\n        library? I still have some work to finish.",
+              "lineID": "1.1.25"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "I am sure you will love the woods.",
+              "lineID": "1.1.26"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "There goes our learned scholar on a hot, sultry day like this,\n        in his overcoat and goloshes and carrying an umbrella!",
+              "lineID": "1.1.27"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "He is trying to take good care of his health.",
+              "lineID": "1.1.28"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "How lovely she is! How lovely! I have never in my life seen a\n        more beautiful woman.",
+              "lineID": "1.1.29"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "Do you know, Marina, that as I walk in the fields or in the\n        shady garden, as I look at this table here, my heart swells with\n        unbounded happiness. The weather is enchanting, the birds are singing,\n        we are all living in peace and contentment\u2014what more could the\n        soul desire?",
+              "lineID": "1.1.30"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Such eyes\u2014a glorious woman!",
+              "lineID": "1.1.31"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Come, Ivan, tell us something.",
+              "lineID": "1.1.32"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "What shall I tell you?",
+              "lineID": "1.1.33"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Haven't you any news for us?",
+              "lineID": "1.1.34"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "No, it is all stale. I am just the same as usual, or perhaps\n        worse, because I have become lazy. I don't do anything now but croak\n        like an old raven. My mother, the old magpie, is still chattering about\n        the emancipation of woman, with one eye on her grave and the other on\n        her learned books, in which she is always looking for the dawn of a new\n        life.",
+              "lineID": "1.1.35"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "And the Professor?",
+              "lineID": "1.1.36"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "The Professor sits in his library from morning till night, as\n        usual\u2014",
+              "lineID": "1.1.37"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "I believe you envy him.",
+              "lineID": "1.1.38"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Yes, I do. Look at the success he has had with women! Don Juan\n        himself was not more favoured. His first wife, who was my sister, was a\n        beautiful, gentle being, as pure as the blue heaven there above us,\n        noble, great-hearted, with more admirers than he has pupils, and she\n        loved him as only beings of angelic purity can love those who are as\n        pure and beautiful as themselves. His mother-in-law, my mother, adores\n        him to this day, and he still inspires a sort of worshipful awe in her.\n        His second wife is, as you see, a brilliant beauty; she married him in\n        his old age and has surrendered all the glory of her beauty and freedom\n        to him. Why? What for?",
+              "lineID": "1.1.39"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Is she faithful to him?",
+              "lineID": "1.1.40"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Yes, unfortunately she is.",
+              "lineID": "1.1.41"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Why unfortunately?",
+              "lineID": "1.1.42"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Because such fidelity is false and unnatural, root and branch.\n        It sounds well, but there is no logic in it. It is thought immoral for a\n        woman to deceive an old husband whom she hates, but quite moral for her\n        to strangle her poor youth in her breast and banish every vital desire\n        from her heart.",
+              "lineID": "1.1.43"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "Vanya, I don't like to hear you talk so.\n        Listen, Vanya; every one who betrays husband or wife is faithless, and\n        could also betray his country.",
+              "lineID": "1.1.44"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Turn off the tap, Waffles.",
+              "lineID": "1.1.45"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "No, allow me, Vanya. My wife ran away with a lover on the day\n        after our wedding, because my exterior was unprepossessing. I have never\n        failed in my duty since then. I love her and am true to her to this day.\n        I help her all I can and have given my fortune to educate the daughter\n        of herself and her lover. I have forfeited my happiness, but I have kept\n        my pride. And she? Her youth has fled, her beauty has faded according to\n        the laws of nature, and her lover is dead. What has she kept?",
+              "lineID": "1.1.46"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "There are some peasants waiting out\n        there. Go and see what they want. I shall pour the tea. [Pours out some\n        glasses of tea.]",
+              "lineID": "1.1.47"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "I have come to see your husband. You wrote me that he had\n        rheumatism and I know not what else, and that he was very ill, but he\n        appears to be as lively as a cricket.",
+              "lineID": "1.1.48"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "He had a fit of the blues yesterday evening and complained of\n        pains in his legs, but he seems all right again to-day.",
+              "lineID": "1.1.49"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "And I galloped over here twenty miles at break-neck speed! No\n        matter, though, it is not the first time. Once here, however, I am going\n        to stay until to-morrow, and at any rate sleep quantum satis.",
+              "lineID": "1.1.50"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Oh, splendid! You so seldom spend the night with us. Have you had\n        dinner yet?",
+              "lineID": "1.1.51"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "No.",
+              "lineID": "1.1.52"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Good. So you will have it with us. We dine at seven now. [Drinks\n        her tea] This tea is cold!",
+              "lineID": "1.1.53"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "Yes, the samovar has grown cold.",
+              "lineID": "1.1.54"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Don't mind, Monsieur Ivan, we will drink cold tea, then.",
+              "lineID": "1.1.55"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "I beg your pardon, my name is not Ivan, but Ilia, ma'am\u2014Ilia\n        Telegin, or Waffles, as I am sometimes called on account of my\n        pock-marked face. I am Sonia's godfather, and his Excellency, your\n        husband, knows me very well. I now live with you, ma'am, on this estate,\n        and perhaps you will be so good as to notice that I dine with you every\n        day.",
+              "lineID": "1.1.56"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "He is our great help, our right-hand man.  Dear\n        godfather, let me pour you some tea.",
+              "lineID": "1.1.57"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "What is it, grandmother?",
+              "lineID": "1.1.58"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Is it interesting?",
+              "lineID": "1.1.59"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "There is nothing appalling about it. Drink your tea, mamma.",
+              "lineID": "1.1.60"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Oh, yes. I had an illuminating personality, which illuminated\n        no one.  I had an illuminating personality! You couldn't say\n        anything more biting. I am forty-seven years old. Until last year I\n        endeavoured, as you do now, to blind my eyes by your pedantry to the\n        truths of life. But now\u2014Oh, if you only knew! If you knew how I\n        lie awake at night, heartsick and angry, to think how stupidly I have\n        wasted my time when I might have been winning from life everything which\n        my old age now forbids.",
+              "lineID": "1.1.61"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Uncle Vanya, how dreary!",
+              "lineID": "1.1.62"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Done something! Not every man is capable of being a writer perpetuum\n        mobile like your Herr Professor.",
+              "lineID": "1.1.63"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Mother! Uncle Vanya! I entreat you!",
+              "lineID": "1.1.64"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "I am silent. I apologise and am silent.",
+              "lineID": "1.1.65"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "What a fine day! Not too hot.",
+              "lineID": "1.1.66"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "A fine day to hang oneself.",
+              "lineID": "1.1.67"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "Chick, chick, chick!",
+              "lineID": "1.1.68"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "What did the peasants want, nurse?",
+              "lineID": "1.1.69"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "The same old thing, the same old nonsense. Chick, chick, chick!",
+              "lineID": "1.1.70"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Why are you calling the chickens?",
+              "lineID": "1.1.71"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "The speckled hen has disappeared with her chicks. I am afraid\n        the crows have got her.",
+              "lineID": "1.1.72"
+            },
+            {
+              "kind": "line",
+              "character": "WORKMAN",
+              "text": "Is the doctor here?  Excuse me, sir, but I have\n        been sent to fetch you.",
+              "lineID": "1.1.73"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Where are you from?",
+              "lineID": "1.1.74"
+            },
+            {
+              "kind": "line",
+              "character": "WORKMAN",
+              "text": "The factory.",
+              "lineID": "1.1.75"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Thank you. There is nothing for it, then, but to go.\n         Damn it, this is annoying!",
+              "lineID": "1.1.76"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Yes, it is too bad, really. You must come back to dinner from the\n        factory.",
+              "lineID": "1.1.77"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "No, I won't be able to do that. It will be too late. Now where,\n        where\u2014 Look here, my man, get me a glass of vodka,\n        will you?  Where\u2014where\u2014\n        One of the characters in Ostroff's plays is a man with a long moustache\n        and short wits, like me. However, let me bid you good-bye, ladies and\n        gentlemen.  I should be really delighted if you would come to\n        see me some day with Miss Sonia. My estate is small, but if you are\n        interested in such things I should like to show you a nursery and\n        seed-bed whose like you will not find within a thousand miles of here.\n        My place is surrounded by government forests. The forester is old and\n        always ailing, so I superintend almost all the work myself.",
+              "lineID": "1.1.78"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "I have always heard that you were very fond of the woods. Of\n        course one can do a great deal of good by helping to preserve them, but\n        does not that work interfere with your real calling?",
+              "lineID": "1.1.79"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "God alone knows what a man's real calling is.",
+              "lineID": "1.1.80"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "And do you find it interesting?",
+              "lineID": "1.1.81"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Yes, very.",
+              "lineID": "1.1.82"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Oh, extremely!",
+              "lineID": "1.1.83"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "You are still young, not over thirty-six or seven, I should say,\n        and I suspect that the woods do not interest you as much as you say they\n        do. I should think you would find them monotonous.",
+              "lineID": "1.1.84"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "No, the work is thrilling. Dr. Astroff watches over the old woods\n        and sets out new plantations every year, and he has already received a\n        diploma and a bronze medal. If you will listen to what he can tell you,\n        you will agree with him entirely. He says that forests are the ornaments\n        of the earth, that they teach mankind to understand beauty and attune\n        his mind to lofty sentiments. Forests temper a stern climate, and in\n        countries where the climate is milder, less strength is wasted in the\n        battle with nature, and the people are kind and gentle. The inhabitants\n        of such countries are handsome, tractable, sensitive, graceful in speech\n        and gesture. Their philosophy is joyous, art and science blossom among\n        them, their treatment of women is full of exquisite nobility\u2014\u2014",
+              "lineID": "1.1.85"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Bravo! Bravo! All that is very pretty, but it is\n        also unconvincing. So, my friend  you must let me go on\n        burning firewood in my stoves and building my sheds of planks.",
+              "lineID": "1.1.86"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "You can burn peat in your stoves and build your sheds of stone.\n        Oh, I don't object, of course, to cutting wood from necessity, but why\n        destroy the forests? The woods of Russia are trembling under the blows\n        of the axe. Millions of trees have perished. The homes of the wild\n        animals and birds have been desolated; the rivers are shrinking, and\n        many beautiful landscapes are gone forever. And why? Because men are too\n        lazy and stupid to stoop down and pick up their fuel from the ground.\n         Am I not right, Madame? Who but a stupid barbarian could\n        burn so much beauty in his stove and destroy that which he cannot make?\n        Man is endowed with reason and the power to create, so that he may\n        increase that which has been given him, but until now he has not\n        created, but demolished. The forests are disappearing, the rivers are\n        running dry, the game is exterminated, the climate is spoiled, and the\n        earth becomes poorer and uglier every day.  I read irony in\n        your eye; you do not take what I am saying seriously, and\u2014and\u2014after\n        all, it may very well be nonsense. But when I pass peasant-forests that\n        I have preserved from the axe, or hear the rustling of the young\n        plantations set out with my own hands, I feel as if I had had some small\n        share in improving the climate, and that if mankind is happy a thousand\n        years from now I will have been a little bit responsible for their\n        happiness. When I plant a little birch tree and then see it budding into\n        young green and swaying in the wind, my heart swells with pride and I\u2014[Sees\n        the WORKMAN, who is bringing him a glass of vodka on a tray] however\u2014[He\n        drinks] I must be off. Probably it is all nonsense, anyway. Good-bye.",
+              "lineID": "1.1.87"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "When are you coming to see us again?",
+              "lineID": "1.1.88"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "I can't say.",
+              "lineID": "1.1.89"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "In a month?",
+              "lineID": "1.1.90"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "You have behaved shockingly again. Ivan, what sense was there in\n        teasing your mother and talking about perpetuum mobile? And at\n        breakfast you quarreled with Alexander again. Really, your behaviour is\n        too petty.",
+              "lineID": "1.1.91"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "But if I hate him?",
+              "lineID": "1.1.92"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "You hate Alexander without reason; he is like every one else,\n        and no worse than you are.",
+              "lineID": "1.1.93"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "If you could only see your face, your gestures! Oh, how tedious\n        your life must be.",
+              "lineID": "1.1.94"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "It is tedious, yes, and dreary! You all abuse my husband and\n        look on me with compassion; you think, \"Poor woman, she is married to an\n        old man.\" How well I understand your compassion! As Astroff said just\n        now, see how you thoughtlessly destroy the forests, so that there will\n        soon be none left. So you also destroy mankind, and soon fidelity and\n        purity and self-sacrifice will have vanished with the woods. Why cannot\n        you look calmly at a woman unless she is yours? Because, the doctor was\n        right, you are all possessed by a devil of destruction; you have no\n        mercy on the woods or the birds or on women or on one another.",
+              "lineID": "1.1.95"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "I don't like your philosophy.",
+              "lineID": "1.1.96"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "That doctor has a sensitive, weary face\u2014an interesting\n        face. Sonia evidently likes him, and she is in love with him, and I can\n        understand it. This is the third time he has been here since I have\n        come, and I have not had a real talk with him yet or made much of him.\n        He thinks I am disagreeable. Do you know, Ivan, the reason you and I are\n        such friends? I think it is because we are both lonely and unfortunate.\n        Yes, unfortunate. Don't look at me in that way, I don't like it.",
+              "lineID": "1.1.97"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "How can I look at you otherwise when I love you? You are my\n        joy, my life, and my youth. I know that my chances of being loved in\n        return are infinitely small, do not exist, but I ask nothing of you.\n        Only let me look at you, listen to your voice\u2014",
+              "lineID": "1.1.98"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Hush, some one will overhear you.",
+              "lineID": "1.1.99"
+            },
+            {
+              "kind": "stage",
+              "text": "They go toward the house."
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Let me speak to you of my love, do not drive me\n        away, and this alone will be my greatest happiness!",
+              "lineID": "1.1.101"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Ah! This is agony!",
+              "lineID": "1.1.102"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "roman": "II",
+      "scenes": [
+        {
+          "number": 1,
+          "roman": "i",
+          "location": "A room in the house",
+          "entries": [
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Who is here? Is it you, Sonia?",
+              "lineID": "2.1.1"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "It is I.",
+              "lineID": "2.1.2"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Oh, it is you, Nelly. This pain is intolerable.",
+              "lineID": "2.1.3"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Your shawl has slipped down. [She wraps up his legs in the\n        shawl] Let me shut the window.",
+              "lineID": "2.1.4"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "No, leave it open; I am suffocating. I dreamt just now that\n        my left leg belonged to some one else, and it hurt so that I woke. I\n        don't believe this is gout, it is more like rheumatism. What time is it?",
+              "lineID": "2.1.5"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Half past twelve.",
+              "lineID": "2.1.6"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "I want you to look for Batushka's works in the library\n        to-morrow. I think we have him.",
+              "lineID": "2.1.7"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "What is that?",
+              "lineID": "2.1.8"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Look for Batushka to-morrow morning; we used to have him, I\n        remember. Why do I find it so hard to breathe?",
+              "lineID": "2.1.9"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "You are tired; this is the second night you have had no sleep.",
+              "lineID": "2.1.10"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "They say that Turgenieff got angina of the heart from gout.\n        I am afraid I am getting angina too. Oh, damn this horrible, accursed\n        old age! Ever since I have been old I have been hateful to myself, and I\n        am sure, hateful to you all as well.",
+              "lineID": "2.1.11"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "You speak as if we were to blame for your being old.",
+              "lineID": "2.1.12"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "I am more hateful to you than to any one.",
+              "lineID": "2.1.13"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "You are quite right, of course. I am not an idiot; I can\n        understand you. You are young and healthy and beautiful, and longing for\n        life, and I am an old dotard, almost a dead man already. Don't I know\n        it? Of course I see that it is foolish for me to live so long, but wait!\n        I shall soon set you all free. My life cannot drag on much longer.",
+              "lineID": "2.1.14"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "You are overtaxing my powers of endurance. Be quiet, for God's\n        sake!",
+              "lineID": "2.1.15"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "It appears that, thanks to me, everybody's power of\n        endurance is being overtaxed; everybody is miserable, only I am\n        blissfully triumphant. Oh, yes, of course!",
+              "lineID": "2.1.16"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Be quiet! You are torturing me.",
+              "lineID": "2.1.17"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "I torture everybody. Of course.",
+              "lineID": "2.1.18"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "This is unbearable! Tell me, what is it you want me to\n        do?",
+              "lineID": "2.1.19"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Nothing.",
+              "lineID": "2.1.20"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Then be quiet, please.",
+              "lineID": "2.1.21"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "It is funny that everybody listens to Ivan and his old\n        idiot of a mother, but the moment I open my lips you all begin to feel\n        ill-treated. You can't even stand the sound of my voice. Even if I am\n        hateful, even if I am a selfish tyrant, haven't I the right to be one at\n        my age? Haven't I deserved it? Haven't I, I ask you, the right to be\n        respected, now that I am old?",
+              "lineID": "2.1.22"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "No one is disputing your rights. \n        The wind is rising, I must shut the window.  We shall have\n        rain in a moment. Your rights have never been questioned by anybody.",
+              "lineID": "2.1.23"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "I have spent my life working in the interests of learning.\n        I am used to my library and the lecture hall and to the esteem and\n        admiration of my colleagues. Now I suddenly find myself plunged in this\n        wilderness, condemned to see the same stupid people from morning till\n        night and listen to their futile conversation. I want to live; I long\n        for success and fame and the stir of the world, and here I am in exile!\n        Oh, it is dreadful to spend every moment grieving for the lost past, to\n        see the success of others and sit here with nothing to do but to fear\n        death. I cannot stand it! It is more than I can bear. And you will not\n        even forgive me for being old!",
+              "lineID": "2.1.24"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Wait, have patience; I shall be old myself in four or five\n        years.",
+              "lineID": "2.1.25"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Father, you sent for Dr. Astroff, and now when he comes you\n        refuse to see him. It is not nice to give a man so much trouble for\n        nothing.",
+              "lineID": "2.1.26"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "What do I care about your Astroff? He understands medicine\n        about as well as I understand astronomy.",
+              "lineID": "2.1.27"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "We can't send for the whole medical faculty, can we, to treat\n        your gout?",
+              "lineID": "2.1.28"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "I won't talk to that madman!",
+              "lineID": "2.1.29"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Do as you please. It's all the same to me.",
+              "lineID": "2.1.30"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "What time is it?",
+              "lineID": "2.1.31"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "One o'clock.",
+              "lineID": "2.1.32"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "It is stifling in here. Sonia, hand me that bottle on the\n        table.",
+              "lineID": "2.1.33"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Here it is.",
+              "lineID": "2.1.34"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "No, not that one! Can't you understand me? Can't\n        I ask you to do a thing?",
+              "lineID": "2.1.35"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Please don't be captious with me. Some people may like it, but\n        you must spare me, if you please, because I don't. Besides, I haven't\n        the time; we are cutting the hay to-morrow and I must get up early.",
+              "lineID": "2.1.36"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "A thunderstorm is coming up.  There it\n        is! Go to bed, Helena and Sonia. I have come to take your place.",
+              "lineID": "2.1.37"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "No, n-o, no! Don't leave me alone with him!\n        Oh, don't. He will begin to lecture me.",
+              "lineID": "2.1.38"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "But you must give them a little rest. They have not slept for\n        two nights.",
+              "lineID": "2.1.39"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Then let them go to bed, but you go away too! Thank you. I\n        implore you to go. For the sake of our former friendship do not protest\n        against going. We will talk some other time\u2014\u2014",
+              "lineID": "2.1.40"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Our former friendship! Our former\u2014\u2014",
+              "lineID": "2.1.41"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Hush, Uncle Vanya!",
+              "lineID": "2.1.42"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "My darling, don't leave me alone with him. He\n        will begin to lecture me.",
+              "lineID": "2.1.43"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "This is ridiculous.",
+              "lineID": "2.1.44"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "You must go to bed, nurse, it is late.",
+              "lineID": "2.1.45"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "I haven't cleared away the tea things. Can't go to bed yet.",
+              "lineID": "2.1.46"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "No one can go to bed. They are all worn out, only I enjoy\n        perfect happiness.",
+              "lineID": "2.1.47"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "What's the matter,\n        master? Does it hurt? My own legs are aching too, oh, so badly.\n         You have had this illness such a\n        long time. Sonia's dead mother used to stay awake with you too, and wear\n        herself out for you. She loved you dearly.  Old people want to\n        be pitied as much as young ones, but nobody cares about them somehow.\n         Come, master, let me give you some\n        linden-tea and warm your poor feet for you. I shall pray to God for you.",
+              "lineID": "2.1.48"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Let us go, Marina.",
+              "lineID": "2.1.49"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "My own feet are aching so badly, oh, so badly! [She and SONIA\n        lead SEREBRAKOFF out] Sonia's mother used to wear herself out with\n        sorrow and weeping. You were still little and foolish then, Sonia. Come,\n        come, master.",
+              "lineID": "2.1.50"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "I am absolutely exhausted by him, and can hardly stand.",
+              "lineID": "2.1.51"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "You are exhausted by him, and I am exhausted by my own self. I\n        have not slept for three nights.",
+              "lineID": "2.1.52"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Something is wrong in this house. Your mother hates everything\n        but her pamphlets and the professor; the professor is vexed, he won't\n        trust me, and fears you; Sonia is angry with her father, and with me,\n        and hasn't spoken to me for two weeks; I am at the end of my strength,\n        and have come near bursting into tears at least twenty times to-day.\n        Something is wrong in this house.",
+              "lineID": "2.1.53"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Leave speculating alone.",
+              "lineID": "2.1.54"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "You are cultured and intelligent, Ivan, and you surely\n        understand that the world is not destroyed by villains and\n        conflagrations, but by hate and malice and all this spiteful tattling.\n        It is your duty to make peace, and not to growl at everything.",
+              "lineID": "2.1.55"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Help me first to make peace with myself. My darling! [Seizes\n        her hand.]",
+              "lineID": "2.1.56"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Let go!  Go away!",
+              "lineID": "2.1.57"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Soon the rain will be over, and all nature will sigh and awake\n        refreshed. Only I am not refreshed by the storm. Day and night the\n        thought haunts me like a fiend, that my life is lost for ever. My past\n        does not count, because I frittered it away on trifles, and the present\n        has so terribly miscarried! What shall I do with my life and my love?\n        What is to become of them? This wonderful feeling of mine will be wasted\n        and lost as a ray of sunlight is lost that falls into a dark chasm, and\n        my life will go with it.",
+              "lineID": "2.1.58"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "I am as it were benumbed when you speak to me of your love, and\n        I don't know how to answer you. Forgive me, I have nothing to say to\n        you.  Good-night!",
+              "lineID": "2.1.59"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "If you only knew how I am tortured by the\n        thought that beside me in this house is another life that is being lost\n        forever\u2014it is yours! What are you waiting for? What accursed\n        philosophy stands in your way? Oh, understand, understand\u2014\u2014",
+              "lineID": "2.1.60"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Ivan, you are drunk!",
+              "lineID": "2.1.61"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Perhaps. Perhaps.",
+              "lineID": "2.1.62"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Where is the doctor?",
+              "lineID": "2.1.63"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "In there, spending the night with me. Perhaps I am drunk,\n        perhaps I am; nothing is impossible.",
+              "lineID": "2.1.64"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Have you just been drinking together? Why do you do that?",
+              "lineID": "2.1.65"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Because in that way I get a taste of life. Let me do it,\n        Helena!",
+              "lineID": "2.1.66"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "You never used to drink, and you never used to talk so much. Go\n        to bed, I am tired of you.",
+              "lineID": "2.1.67"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "My sweetheart, my beautiful\n        one\u2014\u2014",
+              "lineID": "2.1.68"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Leave me alone! Really, this has become too\n        disagreeable.",
+              "lineID": "2.1.69"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Play!",
+              "lineID": "2.1.70"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "But every one is asleep.",
+              "lineID": "2.1.71"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Play!",
+              "lineID": "2.1.72"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Are you alone here? No women about? [Sings with his arms\n        akimbo.]",
+              "lineID": "2.1.73"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "The devil only knows.",
+              "lineID": "2.1.74"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "I thought I heard Helena's voice.",
+              "lineID": "2.1.75"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "She was here a moment ago.",
+              "lineID": "2.1.76"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "What a beautiful woman! [Looking at the medicine bottles on the\n        table] Medicine, is it? What a variety we have; prescriptions from\n        Moscow, from Kharkoff, from Tula! Why, he has been pestering all the\n        towns of Russia with his gout! Is he ill, or simply shamming?",
+              "lineID": "2.1.77"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "He is really ill.",
+              "lineID": "2.1.78"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "What is the matter with you to-night? You seem sad. Is it\n        because you are sorry for the professor?",
+              "lineID": "2.1.79"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Leave me alone.",
+              "lineID": "2.1.80"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Or in love with the professor's wife?",
+              "lineID": "2.1.81"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "She is my friend.",
+              "lineID": "2.1.82"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Already?",
+              "lineID": "2.1.83"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "What do you mean by \"already\"?",
+              "lineID": "2.1.84"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "A woman can only become a man's friend after having first been\n        his acquaintance and then his beloved\u2014then she becomes his friend.",
+              "lineID": "2.1.85"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "What vulgar philosophy!",
+              "lineID": "2.1.86"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "What do you mean? Yes, I must confess I am getting vulgar, but\n        then, you see, I am drunk. I usually only drink like this once a month.\n        At such times my audacity and temerity know no bounds. I feel capable of\n        anything. I attempt the most difficult operations and do them\n        magnificently. The most brilliant plans for the future take shape in my\n        head. I am no longer a poor fool of a doctor, but mankind's greatest\n        benefactor. I evolve my own system of philosophy and all of you seem to\n        crawl at my feet like so many insects or microbes.  Play,\n        Waffles!",
+              "lineID": "2.1.87"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "My dear boy, I would with all my heart, but do listen to\n        reason; everybody in the house is asleep.",
+              "lineID": "2.1.88"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Play!",
+              "lineID": "2.1.89"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "I want a drink. Come, we still have some brandy left. And then,\n        as soon as it is day, you will come home with me. [He sees SONIA, who\n        comes in at that moment.]",
+              "lineID": "2.1.90"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "I beg your pardon, I have no collar on.",
+              "lineID": "2.1.91"
+            },
+            {
+              "kind": "stage",
+              "text": "He goes out quickly, followed by TELEGIN."
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Uncle Vanya, you and the doctor have been drinking! The good\n        fellows have been getting together! It is all very well for him, he has\n        always done it, but why do you follow his example? It looks dreadfully\n        at your age.",
+              "lineID": "2.1.93"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Age has nothing to do with it. When real life is wanting one\n        must create an illusion. It is better than nothing.",
+              "lineID": "2.1.94"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Our hay is all cut and rotting in these daily rains, and here you\n        are busy creating illusions! You have given up the farm altogether. I\n        have done all the work alone until I am at the end of my strength\u2014\n        Uncle! Your eyes are full of tears!",
+              "lineID": "2.1.95"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Tears? Nonsense, there are no tears in my eyes. You looked at\n        me then just as your dead mother used to, my darling\u2014[He eagerly\n        kisses her face and hands] My sister, my dearest sister, where are you\n        now? Ah, if you only knew, if you only knew!",
+              "lineID": "2.1.96"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "If she only knew what, Uncle?",
+              "lineID": "2.1.97"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "My heart is bursting. It is awful. No matter, though. I must\n        go.",
+              "lineID": "2.1.98"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Dr. Astroff! Are you awake? Please come here\n        for a minute.",
+              "lineID": "2.1.99"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "In a moment.",
+              "lineID": "2.1.100"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "What do you want?",
+              "lineID": "2.1.101"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Drink as much as you please yourself if you don't find it\n        revolting, but I implore you not to let my uncle do it. It is bad for\n        him.",
+              "lineID": "2.1.102"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Very well; we won't drink any more. I am going home at once.\n        That is settled. It will be dawn by the time the horses are harnessed.",
+              "lineID": "2.1.103"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "It is still raining; wait till morning.",
+              "lineID": "2.1.104"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "The storm is blowing over. This is only the edge of it. I must\n        go. And please don't ask me to come and see your father any more. I tell\n        him he has gout, and he says it is rheumatism. I tell him to lie down,\n        and he sits up. To-day he refused to see me at all.",
+              "lineID": "2.1.105"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "He has been spoilt.  Won't you have a\n        bite to eat?",
+              "lineID": "2.1.106"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Yes, please. I believe I will.",
+              "lineID": "2.1.107"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "I love to eat at night. I am sure we shall find something in\n        here. They say that he has made a great many conquests in his life, and\n        that the women have spoiled him. Here is some cheese for you.",
+              "lineID": "2.1.108"
+            },
+            {
+              "kind": "stage",
+              "text": "They stand eating by the sideboard."
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "I haven't eaten anything to-day. Your father has a very\n        difficult nature.  May I? [He\n        pours himself a glass of vodka] We are alone here, and I can speak\n        frankly. Do you know, I could not stand living in this house for even a\n        month? This atmosphere would stifle me. There is your father, entirely\n        absorbed in his books, and his gout; there is your Uncle Vanya with his\n        hypochondria, your grandmother, and finally, your step-mother\u2014",
+              "lineID": "2.1.110"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "What about her?",
+              "lineID": "2.1.111"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "A human being should be entirely beautiful: the face, the\n        clothes, the mind, the thoughts. Your step-mother is, of course,\n        beautiful to look at, but don't you see? She does nothing but sleep and\n        eat and walk and bewitch us, and that is all. She has no\n        responsibilities, everything is done for her\u2014am I not right? And\n        an idle life can never be a pure one.  However, I may be\n        judging her too severely. Like your Uncle Vanya, I am discontented, and\n        so we are both grumblers.",
+              "lineID": "2.1.112"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Aren't you satisfied with life?",
+              "lineID": "2.1.113"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "I like life as life, but I hate and despise it in a little\n        Russian country village, and as far as my own personal life goes, by\n        heaven! there is absolutely no redeeming feature about it. Haven't you\n        noticed if you are riding through a dark wood at night and see a little\n        light shining ahead, how you forget your fatigue and the darkness and\n        the sharp twigs that whip your face? I work, that you know\u2014as no\n        one else in the country works. Fate beats me on without rest; at times I\n        suffer unendurably and I see no light ahead. I have no hope; I do not\n        like people. It is long since I have loved any one.",
+              "lineID": "2.1.114"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "You love no one?",
+              "lineID": "2.1.115"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Not a soul. I only feel a sort of tenderness for your old nurse\n        for old-times' sake. The peasants are all alike; they are stupid and\n        live in dirt, and the educated people are hard to get along with. One\n        gets tired of them. All our good friends are petty and shallow and see\n        no farther than their own noses; in one word, they are dull. Those that\n        have brains are hysterical, devoured with a mania for self-analysis.\n        They whine, they hate, they pick faults everywhere with unhealthy\n        sharpness. They sneak up to me sideways, look at me out of a corner of\n        the eye, and say: \"That man is a lunatic,\" \"That man is a wind-bag.\" Or,\n        if they don't know what else to label me with, they say I am strange. I\n        like the woods; that is strange. I don't eat meat; that is strange, too.\n        Simple, natural relations between man and man or man and nature do not\n        exist.",
+              "lineID": "2.1.116"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "I beg you, I implore you, not to drink any more!",
+              "lineID": "2.1.117"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Why not?",
+              "lineID": "2.1.118"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "It is so unworthy of you. You are well-bred, your voice is sweet,\n        you are even\u2014more than any one I know\u2014handsome. Why do you\n        want to resemble the common people that drink and play cards? Oh, don't,\n        I beg you! You always say that people do not create anything, but only\n        destroy what heaven has given them. Why, oh, why, do you destroy\n        yourself? Oh, don't, I implore you not to! I entreat you!",
+              "lineID": "2.1.119"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "I won't drink any more.",
+              "lineID": "2.1.120"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Promise me.",
+              "lineID": "2.1.121"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "I give you my word of honour.",
+              "lineID": "2.1.122"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Thank you.",
+              "lineID": "2.1.123"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "I have done with it. You see, I am perfectly sober again, and\n        so I shall stay till the end of my life.  But, as I\n        was saying, life holds nothing for me; my race is run. I am old, I am\n        tired, I am trivial; my sensibilities are dead. I could never attach\n        myself to any one again. I love no one, and never shall! Beauty alone\n        has the power to touch me still. I am deeply moved by it. Helena could\n        turn my head in a day if she wanted to, but that is not love, that is\n        not affection\u2014",
+              "lineID": "2.1.124"
+            },
+            {
+              "kind": "stage",
+              "text": "He shudders and covers his face with his hands."
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "What is it?",
+              "lineID": "2.1.126"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Nothing. During Lent one of my patients died under chloroform.",
+              "lineID": "2.1.127"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "It is time to forget that.  Tell me, doctor, if I had a\n        friend or a younger sister, and if you knew that she, well\u2014loved\n        you, what would you do?",
+              "lineID": "2.1.128"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "I don't know. I don't think I should\n        do anything. I should make her understand that I could not return her\n        love\u2014however, my mind is not bothered about those things now. I\n        must start at once if I am ever to get off. Good-bye, my dear girl. At\n        this rate we shall stand here talking till morning. [He shakes hands\n        with her] I shall go out through the sitting-room, because I am afraid\n        your uncle might detain me.",
+              "lineID": "2.1.129"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Not a word! His heart and soul are still locked from me,\n        and yet for some reason I am strangely happy. I wonder why? [She laughs\n        with pleasure] I told him that he was well-bred and handsome and that\n        his voice was sweet. Was that a mistake? I can still feel his voice\n        vibrating in the air; it caresses me.  Oh! how\n        terrible it is to be plain! I am plain, I know it. As I came out of\n        church last Sunday I overheard a woman say, \"She is a dear, noble girl,\n        but what a pity she is so ugly!\" So ugly!",
+              "lineID": "2.1.130"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "The storm is over. What delicious air!  Where is the\n        doctor?",
+              "lineID": "2.1.131"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "He has gone.",
+              "lineID": "2.1.132"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Sonia!",
+              "lineID": "2.1.133"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Yes?",
+              "lineID": "2.1.134"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "How much longer are you going to sulk at me? We have not hurt\n        each other. Why not be friends? We have had enough of this.",
+              "lineID": "2.1.135"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "I myself\u2014 Let us make peace.",
+              "lineID": "2.1.136"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "With all my heart.",
+              "lineID": "2.1.137"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Has papa gone to bed?",
+              "lineID": "2.1.138"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "No, he is sitting up in the drawing-room. Heaven knows what\n        reason you and I had for not speaking to each other for weeks. [Sees the\n        open sideboard] Who left the sideboard open?",
+              "lineID": "2.1.139"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Dr. Astroff has just had supper.",
+              "lineID": "2.1.140"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "There is some wine. Let us seal our friendship.",
+              "lineID": "2.1.141"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Yes, let us.",
+              "lineID": "2.1.142"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Out of one glass.  So, we are friends,\n        are we?",
+              "lineID": "2.1.143"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Yes.  I have long wanted to make\n        friends, but somehow, I was ashamed to.",
+              "lineID": "2.1.144"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Why are you crying?",
+              "lineID": "2.1.145"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "I don't know. It is nothing.",
+              "lineID": "2.1.146"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "There, there, don't cry.  Silly! Now I am crying too.\n         You are angry with me because I seem to have married your\n        father for his money, but don't believe the gossip you hear. I swear to\n        you I married him for love. I was fascinated by his fame and learning. I\n        know now that it was not real love, but it seemed real at the time. I am\n        innocent, and yet your clever, suspicious eyes have been punishing me\n        for an imaginary crime ever since my marriage.",
+              "lineID": "2.1.147"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Peace, peace! Let us forget the past.",
+              "lineID": "2.1.148"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "You must not look so at people. It is not becoming to you. You\n        must trust people, or life becomes impossible.",
+              "lineID": "2.1.149"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Tell me truly, as a friend, are you happy?",
+              "lineID": "2.1.150"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Truly, no.",
+              "lineID": "2.1.151"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "I knew it. One more question: do you wish your husband were\n        young?",
+              "lineID": "2.1.152"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "What a child you are! Of course I do. Go on, ask something else.",
+              "lineID": "2.1.153"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Do you like the doctor?",
+              "lineID": "2.1.154"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Yes, very much indeed.",
+              "lineID": "2.1.155"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "I have a stupid face, haven't I? He has just gone out,\n        and his voice is still in my ears; I hear his step; I see his face in\n        the dark window. Let me say all I have in my heart! But no, I cannot\n        speak of it so loudly. I am ashamed. Come to my room and let me tell you\n        there. I seem foolish to you, don't I? Talk to me of him.",
+              "lineID": "2.1.156"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "What can I say?",
+              "lineID": "2.1.157"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "He is clever. He can do everything. He can cure the sick, and\n        plant woods.",
+              "lineID": "2.1.158"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "It is not a question of medicine and woods, my dear, he is a man\n        of genius. Do you know what that means? It means he is brave, profound,\n        and of clear insight. He plants a tree and his mind travels a thousand\n        years into the future, and he sees visions of the happiness of the human\n        race. People like him are rare and should be loved. What if he does\n        drink and act roughly at times? A man of genius cannot be a saint in\n        Russia. There he lives, cut off from the world by cold and storm and\n        endless roads of bottomless mud, surrounded by a rough people who are\n        crushed by poverty and disease, his life one continuous struggle, with\n        never a day's respite; how can a man live like that for forty years and\n        keep himself sober and unspotted?  I wish you happiness\n        with all my heart; you deserve it.  As for me, I am a\n        worthless, futile woman. I have always been futile; in music, in love,\n        in my husband's house\u2014in a word, in everything. When you come to\n        think of it, Sonia, I am really very, very unhappy. [Walks excitedly up\n        and down] Happiness can never exist for me in this world. Never. Why do\n        you laugh?",
+              "lineID": "2.1.159"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "I am so happy, so\n        happy!",
+              "lineID": "2.1.160"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "I want to hear music. I might play a little.",
+              "lineID": "2.1.161"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Oh, do, do!  I could not possibly go to sleep\n        now. Do play!",
+              "lineID": "2.1.162"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Yes, I will. Your father is still awake. Music irritates him\n        when he is ill, but if he says I may, then I shall play a little. Go,\n        Sonia, and ask him.",
+              "lineID": "2.1.163"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Very well.",
+              "lineID": "2.1.164"
+            },
+            {
+              "kind": "stage",
+              "text": "She goes out. The WATCHMAN'S rattle is heard in the garden."
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "It is long since I have heard music. And now, I shall sit and\n        play, and weep like a fool.  Is that you\n        rattling out there, Ephim?",
+              "lineID": "2.1.166"
+            },
+            {
+              "kind": "line",
+              "character": "VOICE OF THE WATCHMAN",
+              "text": "It is I.",
+              "lineID": "2.1.167"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Don't make such a noise. Your master is ill.",
+              "lineID": "2.1.168"
+            },
+            {
+              "kind": "line",
+              "character": "VOICE OF THE WATCHMAN",
+              "text": "I am going away this minute.",
+              "lineID": "2.1.169"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "He says, no.",
+              "lineID": "2.1.170"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "roman": "III",
+      "scenes": [
+        {
+          "number": 1,
+          "roman": "i",
+          "location": "A room in the house",
+          "entries": [
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "We were asked by the professor to be here at one o'clock.\n         It is now a quarter to one. It seems he has some\n        communication to make to the world.",
+              "lineID": "3.1.1"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Probably a matter of business.",
+              "lineID": "3.1.2"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "He never had any business. He writes twaddle, grumbles, and\n        eats his heart out with jealousy; that's all he does.",
+              "lineID": "3.1.3"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Uncle!",
+              "lineID": "3.1.4"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "All right. I beg your pardon.  Look at\n        her. Wandering up and down from sheer idleness. A sweet picture, really.",
+              "lineID": "3.1.5"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "I wonder you are not bored, droning on in the same key from\n        morning till night.  I am dying of this tedium. What shall\n        I do?",
+              "lineID": "3.1.6"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "There is plenty to do if you would.",
+              "lineID": "3.1.7"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "For instance?",
+              "lineID": "3.1.8"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "You could help run this place, teach the children, care for the\n        sick\u2014isn't that enough? Before you and papa came, Uncle Vanya and\n        I used to go to market ourselves to deal in flour.",
+              "lineID": "3.1.9"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "I don't know anything about such things, and besides, they don't\n        interest me. It is only in novels that women go out and teach and heal\n        the peasants; how can I suddenly begin to do it?",
+              "lineID": "3.1.10"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "How can you live here and not do it? Wait awhile, you will get\n        used to it all.  Don't be sad, dearest.  You\n        feel miserable and restless, and can't seem to fit into this life, and\n        your restlessness is catching. Look at Uncle Vanya, he does nothing now\n        but haunt you like a shadow, and I have left my work to-day to come here\n        and talk with you. I am getting lazy, and don't want to go on with it.\n        Dr. Astroff hardly ever used to come here; it was all we could do to\n        persuade him to visit us once a month, and now he has abandoned his\n        forestry and his practice, and comes every day. You must be a witch.",
+              "lineID": "3.1.11"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Why should you languish here? Come, my dearest, my beauty, be\n        sensible! The blood of a Nixey runs in your veins. Oh, won't you let\n        yourself be one? Give your nature the reins for once in your life; fall\n        head over ears in love with some other water sprite and plunge down head\n        first into a deep pool, so that the Herr Professor and all of us may\n        have our hands free again.",
+              "lineID": "3.1.12"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Leave me alone! How cruel you are! [She tries to go\n        out.]",
+              "lineID": "3.1.13"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "There, there, my beauty, I apologise. [He\n        kisses her hand] Forgive me.",
+              "lineID": "3.1.14"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Confess that you would try the patience of an angel.",
+              "lineID": "3.1.15"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "As a peace offering I am going to fetch some flowers which I\n        picked for you this morning: some autumn roses, beautiful, sorrowful\n        roses.",
+              "lineID": "3.1.16"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Autumn roses, beautiful, sorrowful roses!",
+              "lineID": "3.1.17"
+            },
+            {
+              "kind": "stage",
+              "text": "She and HELENA stand looking out of the window."
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "September already! How shall we live through the long winter\n        here?  Where is the doctor?",
+              "lineID": "3.1.19"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "He is writing in Uncle Vanya's room. I am glad Uncle Vanya has\n        gone out, I want to talk to you about something.",
+              "lineID": "3.1.20"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "About what?",
+              "lineID": "3.1.21"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "About what?",
+              "lineID": "3.1.22"
+            },
+            {
+              "kind": "stage",
+              "text": "She lays her head on HELENA'S breast."
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "There, there, that will do. Don't, Sonia.",
+              "lineID": "3.1.24"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "I am ugly!",
+              "lineID": "3.1.25"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "You have lovely hair.",
+              "lineID": "3.1.26"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Don't say that!  No,\n        when a woman is ugly they always say she has beautiful hair or eyes. I\n        have loved him now for six years, I have loved him more than one loves\n        one's mother. I seem to hear him beside me every moment of the day. I\n        feel the pressure of his hand on mine. If I look up, I seem to see him\n        coming, and as you see, I run to you to talk of him. He is here every\n        day now, but he never looks at me, he does not notice my presence. It is\n        agony. I have absolutely no hope, no, no hope. Oh, my God! Give me\n        strength to endure. I prayed all last night. I often go up to him and\n        speak to him and look into his eyes. My pride is gone. I am not mistress\n        of myself. Yesterday I told Uncle Vanya I couldn't control myself, and\n        all the servants know it. Every one knows that I love him.",
+              "lineID": "3.1.27"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Does he?",
+              "lineID": "3.1.28"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "No, he never notices me.",
+              "lineID": "3.1.29"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "He is a strange man. Listen, Sonia, will you\n        allow me to speak to him? I shall be careful, only hint. \n        Really, to be in uncertainty all these years! Let me do it!",
+              "lineID": "3.1.30"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Splendid! It will be easy to find out whether he loves you or\n        not. Don't be ashamed, sweetheart, don't worry. I shall be careful; he\n        will not notice a thing. We only want to find out whether it is yes or\n        no, don't we?  And if it is no, then he must keep away from\n        here, is that so?",
+              "lineID": "3.1.31"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "It will be easier not to see him any more. We won't put off the\n        examination an instant. He said he had a sketch to show me. Go and tell\n        him at once that I want to see him.",
+              "lineID": "3.1.32"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Will you tell me the whole truth?",
+              "lineID": "3.1.33"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Of course I will. I am sure that no matter what it is, it will\n        be easier for you to bear than this uncertainty. Trust to me, dearest.",
+              "lineID": "3.1.34"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Yes, yes. I shall say that you want to see his sketch. [She\n        starts out, but stops near the door and looks back] No, it is better not\n        to know\u2014and yet\u2014there may be hope.",
+              "lineID": "3.1.35"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "What do you say?",
+              "lineID": "3.1.36"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Nothing.",
+              "lineID": "3.1.37"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "There is no greater sorrow than to know another's secret\n        when you cannot help them.  He is obviously not in love\n        with her, but why shouldn't he marry her? She is not pretty, but she is\n        so clever and pure and good, she would make a splendid wife for a\n        country doctor of his years.  I can understand how the poor\n        child feels. She lives here in this desperate loneliness with no one\n        around her except these colourless shadows that go mooning about talking\n        nonsense and knowing nothing except that they eat, drink, and sleep.\n        Among them appears from time to time this Dr. Astroff, so different, so\n        handsome, so interesting, so charming. It is like seeing the moon rise\n        on a dark night. Oh, to surrender oneself to his embrace! To lose\n        oneself in his arms! I am a little in love with him myself! Yes, I am\n        lonely without him, and when I think of him I smile. That Uncle Vanya\n        says I have the blood of a Nixey in my veins: \"Give rein to your nature\n        for once in your life!\" Perhaps it is right that I should. Oh, to be\n        free as a bird, to fly away from all your sleepy faces and your talk and\n        forget that you have existed at all! But I am a coward, I am afraid; my\n        conscience torments me. He comes here every day now. I can guess why,\n        and feel guilty already; I should like to fall on my knees at Sonia's\n        feet and beg her forgiveness, and weep.",
+              "lineID": "3.1.38"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "How do you do?  Do you want to see my\n        sketch?",
+              "lineID": "3.1.39"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Yes, you promised to show me what you had been doing. Have you\n        time now?",
+              "lineID": "3.1.40"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Of course I have!",
+              "lineID": "3.1.41"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Where were you born?",
+              "lineID": "3.1.42"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "In St. Petersburg.",
+              "lineID": "3.1.43"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "And educated?",
+              "lineID": "3.1.44"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "At the Conservatory there.",
+              "lineID": "3.1.45"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "You don't find this life very interesting, I dare say?",
+              "lineID": "3.1.46"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Oh, why not? It is true I don't know the country very well, but\n        I have read a great deal about it.",
+              "lineID": "3.1.47"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "I have my own desk there in Ivan's room. When I am absolutely\n        too exhausted to go on I drop everything and rush over here to forget\n        myself in this work for an hour or two. Ivan and Miss Sonia sit rattling\n        at their counting-boards, the cricket chirps, and I sit beside them and\n        paint, feeling warm and peaceful. But I don't permit myself this luxury\n        very often, only once a month.  Look there!\n        That is a map of our country as it was fifty years ago. The green tints,\n        both dark and light, represent forests. Half the map, as you see, is\n        covered with it. Where the green is striped with red the forests were\n        inhabited by elk and wild goats. Here on this lake, lived great flocks\n        of swans and geese and ducks; as the old men say, there was a power of\n        birds of every kind. Now they have vanished like a cloud. Beside the\n        hamlets and villages, you see, I have dotted down here and there the\n        various settlements, farms, hermit's caves, and water-mills. This\n        country carried a great many cattle and horses, as you can see by the\n        quantity of blue paint. For instance, see how thickly it lies in this\n        part; there were great herds of them here, an average of three horses to\n        every house.  Now, look lower down. This is the country as it\n        was twenty-five years ago. Only a third of the map is green now with\n        forests. There are no goats left and no elk. The blue paint is lighter,\n        and so on, and so on. Now we come to the third part; our country as it\n        appears to-day. We still see spots of green, but not much. The elk, the\n        swans, the black-cock have disappeared. It is, on the whole, the picture\n        of a regular and slow decline which it will evidently only take about\n        ten or fifteen more years to complete. You may perhaps object that it is\n        the march of progress, that the old order must give place to the new,\n        and you might be right if roads had been run through these ruined woods,\n        or if factories and schools had taken their place. The people then would\n        have become better educated and healthier and richer, but as it is, we\n        have nothing of the sort. We have the same swamps and mosquitoes; the\n        same disease and want; the typhoid, the diphtheria, the burning\n        villages. We are confronted by the degradation of our country, brought\n        on by the fierce struggle for existence of the human race. It is the\n        consequence of the ignorance and unconsciousness of starving, shivering,\n        sick humanity that, to save its children, instinctively snatches at\n        everything that can warm it and still its hunger. So it destroys\n        everything it can lay its hands on, without a thought for the morrow.\n        And almost everything has gone, and nothing has been created to take its\n        place.  But I see by your face that I am not interesting you.",
+              "lineID": "3.1.48"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "I know so little about such things!",
+              "lineID": "3.1.49"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "There is nothing to know. It simply isn't interesting, that's\n        all.",
+              "lineID": "3.1.50"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Frankly, my thoughts were elsewhere. Forgive me! I want to\n        submit you to a little examination, but I am embarrassed and don't know\n        how to begin.",
+              "lineID": "3.1.51"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "An examination?",
+              "lineID": "3.1.52"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Yes, but quite an innocent one. Sit down.  It is\n        about a certain young girl I know. Let us discuss it like honest people,\n        like friends, and then forget what has passed between us, shall we?",
+              "lineID": "3.1.53"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Very well.",
+              "lineID": "3.1.54"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "It is about my step-daughter, Sonia. Do you like her?",
+              "lineID": "3.1.55"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Yes, I respect her.",
+              "lineID": "3.1.56"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Do you like her\u2014as a woman?",
+              "lineID": "3.1.57"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "No.",
+              "lineID": "3.1.58"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "One more word, and that will be the last. You have not noticed\n        anything?",
+              "lineID": "3.1.59"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "No, nothing.",
+              "lineID": "3.1.60"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "You do not love her. I see that in your eyes.\n        She is suffering. You must realise that, and not come here any more.",
+              "lineID": "3.1.61"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "My sun has set, yes, and then I haven't the time. [Shrugging\n        his shoulders] Where shall I find time for such things? [He is\n        embarrassed.]",
+              "lineID": "3.1.62"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Bah! What an unpleasant conversation! I am as out of breath as\n        if I had been running three miles uphill. Thank heaven, that is over!\n        Now let us forget everything as if nothing had been said. You are\n        sensible. You understand.  I am actually blushing.",
+              "lineID": "3.1.63"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "If you had spoken a month ago I might perhaps have considered\n        it, but now\u2014 Of course, if she is\n        suffering\u2014but I cannot understand why you had to put me through\n        this examination. [He searches her face with his eyes, and shakes his\n        finger at her] Oho, you are wily!",
+              "lineID": "3.1.64"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "What does this mean?",
+              "lineID": "3.1.65"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "You are a wily one! I admit that Sonia is suffering,\n        but what does this examination of yours mean? [He prevents her from\n        retorting, and goes on quickly] Please don't put on such a look of\n        surprise; you know perfectly well why I come here every day. Yes, you\n        know perfectly why and for whose sake I come! Oh, my sweet tigress!\n        don't look at me in that way; I am an old bird!",
+              "lineID": "3.1.66"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "A tigress? I don't understand you.",
+              "lineID": "3.1.67"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Beautiful, sleek tigress, you must have your victims! For a\n        whole month I have done nothing but seek you eagerly. I have thrown over\n        everything for you, and you love to see it. Now then, I am sure you knew\n        all this without putting me through your examination. [Crossing his arms\n        and bowing his head] I surrender. Here you have me\u2014now, eat me.",
+              "lineID": "3.1.68"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "You have gone mad!",
+              "lineID": "3.1.69"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "You are afraid!",
+              "lineID": "3.1.70"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "I am a better and stronger woman than you think me. Good-bye.",
+              "lineID": "3.1.71"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Why good-bye? Don't say good-bye, don't waste words. Oh, how\n        lovely you are\u2014what hands!",
+              "lineID": "3.1.72"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Enough of this!  Leave the room! You have\n        forgotten yourself.",
+              "lineID": "3.1.73"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Tell me, tell me, where can we meet to-morrow? [He puts his arm\n        around her] Don't you see that we must meet, that it is inevitable?",
+              "lineID": "3.1.74"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Have pity! Leave me, [lays her head on\n        ASTROFF'S shoulder] Don't!",
+              "lineID": "3.1.75"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Be in the forest tomorrow at two\n        o'clock. Will you? Will you?",
+              "lineID": "3.1.76"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Let me go! [Goes to the window deeply\n        embarrassed] This is appalling!",
+              "lineID": "3.1.77"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "[Throws the flowers on a chair, and speaks in great excitement,\n        wiping his face with his handkerchief] Nothing\u2014yes, yes, nothing.",
+              "lineID": "3.1.78"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "The weather is fine to-day, my dear Ivan; the morning was\n        overcast and looked like rain, but now the sun is shining again.\n        Honestly, we have had a very fine autumn, and the wheat is looking\n        fairly well.  But the days are\n        growing short.",
+              "lineID": "3.1.79"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "You must do your best; you must use\n        all your power to get my husband and myself away from here to-day! Do\n        you hear? I say, this very day!",
+              "lineID": "3.1.80"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Oh! Ah! Oh! All right! I\u2014Helena, I saw\n        everything!",
+              "lineID": "3.1.81"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Do you hear me? I must leave here this very\n        day!",
+              "lineID": "3.1.82"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "I am not very well myself, your Excellency. I have been limping\n        for two days, and my head\u2014",
+              "lineID": "3.1.83"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Where are the others? I hate this house. It is a regular\n        labyrinth. Every one is always scattered through the twenty-six enormous\n        rooms; one never can find a soul.  Ask my wife and Madame\n        Voitskaya to come here!",
+              "lineID": "3.1.84"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "I am here already.",
+              "lineID": "3.1.85"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Please, all of you, sit down.",
+              "lineID": "3.1.86"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "What did he say?",
+              "lineID": "3.1.87"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "I'll tell you later.",
+              "lineID": "3.1.88"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "You are moved.  I\n        understand; he said he would not come here any more.  Tell me,\n        did he?",
+              "lineID": "3.1.89"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "One can, after all, become reconciled to being\n        an invalid, but not to this country life. The ways of it stick in my\n        throat and I feel exactly as if I had been whirled off the earth and\n        landed on a strange planet. Please be seated, ladies and gentlemen.\n        Sonia! [SONIA does not hear. She is standing with her head bowed sadly\n        forward on her breast] Sonia!  She does not hear me. [To\n        MARINA] Sit down too, nurse. [MARINA sits down and begins to knit her\n        stocking] I crave your indulgence, ladies and gentlemen; hang your ears,\n        if I may say so, on the peg of attention.",
+              "lineID": "3.1.90"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Perhaps you do not need me\u2014may I be excused?",
+              "lineID": "3.1.91"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "No, you are needed now more than any one.",
+              "lineID": "3.1.92"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "What is it you want of me?",
+              "lineID": "3.1.93"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "You\u2014but what are you angry about? If it is anything I\n        have done, I ask you to forgive me.",
+              "lineID": "3.1.94"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Oh, drop that and come to business; what do you want?",
+              "lineID": "3.1.95"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Here is mother. Ladies and gentlemen, I shall begin. I have\n        asked you to assemble here, my friends, in order to discuss a very\n        important matter. I want to ask you for your assistance and advice, and\n        knowing your unfailing amiability I think I can count on both. I am a\n        book-worm and a scholar, and am unfamiliar with practical affairs. I\n        cannot, I find, dispense with the help of well-informed people such as\n        you, Ivan, and you, Telegin, and you, mother. The truth is, manet\n        omnes una nox, that is to say, our lives are in the hands of God,\n        and as I am old and ill, I realise that the time has come for me to\n        dispose of my property in regard to the interests of my family. My life\n        is nearly over, and I am not thinking of myself, but I have a young wife\n        and daughter.  I cannot continue to live in the country; we\n        were not made for country life, and yet we cannot afford to live in town\n        on the income derived from this estate. We might sell the woods, but\n        that would be an expedient we could not resort to every year. We must\n        find some means of guaranteeing to ourselves a certain more or less\n        fixed yearly income. With this object in view, a plan has occurred to me\n        which I now have the honour of presenting to you for your consideration.\n        I shall only give you a rough outline, avoiding all details. Our estate\n        does not pay on an average more than two per cent on the money invested\n        in it. I propose to sell it. If we then invest our capital in bonds, it\n        will earn us four to five per cent, and we should probably have a\n        surplus over of several thousand roubles, with which we could buy a\n        summer cottage in Finland\u2014",
+              "lineID": "3.1.96"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Hold on! Repeat what you just said; I don't think I heard you\n        quite right.",
+              "lineID": "3.1.97"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "I said we would invest the money in bonds and buy a cottage\n        in Finland with the surplus.",
+              "lineID": "3.1.98"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "No, not Finland\u2014you said something else.",
+              "lineID": "3.1.99"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "I propose to sell this place.",
+              "lineID": "3.1.100"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Aha! That was it! So you are going to sell the place? Splendid.\n        The idea is a rich one. And what do you propose to do with my old mother\n        and me and with Sonia here?",
+              "lineID": "3.1.101"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "That will be decided in due time. We can't do everything at\n        once.",
+              "lineID": "3.1.102"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Wait! It is clear that until this moment I have never had a\n        grain of sense in my head. I have always been stupid enough to think\n        that the estate belonged to Sonia. My father bought it as a wedding\n        present for my sister, and I foolishly imagined that as our laws were\n        made for Russians and not Turks, my sister's estate would come down to\n        her child.",
+              "lineID": "3.1.103"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Of course it is Sonia's. Has any one denied it? I don't\n        want to sell it without Sonia's consent; on the contrary, what I am\n        doing is for Sonia's good.",
+              "lineID": "3.1.104"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "This is absolutely incomprehensible. Either I have gone mad or\u2014or\u2014",
+              "lineID": "3.1.105"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "I shan't. Give me some water.  Go ahead! Say\n        anything you please\u2014anything!",
+              "lineID": "3.1.106"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "I can't imagine why you are so upset. I don't pretend that\n        my scheme is an ideal one, and if you all object to it I shall not\n        insist.",
+              "lineID": "3.1.107"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "I not only nourish feelings of respect\n        toward learning, your Excellency, but I am also drawn to it by family\n        ties. My brother Gregory's wife's brother, whom you may know; his name\n        is Constantine Lakedemonoff, and he used to be a magistrate\u2014",
+              "lineID": "3.1.108"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Stop, Waffles. This is business; wait a bit, we will talk of\n        that later.  There now, ask him what he thinks; this\n        estate was bought from his uncle.",
+              "lineID": "3.1.109"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Ah! Why should I ask questions? What good would it do?",
+              "lineID": "3.1.110"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "The price was ninety-five thousand roubles. My father paid\n        seventy and left a debt of twenty-five. Now listen! This place could\n        never have been bought had I not renounced my inheritance in favour of\n        my sister, whom I deeply loved\u2014and what is more, I worked for ten\n        years like an ox, and paid off the debt.",
+              "lineID": "3.1.111"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "I regret ever having started this conversation.",
+              "lineID": "3.1.112"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Thanks entirely to my own personal efforts, the place is\n        entirely clear of debts, and now, when I have grown old, you want to\n        throw me out, neck and crop!",
+              "lineID": "3.1.113"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "I can't imagine what you are driving at.",
+              "lineID": "3.1.114"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "For twenty-five years I have managed this place, and have sent\n        you the returns from it like the most honest of servants, and you have\n        never given me one single word of thanks for my work, not one\u2014neither\n        in my youth nor now. You allowed me a meagre salary of five hundred\n        roubles a year, a beggar's pittance, and have never even thought of\n        adding a rouble to it.",
+              "lineID": "3.1.115"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "What did I know about such things, Ivan? I am not a\n        practical man and don't understand them. You might have helped yourself\n        to all you wanted.",
+              "lineID": "3.1.116"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Yes, why did I not steal? Don't you all despise me for not\n        stealing, when it would have been only justice? And I should not now\n        have been a beggar!",
+              "lineID": "3.1.117"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "Vanya, old man, don't talk in that way. Why spoil\n        such pleasant relations?  Do stop!",
+              "lineID": "3.1.118"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "For twenty-five years I have been sitting here with my mother\n        like a mole in a burrow. Our every thought and hope was yours and yours\n        only. By day we talked with pride of you and your work, and spoke your\n        name with veneration; our nights we wasted reading the books and papers\n        which my soul now loathes.",
+              "lineID": "3.1.119"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "Don't, Vanya, don't. I can't stand it.",
+              "lineID": "3.1.120"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "What under heaven do you want, anyway?",
+              "lineID": "3.1.121"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "We used to think of you as almost superhuman, but now the\n        scales have fallen from my eyes and I see you as you are! You write on\n        art without knowing anything about it. Those books of yours which I used\n        to admire are not worth one copper kopeck. You are a hoax!",
+              "lineID": "3.1.122"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Can't any one make him stop? I am going!",
+              "lineID": "3.1.123"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Ivan, I command you to stop this instant! Do you hear me?",
+              "lineID": "3.1.124"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "I refuse! [SEREBRAKOFF tries to get out of the room, but\n        VOITSKI bars the door] Wait! I have not done yet! You have wrecked my\n        life. I have never lived. My best years have gone for nothing, have been\n        ruined, thanks to you. You are my most bitter enemy!",
+              "lineID": "3.1.125"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "I can't stand it; I can't stand it. I am going. [He goes out in\n        great excitement.]",
+              "lineID": "3.1.126"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "But what do you want? What earthly right have you to use\n        such language to me? Ruination! If this estate is yours, then take it,\n        and let me be ruined!",
+              "lineID": "3.1.127"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "I am going away out of this hell this minute.  This is\n        too much!",
+              "lineID": "3.1.128"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "My life has been a failure. I am clever and brave and strong.\n        If I had lived a normal life I might have become another Schopenhauer or\n        Dostoieffski. I am losing my head! I am going crazy! Mother, I am in\n        despair! Oh, mother!",
+              "lineID": "3.1.129"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Oh, nurse, nurse!",
+              "lineID": "3.1.130"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Mother! What shall I do? But no, don't speak! I know what to\n        do.  And you will understand me!",
+              "lineID": "3.1.131"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Tell me, what on earth is the matter? Take this lunatic out\n        of my sight! I cannot possibly live under the same roof with him. His\n        room  is almost next door to mine. Let him\n        take himself off into the village or into the wing of the house, or I\n        shall leave here at once. I cannot stay in the same house with him.",
+              "lineID": "3.1.132"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "We are leaving to-day; we must get ready at\n        once for our departure.",
+              "lineID": "3.1.133"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "What a perfectly dreadful man!",
+              "lineID": "3.1.134"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "[On her knees beside the nurse and turning to her father. She\n        speaks with emotion] You must be kind to us, papa. Uncle Vanya and I are\n        so unhappy!  Have pity on us. Remember how\n        Uncle Vanya and Granny used to copy and translate your books for you\n        every night\u2014every, every night. Uncle Vanya has toiled without\n        rest; he would never spend a penny on us, we sent it all to you. We have\n        not eaten the bread of idleness. I am not saying this as I should like\n        to, but you must understand us, papa, you must be merciful to us.",
+              "lineID": "3.1.135"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "For heaven's sake, Alexander, go\n        and have a talk with him\u2014explain!",
+              "lineID": "3.1.136"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Very well, I shall have a talk with him, but I won't\n        apologise for a thing. I am not angry with him, but you must confess\n        that his behaviour has been strange, to say the least. Excuse me, I\n        shall go to him.",
+              "lineID": "3.1.137"
+            },
+            {
+              "kind": "stage",
+              "text": "He goes out through the centre door."
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Be gentle with him; try to quiet him.",
+              "lineID": "3.1.139"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Nurse, oh, nurse!",
+              "lineID": "3.1.140"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "It's all right, my baby. When the geese have cackled they will\n        be still again. First they cackle and then they stop.",
+              "lineID": "3.1.141"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Nurse!",
+              "lineID": "3.1.142"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "You are trembling all over, as if you were freezing. There,\n        there, little orphan baby, God is merciful. A little linden-tea, and it\n        will all pass away. Don't cry, my sweetest. [Looking angrily at the door\n        in the centre of the room] See, the geese have all gone now. The devil\n        take them!",
+              "lineID": "3.1.143"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "Bang! What's that?",
+              "lineID": "3.1.144"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Hold him! hold him! He has\n        gone mad!",
+              "lineID": "3.1.145"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Give it to me; give it\n        to me, I tell you!",
+              "lineID": "3.1.146"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Let me go, Helena, let me go! [He frees himself and rushes in,\n        looking everywhere for SEREBRAKOFF] Where is he? Ah, there he is! [He\n        shoots at him. A pause] I didn't get him? I missed again? \n        Damnation! Damnation! To hell with him!",
+              "lineID": "3.1.147"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Take me away! Take me away! I can't stay here\u2014I can't!",
+              "lineID": "3.1.148"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Oh, what shall I do? What shall I do?",
+              "lineID": "3.1.149"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Oh, nurse, nurse!",
+              "lineID": "3.1.150"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "roman": "IV",
+      "scenes": [
+        {
+          "number": 1,
+          "roman": "i",
+          "location": "A room in the house",
+          "entries": [
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "Be quick, Marina, or we shall be called away to say good-bye\n        before you have finished. The carriage has already been ordered.",
+              "lineID": "4.1.1"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "I am a little tired.",
+              "lineID": "4.1.2"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "They are going to Kharkoff to live.",
+              "lineID": "4.1.3"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "They do well to go.",
+              "lineID": "4.1.4"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "They have been frightened. The professor's wife won't stay here\n        an hour longer. \"If we are going at all, let's be off,\" says she, \"we\n        shall go to Kharkoff and look about us, and then we can send for our\n        things.\" They are travelling light. It seems, Marina, that fate has\n        decreed for them not to live here.",
+              "lineID": "4.1.5"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "And quite rightly. What a storm they have just raised! It was\n        shameful!",
+              "lineID": "4.1.6"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "It was indeed. The scene was worthy of the brush of Aibazofski.",
+              "lineID": "4.1.7"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "I wish I'd never laid eyes on them.  Now we shall have\n        things as they were again: tea at eight, dinner at one, and supper in\n        the evening; everything in order as decent folks, as Christians like to\n        have it.  It is a long time since I have eaten noodles.",
+              "lineID": "4.1.8"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "Yes, we haven't had noodles for ages.  Not for ages.\n        As I was going through the village this morning, Marina, one of the\n        shop-keepers called after me, \"Hi! you hanger-on!\" I felt it bitterly.",
+              "lineID": "4.1.9"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "Don't pay the least attention to them, master; we are all\n        dependents on God. You and Sonia and all of us. Every one must work, no\n        one can sit idle. Where is Sonia?",
+              "lineID": "4.1.10"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "In the garden with the doctor, looking for Ivan. They fear he\n        may lay violent hands on himself.",
+              "lineID": "4.1.11"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "Where is his pistol?",
+              "lineID": "4.1.12"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "I hid it in the cellar.",
+              "lineID": "4.1.13"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Leave me alone!  Go away! Go away and\n        leave me to myself, if but for an hour. I won't have you watching me\n        like this!",
+              "lineID": "4.1.14"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "Yes, yes, Vanya.",
+              "lineID": "4.1.15"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "The gander cackles; ho! ho! ho!",
+              "lineID": "4.1.16"
+            },
+            {
+              "kind": "stage",
+              "text": "She gathers up her wool and goes out."
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Leave me by myself!",
+              "lineID": "4.1.18"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "I would, with the greatest pleasure. I ought to have gone long\n        ago, but I shan't leave you until you have returned what you took from\n        me.",
+              "lineID": "4.1.19"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "I took nothing from you.",
+              "lineID": "4.1.20"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "I am not jesting, don't detain me, I really must go.",
+              "lineID": "4.1.21"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "I took nothing of yours.",
+              "lineID": "4.1.22"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "You didn't? Very well, I shall have to wait a little longer,\n        and then you will have to forgive me if I resort to force. We shall have\n        to bind you and search you. I mean what I say.",
+              "lineID": "4.1.23"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Do as you please.  Oh, to make such a fool of myself!\n        To shoot twice and miss him both times! I shall never forgive myself.",
+              "lineID": "4.1.24"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "When the impulse came to shoot, it would have been as well had\n        you put a bullet through your own head.",
+              "lineID": "4.1.25"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Strange! I attempted murder, and am\n        not going to be arrested or brought to trial. That means they think me\n        mad.  Me! I am mad, and those who hide their\n        worthlessness, their dullness, their crying heartlessness behind a\n        professor's mask, are sane! Those who marry old men and then deceive\n        them under the noses of all, are sane! I saw you kiss her; I saw you in\n        each other's arms!",
+              "lineID": "4.1.26"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Yes, sir, I did kiss her; so there. [He puts his thumb to his\n        nose.]",
+              "lineID": "4.1.27"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "No, it is the earth that is mad, because\n        she still bears us on her breast.",
+              "lineID": "4.1.28"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "That is nonsense.",
+              "lineID": "4.1.29"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Well? Am I not a madman, and therefore irresponsible? Haven't I\n        the right to talk nonsense?",
+              "lineID": "4.1.30"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "This is a farce! You are not mad; you are simply a ridiculous\n        fool. I used to think every fool was out of his senses, but now I see\n        that lack of sense is a man's normal state, and you are perfectly\n        normal.",
+              "lineID": "4.1.31"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Oh! If you knew how ashamed I\n        am! These piercing pangs of shame are like nothing on earth. [In an\n        agonised voice] I can't endure them!  What\n        can I do? What can I do?",
+              "lineID": "4.1.32"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Nothing.",
+              "lineID": "4.1.33"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "You must tell me something! Oh, my God! I am forty-seven years\n        old. I may live to sixty; I still have thirteen years before me; an\n        eternity! How shall I be able to endure life for thirteen years? What\n        shall I do? How can I fill them? Oh, don't you see? [He presses\n        ASTROFF'S hand convulsively] Don't you see, if only I could live the\n        rest of my life in some new way! If I could only wake some still, bright\n        morning and feel that life had begun again; that the past was forgotten\n        and had vanished like smoke.  Oh, to begin life anew! Tell me,\n        tell me how to begin.",
+              "lineID": "4.1.34"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "What nonsense! What sort of a new life can you and I\n        look forward to? We can have no hope.",
+              "lineID": "4.1.35"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "None?",
+              "lineID": "4.1.36"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "None. Of that I am convinced.",
+              "lineID": "4.1.37"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Tell me what to do.  I feel such\n        a burning pain here.",
+              "lineID": "4.1.38"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Stop!  It may be that\n        posterity, which will despise us for our blind and stupid lives, will\n        find some road to happiness; but we\u2014you and I\u2014have but one\n        hope, the hope that we may be visited by visions, perhaps by pleasant\n        ones, as we lie resting in our graves.  Yes, brother, there\n        were only two respectable, intelligent men in this county, you and I.\n        Ten years or so of this life of ours, this miserable life, have sucked\n        us under, and we have become as contemptible and petty as the rest. But\n        don't try to talk me out of my purpose! Give me what you took from me,\n        will you?",
+              "lineID": "4.1.39"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "I took nothing from you.",
+              "lineID": "4.1.40"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "You took a little bottle of morphine out of my medicine-case.\n         Listen! If you are positively determined to make an end to\n        yourself, go into the woods and shoot yourself there. Give up the\n        morphine, or there will be a lot of talk and guesswork; people will\n        think I gave it to you. I don't fancy having to perform a post-mortem on\n        you. Do you think I should find it interesting?",
+              "lineID": "4.1.41"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Leave me alone.",
+              "lineID": "4.1.42"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Sonia, your uncle has stolen a bottle of morphine\n        out of my medicine-case and won't give it up. Tell him that his\n        behaviour is\u2014well, unwise. I haven't time, I must be going.",
+              "lineID": "4.1.43"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Uncle Vanya, did you take the morphine?",
+              "lineID": "4.1.44"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Yes, he took it.  I am absolutely sure.",
+              "lineID": "4.1.45"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Give it up! Why do you want to frighten us?  Give it\n        up, Uncle Vanya! My misfortune is perhaps even greater than yours, but I\n        am not plunged in despair. I endure my sorrow, and shall endure it until\n        my life comes to a natural end. You must endure yours, too. \n        Give it up! Dear, darling Uncle Vanya. Give it up!  You are\n        so good, I am sure you will have pity on us and give it up. You must\n        endure your sorrow, Uncle Vanya; you must endure it.",
+              "lineID": "4.1.46"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "There it is!  And now, we must get to work at once;\n        we must do something, or else I shall not be able to endure it.",
+              "lineID": "4.1.47"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Yes, yes, to work! As soon as we have seen them off we shall go\n        to work. \n        Everything is in a muddle!",
+              "lineID": "4.1.48"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Now\n        I can be off.",
+              "lineID": "4.1.49"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Are you here, Ivan? We are starting in a moment. Go to\n        Alexander, he wants to speak to you.",
+              "lineID": "4.1.50"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "Go, Uncle Vanya.  Come, you and papa\n        must make peace; that is absolutely necessary.",
+              "lineID": "4.1.51"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "I am going away.  Good-bye.",
+              "lineID": "4.1.52"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "So soon?",
+              "lineID": "4.1.53"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "The carriage is waiting.",
+              "lineID": "4.1.54"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Good-bye.",
+              "lineID": "4.1.55"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "You promised me you would go away yourself to-day.",
+              "lineID": "4.1.56"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "I have not forgotten. I am going at once.  Were you\n        frightened? Was it so terrible?",
+              "lineID": "4.1.57"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Yes.",
+              "lineID": "4.1.58"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Couldn't you stay? Couldn't you? To-morrow\u2014in the forest\u2014",
+              "lineID": "4.1.59"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "No. It is all settled, and that is why I can look you so bravely\n        in the face. Our departure is fixed. One thing I must ask of you: don't\n        think too badly of me; I should like you to respect me.",
+              "lineID": "4.1.60"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Ah!  Stay, I implore you! Confess\n        that there is nothing for you to do in this world. You have no object in\n        life; there is nothing to occupy your attention, and sooner or later\n        your feelings must master you. It is inevitable. It would be better if\n        it happened not in Kharkoff or in Kursk, but here, in nature's lap. It\n        would then at least be poetical, even beautiful. Here you have the\n        forests, the houses half in ruins that Turgenieff writes of.",
+              "lineID": "4.1.61"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "How comical you are! I am angry with you and yet I shall always\n        remember you with pleasure. You are interesting and original. You and I\n        will never meet again, and so I shall tell you\u2014why should I\n        conceal it?\u2014that I am just a little in love with you. Come, one\n        more last pressure of our hands, and then let us part good friends. Let\n        us not bear each other any ill will.",
+              "lineID": "4.1.62"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Yes, go.  You seem to be\n        sincere and good, and yet there is something strangely disquieting about\n        all your personality. No sooner did you arrive here with your husband\n        than every one whom you found busy and actively creating something was\n        forced to drop his work and give himself up for the whole summer to your\n        husband's gout and yourself. You and he have infected us with your\n        idleness. I have been swept off my feet; I have not put my hand to a\n        thing for weeks, during which sickness has been running its course\n        unchecked among the people, and the peasants have been pasturing their\n        cattle in my woods and young plantations. Go where you will, you and\n        your husband will always carry destruction in your train. I am joking of\n        course, and yet I am strangely sure that had you stayed here we should\n        have been overtaken by the most immense desolation. I would have gone to\n        my ruin, and you\u2014you would not have prospered. So go! E finita la\n        comedia!",
+              "lineID": "4.1.63"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "[Snatching a pencil off ASTROFF'S table, and hiding it with a\n        quick movement] I shall take this pencil for memory!",
+              "lineID": "4.1.64"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "How strange it is. We meet, and then suddenly it seems that we\n        must part forever. That is the way in this world. As long as we are\n        alone, before Uncle Vanya comes in with a bouquet\u2014allow me\u2014to\n        kiss you good-bye\u2014may I?  So!\n        Splendid!",
+              "lineID": "4.1.65"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "I wish you every happiness.  For once in\n        my life, I shall! and scorn the consequences! [She kisses him\n        impetuously, and they quickly part] I must go.",
+              "lineID": "4.1.66"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Yes, go. If the carriage is there, then start at once. [They\n        stand listening.]",
+              "lineID": "4.1.67"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "E finita!",
+              "lineID": "4.1.68"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Shame on him who bears malice for the past. I\n        have gone through so much in the last few hours that I feel capable of\n        writing a whole treatise on the conduct of life for the instruction of\n        posterity. I gladly accept your apology, and myself ask your\n        forgiveness.",
+              "lineID": "4.1.69"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Mother!",
+              "lineID": "4.1.70"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "Good-bye, your Excellency. Don't forget us.",
+              "lineID": "4.1.71"
+            },
+            {
+              "kind": "line",
+              "character": "SEREBRAKOFF",
+              "text": "Good-bye, good-bye all. [Shaking\n        hands with ASTROFF] Many thanks for your pleasant company. I have a deep\n        regard for your opinions and your enthusiasm, but let me, as an old man,\n        give one word of advice at parting: do something, my friend! Work! Do\n        something!  Good luck to you all. [He goes out followed by\n        MME. VOITSKAYA and SONIA.]",
+              "lineID": "4.1.72"
+            },
+            {
+              "kind": "line",
+              "character": "HELENA",
+              "text": "Good-bye, dear boy.",
+              "lineID": "4.1.73"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Tell them to bring my carriage around too, Waffles.",
+              "lineID": "4.1.74"
+            },
+            {
+              "kind": "line",
+              "character": "TELEGIN",
+              "text": "All right, old man.",
+              "lineID": "4.1.75"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Why don't you go to see them off?",
+              "lineID": "4.1.76"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Let them go! I\u2014I can't go out there. I feel too sad. I\n        must go to work on something at once. To work! To work!",
+              "lineID": "4.1.77"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "They have gone! The professor, I suppose, is glad to go. He\n        couldn't be tempted back now by a fortune.",
+              "lineID": "4.1.78"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "They have gone. [She sits down in an arm-chair and knits her\n        stocking.]",
+              "lineID": "4.1.79"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "They have gone. God be with them.  And now, Uncle\n        Vanya, let us do something!",
+              "lineID": "4.1.80"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "To work! To work!",
+              "lineID": "4.1.81"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "It is long, long, since you and I have sat together at this\n        table.  No ink! [She takes the inkstand\n        to the cupboard and fills it from an ink-bottle] How sad it is to see\n        them go!",
+              "lineID": "4.1.82"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "First, Uncle Vanya, let us write up the accounts. They are in a\n        dreadful state. Come, begin. You take one and I will take the other.",
+              "lineID": "4.1.83"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "In account with",
+              "lineID": "4.1.84"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "The sand-man has come.",
+              "lineID": "4.1.85"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "How still it is. Their pens scratch, the cricket sings; it is\n        so warm and comfortable. I hate to go.",
+              "lineID": "4.1.86"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "My carriage has come. There now remains but to say good-bye to\n        you, my friends, and to my table here, and then\u2014away! [He puts the\n        map into the portfolio.]",
+              "lineID": "4.1.87"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "Don't hurry away; sit a little longer with us.",
+              "lineID": "4.1.88"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Impossible.",
+              "lineID": "4.1.89"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "And carry forward from the old debt two seventy-five\u2014",
+              "lineID": "4.1.90"
+            },
+            {
+              "kind": "line",
+              "character": "WORKMAN",
+              "text": "Your carriage is waiting, sir.",
+              "lineID": "4.1.91"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "All right. [He hands the WORKMAN his medicine-case, portfolio,\n        and box] Look out, don't crush the portfolio!",
+              "lineID": "4.1.92"
+            },
+            {
+              "kind": "line",
+              "character": "WORKMAN",
+              "text": "Very well, sir.",
+              "lineID": "4.1.93"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "When shall we see you again?",
+              "lineID": "4.1.94"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Hardly before next summer. Probably not this winter, though, of\n        course, if anything should happen you will let me know. [He shakes hands\n        with them] Thank you for your kindness, for your hospitality, for\n        everything!  Good-bye, old\n        nurse!",
+              "lineID": "4.1.95"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "Are you going without your tea?",
+              "lineID": "4.1.96"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "I don't want any, nurse.",
+              "lineID": "4.1.97"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "Won't you have a drop of vodka?",
+              "lineID": "4.1.98"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "Yes, I might.",
+              "lineID": "4.1.99"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "My off-wheeler has gone lame for some reason. I\n        noticed it yesterday when Peter was taking him to water.",
+              "lineID": "4.1.100"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "You should have him re-shod.",
+              "lineID": "4.1.101"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "I shall have to go around by the blacksmith's on my way home.\n        It can't be avoided. [He stands looking up at the map of Africa hanging\n        on the wall] I suppose it is roasting hot in Africa now.",
+              "lineID": "4.1.102"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Yes, I suppose it is.",
+              "lineID": "4.1.103"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "Help yourself.",
+              "lineID": "4.1.104"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "To your good health!  Eat your bread with it.",
+              "lineID": "4.1.105"
+            },
+            {
+              "kind": "line",
+              "character": "ASTROFF",
+              "text": "No, I like it so. And now, good-bye.  You needn't\n        come out to see me off, nurse.",
+              "lineID": "4.1.106"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "On the 2d of February, twenty pounds of butter; on\n        the 16th, twenty pounds of butter again. Buckwheat flour\u2014[A pause.\n        Bells are heard tinkling.]",
+              "lineID": "4.1.107"
+            },
+            {
+              "kind": "line",
+              "character": "MARINA",
+              "text": "He has gone.",
+              "lineID": "4.1.108"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "He has gone.",
+              "lineID": "4.1.109"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Total, fifteen\u2014twenty-five\u2014",
+              "lineID": "4.1.110"
+            },
+            {
+              "kind": "line",
+              "character": "VOITSKI",
+              "text": "Oh, my child, I am miserable; if\n        you only knew how miserable I am!",
+              "lineID": "4.1.111"
+            },
+            {
+              "kind": "line",
+              "character": "SONIA",
+              "text": "What can we do? We must live our lives.  Yes, we shall\n        live, Uncle Vanya. We shall live through the long procession of days\n        before us, and through the long evenings; we shall patiently bear the\n        trials that fate imposes on us; we shall work for others without rest,\n        both now and when we are old; and when our last hour comes we shall meet\n        it humbly, and there, beyond the grave, we shall say that we have\n        suffered and wept, that our life was bitter, and God will have pity on\n        us. Ah, then dear, dear Uncle, we shall see that bright and beautiful\n        life; we shall rejoice and look back upon our sorrow here; a tender\n        smile\u2014and\u2014we shall rest. I have faith, Uncle, fervent,\n        passionate faith. [SONIA kneels down before her uncle and lays her head\n        on his hands. She speaks in a weary voice] We shall rest. [TELEGIN plays\n        softly on the guitar] We shall rest. We shall hear the angels. We shall\n        see heaven shining like a jewel. We shall see all evil and all our pain\n        sink away in the great compassion that shall enfold the world. Our life\n        will be as peaceful and tender and sweet as a caress. I have faith; I\n        have faith.  My poor, poor Uncle Vanya, you\n        are crying!  You have never known what happiness was, but wait,\n        Uncle Vanya, wait! We shall rest.  We shall rest. [The\n        WATCHMAN'S rattle is heard in the garden; TELEGIN plays softly; MME.\n        VOITSKAYA writes something on the margin of her pamphlet; MARINA knits\n        her stocking] We shall rest.",
+              "lineID": "4.1.112"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
