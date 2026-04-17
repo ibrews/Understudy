@@ -78,6 +78,102 @@ nonisolated public enum LightColor: String, Codable, Hashable, Sendable, CaseIte
     case warm, cool, red, blue, green, amber, blackout
 }
 
+// MARK: - Stage grid
+
+/// The canonical 9-zone theater grid: DS/CS/US × L/C/R.
+/// +Z = upstage (away from audience), −Z = downstage (toward audience).
+/// +X = stage right (audience's left), −X = stage left.
+nonisolated public enum StageArea: String, Codable, Hashable, Sendable, CaseIterable, Identifiable {
+    case downstageLeft   = "DS-L"
+    case downstageCenter = "DS-C"
+    case downstageRight  = "DS-R"
+    case centerLeft      = "CS-L"
+    case centerStage     = "CS"
+    case centerRight     = "CS-R"
+    case upstageLeft     = "US-L"
+    case upstageCenter   = "US-C"
+    case upstageRight    = "US-R"
+
+    public var id: String { rawValue }
+
+    public var fullName: String {
+        switch self {
+        case .downstageLeft:   return "Downstage Left"
+        case .downstageCenter: return "Downstage Center"
+        case .downstageRight:  return "Downstage Right"
+        case .centerLeft:      return "Center Left"
+        case .centerStage:     return "Center Stage"
+        case .centerRight:     return "Center Right"
+        case .upstageLeft:     return "Upstage Left"
+        case .upstageCenter:   return "Upstage Center"
+        case .upstageRight:    return "Upstage Right"
+        }
+    }
+
+    /// col ∈ {−1,0,1} (stage L/C/R), row ∈ {−1,0,1} (DS/CS/US).
+    public var gridOffset: SIMD2<Float> {
+        let col: Float
+        switch self {
+        case .downstageLeft,  .centerLeft,  .upstageLeft:   col = -1
+        case .downstageCenter,.centerStage, .upstageCenter: col =  0
+        case .downstageRight, .centerRight, .upstageRight:  col =  1
+        }
+        let row: Float
+        switch self {
+        case .downstageLeft, .downstageCenter, .downstageRight: row = -1
+        case .centerLeft,    .centerStage,     .centerRight:    row =  0
+        case .upstageLeft,   .upstageCenter,   .upstageRight:   row =  1
+        }
+        return SIMD2<Float>(col, row)
+    }
+
+    /// World-space center of this zone. Default: 5 m wide × 7 m deep stage.
+    public func worldCenter(halfWidth: Float = 2.5, halfDepth: Float = 3.5) -> SIMD3<Float> {
+        let g = gridOffset
+        return SIMD3<Float>(g.x * halfWidth / 1.5, 0, g.y * halfDepth / 1.5)
+    }
+
+    /// Zone that contains a given XZ pose, or nil if outside the grid.
+    public static func containing(_ pose: Pose, halfWidth: Float = 2.5, halfDepth: Float = 3.5) -> StageArea? {
+        let cellW = halfWidth * 2 / 3
+        let cellD = halfDepth * 2 / 3
+        return allCases.first { area in
+            let c = area.worldCenter(halfWidth: halfWidth, halfDepth: halfDepth)
+            return abs(pose.x - c.x) <= cellW / 2 && abs(pose.z - c.z) <= cellD / 2
+        }
+    }
+}
+
+// MARK: - Props (set-construction placeholders)
+
+nonisolated public enum PropShape: String, Codable, Hashable, Sendable, CaseIterable {
+    case cube, sphere, cylinder
+}
+
+/// A visual stand-in for a set piece or prop. Helps directors block around
+/// furniture / walls before the real set is built.
+nonisolated public struct PropObject: Codable, Hashable, Identifiable, Sendable {
+    public var id: ID
+    public var name: String
+    public var pose: Pose
+    public var width: Float    // meters; also radius for sphere/cylinder
+    public var height: Float   // meters
+    public var depth: Float    // meters; unused for sphere
+    public var shape: PropShape
+    public var r: Float; public var g: Float; public var b: Float
+
+    public init(
+        id: ID = ID(), name: String, pose: Pose,
+        width: Float = 0.6, height: Float = 1.0, depth: Float = 0.6,
+        shape: PropShape = .cube,
+        r: Float = 0.65, g: Float = 0.45, b: Float = 0.25
+    ) {
+        self.id = id; self.name = name; self.pose = pose
+        self.width = width; self.height = height; self.depth = depth
+        self.shape = shape; self.r = r; self.g = g; self.b = b
+    }
+}
+
 // MARK: - Marks
 
 /// What this mark represents. Theater blockings are all `.actor`; film
@@ -257,13 +353,18 @@ nonisolated public struct Blocking: Codable, Hashable, Identifiable, Sendable {
     /// Optional LiDAR mesh of the location. When present, the visionOS
     /// director sees it as a wireframe ghost over their stage.
     public var roomScan: RoomScan?
+    /// Set-construction placeholders — cubes/spheres/cylinders the director
+    /// drops to represent furniture, walls, or props before the real set exists.
+    /// visionOS-only rendering; not broadcast over the wire in this version.
+    public var props: [PropObject]
 
     public init(
         id: ID = ID(),
         title: String = "Untitled Piece",
         authorName: String = "",
         marks: [Mark] = [],
-        origin: Pose = Pose()
+        origin: Pose = Pose(),
+        props: [PropObject] = []
     ) {
         self.id = id
         self.title = title
@@ -274,12 +375,13 @@ nonisolated public struct Blocking: Codable, Hashable, Identifiable, Sendable {
         self.origin = origin
         self.reference = nil
         self.roomScan = nil
+        self.props = props
     }
 
     // Backward-compatible decoder — older .understudy files didn't have
-    // `roomScan`, so we let that key be absent.
+    // `roomScan` or `props`, so we let those keys be absent.
     private enum CodingKeys: String, CodingKey {
-        case id, title, authorName, createdAt, modifiedAt, marks, origin, reference, roomScan
+        case id, title, authorName, createdAt, modifiedAt, marks, origin, reference, roomScan, props
     }
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -292,6 +394,7 @@ nonisolated public struct Blocking: Codable, Hashable, Identifiable, Sendable {
         self.origin = try c.decode(Pose.self, forKey: .origin)
         self.reference = try c.decodeIfPresent(RecordedWalk.self, forKey: .reference)
         self.roomScan = try c.decodeIfPresent(RoomScan.self, forKey: .roomScan)
+        self.props = try c.decodeIfPresent([PropObject].self, forKey: .props) ?? []
     }
 
     /// Return the mark a given pose is currently inside, if any.

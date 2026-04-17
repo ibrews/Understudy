@@ -30,6 +30,23 @@ public final class BlockingStore {
     /// Host-assigned identity on the network. Nil until connected.
     public var sessionKey: String? = nil
 
+    // MARK: Stage grid
+    public var showStageGrid: Bool = false
+    public var snapToGrid: Bool = false
+
+    // MARK: Tabletop (director review) mode
+    public var isTabletopMode: Bool = false
+
+    // MARK: Prop placement
+    public var isPropPlacementMode: Bool = false
+    public var selectedPropShape: PropShape = .cube
+
+    // MARK: Rehearsal timer
+    public var rehearsalElapsed: TimeInterval = 0
+    public var rehearsalTimerRunning: Bool = false
+    private var rehearsalTimerStart: Date?
+    private var rehearsalTimerTask: Task<Void, Never>?
+
     private var recordStart: Date?
     private var currentRecording: [RecordedWalk.Sample] = []
 
@@ -203,5 +220,75 @@ public final class BlockingStore {
         }
         let next = idx + 1
         return next < ordered.count ? ordered[next] : nil
+    }
+
+    // MARK: - Stage grid snap
+
+    /// If `snapToGrid` is on and the pose is within `threshold` meters of a
+    /// zone center, snaps to that center; otherwise returns the pose unchanged.
+    public func snappedToGrid(_ pose: Pose, threshold: Float = 0.7) -> Pose {
+        guard snapToGrid else { return pose }
+        var best = pose
+        var bestDist = threshold
+        for area in StageArea.allCases {
+            let c = area.worldCenter()
+            let dx = c.x - pose.x
+            let dz = c.z - pose.z
+            let d = sqrtf(dx * dx + dz * dz)
+            if d < bestDist {
+                bestDist = d
+                best = Pose(x: c.x, y: pose.y, z: c.z, yaw: pose.yaw)
+            }
+        }
+        return best
+    }
+
+    // MARK: - Rehearsal timer
+
+    public func startRehearsalTimer() {
+        guard !rehearsalTimerRunning else { return }
+        rehearsalTimerStart = Date().addingTimeInterval(-rehearsalElapsed)
+        rehearsalTimerRunning = true
+        rehearsalTimerTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                guard let self, self.rehearsalTimerRunning,
+                      let start = self.rehearsalTimerStart else { break }
+                self.rehearsalElapsed = Date().timeIntervalSince(start)
+                try? await Task.sleep(nanoseconds: 500_000_000)
+            }
+        }
+    }
+
+    public func stopRehearsalTimer() {
+        rehearsalTimerRunning = false
+        rehearsalTimerTask?.cancel()
+        rehearsalTimerTask = nil
+    }
+
+    public func resetRehearsalTimer() {
+        stopRehearsalTimer()
+        rehearsalElapsed = 0
+        rehearsalTimerStart = nil
+    }
+
+    // MARK: - Props
+
+    public func addProp(_ prop: PropObject) {
+        blocking.props.append(prop)
+        blocking.modifiedAt = Date()
+        BlockingAutosave.save(blocking)
+    }
+
+    public func updateProp(_ prop: PropObject) {
+        guard let i = blocking.props.firstIndex(where: { $0.id == prop.id }) else { return }
+        blocking.props[i] = prop
+        blocking.modifiedAt = Date()
+        BlockingAutosave.save(blocking)
+    }
+
+    public func removeProp(id: ID) {
+        blocking.props.removeAll { $0.id == id }
+        blocking.modifiedAt = Date()
+        BlockingAutosave.save(blocking)
     }
 }

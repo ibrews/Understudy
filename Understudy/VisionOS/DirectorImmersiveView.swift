@@ -3,10 +3,15 @@
 //  Understudy (visionOS)
 //
 //  The "stage." The director stands in the real room with Vision Pro and sees:
-//    - tappable floor area where they drop marks,
+//    - tappable floor area where they drop marks (or props in prop-placement mode),
 //    - glowing numbered pucks at each mark,
 //    - ghost avatars for every connected performer,
-//    - a ribbon between marks showing sequence.
+//    - a ribbon between marks showing sequence,
+//    - a 9-zone stage grid overlay (toggleable),
+//    - set-construction prop objects (cubes/spheres/cylinders).
+//
+//  Tabletop mode scales the entire stage container to ~12% so the director
+//  can inspect the whole layout from above without walking the floor.
 //
 
 #if os(visionOS)
@@ -18,37 +23,38 @@ struct DirectorImmersiveView: View {
     @Environment(SessionController.self) private var session
     @Environment(CueFXEngine.self) private var fx
 
-    // The root anchor that carries all mark/performer entities.
+    /// Outer scalable wrapper — scales down in tabletop mode.
+    @State private var stageContainer = Entity()
+    /// Inner root that all stage content hangs off.
     @State private var stageRoot = Entity()
-    // Mark id -> entity, so we can diff updates without rebuilding the scene.
     @State private var markEntities: [ID: Entity] = [:]
     @State private var performerEntities: [ID: Entity] = [:]
     @State private var sequenceRibbon: Entity = Entity()
     @State private var stageLight: ModelEntity = ModelEntity()
     @State private var ghostEntity: Entity = Entity()
     @State private var lastRenderedFlashID: UUID?
-    /// Currently-rendered room scan entity (the LiDAR ghost of the scouted
-    /// location). Nil when no scan is present.
     @State private var roomScanEntity: ModelEntity?
-    /// Hash of the last rendered scan so we don't rebuild the mesh every frame.
     @State private var renderedScanHash: Int?
-    /// Bounds used for the scan's coarse collision volume, so gestures hit it.
     @State private var roomScanBounds: SIMD3<Float> = .zero
-    /// Starting pose of a drag. Nil when no drag is active.
     @State private var scanDragStartOffset: Pose?
-
-    /// Entities that host a floating SwiftUI script card for each mark.
-    /// Parented under the mark entity so they move with the mark.
     @State private var markCardEntities: [ID: Entity] = [:]
+
+    // Stage grid (9 zones).
+    @State private var zoneEntities: [StageArea: Entity] = [:]
+
+    // Prop objects (set-construction placeholders).
+    @State private var propEntities: [ID: Entity] = [:]
 
     var body: some View {
         RealityView { content, _ in
-            // Root — positioned 1m in front of the viewer, slightly below eye.
+            // stageContainer wraps stageRoot so we can scale the whole stage
+            // in tabletop mode without disturbing individual entity positions.
+            content.add(stageContainer)
+            stageContainer.addChild(stageRoot)
+
             stageRoot.position = [0, -1.0, -0.5]
-            content.add(stageRoot)
             stageRoot.addChild(sequenceRibbon)
 
-            // A large, invisible tap plane so collaborators can place marks anywhere.
             let plane = ModelEntity(
                 mesh: .generatePlane(width: 20, depth: 20),
                 materials: [UnlitMaterial(color: .white.withAlphaComponent(0.0001))]
@@ -58,10 +64,6 @@ struct DirectorImmersiveView: View {
             plane.name = "stageFloor"
             stageRoot.addChild(plane)
 
-            // Stage "light" — on visionOS 1.0 we don't have PointLightComponent
-            // (2.0+), so we fake a theatrical wash with a large tinted glowing
-            // sphere hanging above the stage. When a .light cue fires we bump
-            // its opacity + color, then fade back.
             let light = ModelEntity(
                 mesh: .generateSphere(radius: 0.6),
                 materials: [UnlitMaterial(color: .white.withAlphaComponent(0.0))]
@@ -71,7 +73,6 @@ struct DirectorImmersiveView: View {
             stageRoot.addChild(light)
             stageLight = light
 
-            // Playback ghost — a translucent magenta sphere. Disabled until needed.
             let ghost = Entity()
             ghost.name = "ghost"
             let body = ModelEntity(
@@ -89,7 +90,10 @@ struct DirectorImmersiveView: View {
             ghostEntity = ghost
         } update: { _, attachments in
             Task { @MainActor in
+                syncTabletop()
+                syncStageGrid()
                 syncMarks()
+                syncProps()
                 syncPerformers()
                 syncRibbon()
                 syncGhost()
@@ -111,26 +115,35 @@ struct DirectorImmersiveView: View {
             SpatialTapGesture()
                 .targetedToAnyEntity()
                 .onEnded { value in
+                    // Disable tap placement while inspecting in tabletop mode.
+                    guard !store.isTabletopMode else { return }
                     guard value.entity.name == "stageFloor" else { return }
-                    // `value.location3D` is in the local coord system of stageRoot's parent scene.
-                    // Convert to stageRoot-local.
                     let world = value.convert(value.location3D, from: .local, to: stageRoot)
-                    let pose = Pose(x: Float(world.x), y: 0, z: Float(world.z))
-                    let idx = store.blocking.marks.count + 1
-                    let mark = Mark(
-                        name: "Mark \(idx)",
-                        pose: pose,
-                        radius: 0.6,
-                        cues: [],
-                        sequenceIndex: idx - 1
-                    )
-                    store.addMark(mark)
-                    session.broadcastMarkAdded(mark)
+                    var pose = Pose(x: Float(world.x), y: 0, z: Float(world.z))
+
+                    if store.isPropPlacementMode {
+                        let idx = store.blocking.props.count + 1
+                        let prop = PropObject(
+                            name: "Prop \(idx)",
+                            pose: pose,
+                            shape: store.selectedPropShape
+                        )
+                        store.addProp(prop)
+                    } else {
+                        pose = store.snappedToGrid(pose)
+                        let idx = store.blocking.marks.count + 1
+                        let mark = Mark(
+                            name: "Mark \(idx)",
+                            pose: pose,
+                            radius: 0.6,
+                            cues: [],
+                            sequenceIndex: idx - 1
+                        )
+                        store.addMark(mark)
+                        session.broadcastMarkAdded(mark)
+                    }
                 }
         )
-        // Drag the room-scan ghost to align it with the rehearsal room.
-        // Only active when the user has un-locked alignment via the
-        // director panel (stored on store.ui.scanAlignUnlocked).
         .gesture(
             DragGesture()
                 .targetedToAnyEntity()
@@ -142,8 +155,6 @@ struct DirectorImmersiveView: View {
                         scanDragStartOffset = store.blocking.roomScan?.overlayOffset ?? Pose()
                     }
                     guard let start = scanDragStartOffset else { return }
-                    // Drag translation is in the parent coord space; floor-plane
-                    // only — ignore the Y component so the ghost stays on the floor.
                     let t = value.convert(value.translation3D, from: .local, to: stageRoot)
                     let newOffset = Pose(
                         x: start.x + Float(t.x),
@@ -172,11 +183,139 @@ struct DirectorImmersiveView: View {
         )
     }
 
+    // MARK: - Tabletop mode
+
+    private func syncTabletop() {
+        if store.isTabletopMode {
+            stageContainer.scale = [0.12, 0.12, 0.12]
+            // Position the miniature stage in front of the viewer at table height.
+            stageContainer.position = [0, -0.5, -0.8]
+        } else {
+            stageContainer.scale = [1, 1, 1]
+            stageContainer.position = .zero
+        }
+    }
+
+    // MARK: - Stage grid overlay
+
+    private func syncStageGrid() {
+        if store.showStageGrid {
+            if zoneEntities.isEmpty { buildZoneEntities() }
+            zoneEntities.values.forEach { $0.isEnabled = true }
+        } else {
+            zoneEntities.values.forEach { $0.isEnabled = false }
+        }
+    }
+
+    private func buildZoneEntities() {
+        let halfW: Float = 2.5
+        let halfD: Float = 3.5
+        let cellW = halfW * 2 / 3   // ≈ 1.67 m
+        let cellD = halfD * 2 / 3   // ≈ 2.33 m
+        let gap: Float = 0.04
+
+        let zoneColors: [StageArea: UIColor] = [
+            .downstageLeft:   UIColor(red: 0.3, green: 0.5, blue: 1.0, alpha: 0.14),
+            .downstageCenter: UIColor(red: 0.2, green: 0.8, blue: 0.9, alpha: 0.14),
+            .downstageRight:  UIColor(red: 0.3, green: 0.5, blue: 1.0, alpha: 0.14),
+            .centerLeft:      UIColor(red: 0.3, green: 0.9, blue: 0.4, alpha: 0.14),
+            .centerStage:     UIColor(red: 0.95, green: 0.9, blue: 0.3, alpha: 0.18),
+            .centerRight:     UIColor(red: 0.3, green: 0.9, blue: 0.4, alpha: 0.14),
+            .upstageLeft:     UIColor(red: 0.7, green: 0.3, blue: 0.9, alpha: 0.14),
+            .upstageCenter:   UIColor(red: 1.0, green: 0.4, blue: 0.4, alpha: 0.14),
+            .upstageRight:    UIColor(red: 0.7, green: 0.3, blue: 0.9, alpha: 0.14),
+        ]
+
+        for area in StageArea.allCases {
+            let center = area.worldCenter(halfWidth: halfW, halfDepth: halfD)
+            let color = zoneColors[area] ?? UIColor(white: 0.5, alpha: 0.1)
+
+            let root = Entity()
+            root.position = [center.x, 0.003, center.z]
+            root.name = "zone-\(area.rawValue)"
+
+            let tile = ModelEntity(
+                mesh: .generatePlane(width: cellW - gap, depth: cellD - gap),
+                materials: [UnlitMaterial(color: color)]
+            )
+            root.addChild(tile)
+
+            let label = ModelEntity(
+                mesh: .generateText(
+                    area.rawValue,
+                    extrusionDepth: 0.001,
+                    font: .systemFont(ofSize: 0.13),
+                    alignment: .center
+                ),
+                materials: [UnlitMaterial(color: UIColor.white.withAlphaComponent(0.45))]
+            )
+            label.position = [-0.12, 0.002, 0]
+            root.addChild(label)
+
+            stageRoot.addChild(root)
+            zoneEntities[area] = root
+        }
+    }
+
+    // MARK: - Props
+
+    private func syncProps() {
+        let current = Set(store.blocking.props.map(\.id))
+        for (id, entity) in propEntities where !current.contains(id) {
+            entity.removeFromParent()
+            propEntities.removeValue(forKey: id)
+        }
+        for prop in store.blocking.props {
+            if let e = propEntities[prop.id] {
+                e.position = [prop.pose.x, prop.height / 2, prop.pose.z]
+            } else {
+                let e = buildPropEntity(prop)
+                stageRoot.addChild(e)
+                propEntities[prop.id] = e
+            }
+        }
+    }
+
+    private func buildPropEntity(_ prop: PropObject) -> Entity {
+        let root = Entity()
+        root.name = "prop-\(prop.id.raw)"
+        root.position = [prop.pose.x, prop.height / 2, prop.pose.z]
+
+        let color = UIColor(red: CGFloat(prop.r), green: CGFloat(prop.g),
+                            blue: CGFloat(prop.b), alpha: 0.82)
+        let mat = UnlitMaterial(color: color)
+
+        let body: ModelEntity
+        switch prop.shape {
+        case .cube:
+            body = ModelEntity(
+                mesh: .generateBox(size: [prop.width, prop.height, prop.depth], cornerRadius: 0.025),
+                materials: [mat]
+            )
+        case .sphere:
+            body = ModelEntity(mesh: .generateSphere(radius: prop.width / 2), materials: [mat])
+        case .cylinder:
+            body = ModelEntity(
+                mesh: .generateCylinder(height: prop.height, radius: prop.width / 2),
+                materials: [mat]
+            )
+        }
+        body.name = "propBody"
+        root.addChild(body)
+
+        let label = ModelEntity(
+            mesh: .generateText(prop.name, extrusionDepth: 0.001,
+                                font: .systemFont(ofSize: 0.08), alignment: .center),
+            materials: [UnlitMaterial(color: .white)]
+        )
+        label.position = [-0.15, prop.height / 2 + 0.15, 0]
+        root.addChild(label)
+
+        return root
+    }
+
     // MARK: - Room scan ghost
 
-    /// Mount the scouted room's LiDAR mesh as a translucent cyan "ghost"
-    /// inside the stage root. Rebuilds only when the scan itself changes
-    /// (hashed by vertex-count + triangle-count + name — cheap and stable).
     private func syncRoomScan() {
         guard let scan = store.blocking.roomScan else {
             roomScanEntity?.removeFromParent()
@@ -187,21 +326,15 @@ struct DirectorImmersiveView: View {
 
         let hash = scan.vertexCount &+ scan.triangleCount &* 31 &+ scan.name.hashValue
         if let entity = roomScanEntity, hash == renderedScanHash {
-            // Still apply overlay offset in case that changed.
             applyScanOffset(entity, offset: scan.overlayOffset)
             return
         }
 
-        guard let mesh = RoomScanMesh.make(from: scan) else {
-            return
-        }
+        guard let mesh = RoomScanMesh.make(from: scan) else { return }
         roomScanEntity?.removeFromParent()
         let entity = ModelEntity(mesh: mesh, materials: [RoomScanMesh.ghostMaterial()])
         entity.name = "roomScan"
 
-        // Compute coarse bounds from the raw position buffer so drag
-        // gestures hit the whole scan volume without needing a per-triangle
-        // collision mesh (which would hurt perf for big rooms).
         let positions = scan.decodePositions()
         var lo = SIMD3<Float>(.infinity, .infinity, .infinity)
         var hi = SIMD3<Float>(-.infinity, -.infinity, -.infinity)
@@ -227,7 +360,6 @@ struct DirectorImmersiveView: View {
 
     // MARK: - Scan alignment
 
-    /// Commit the current in-flight offset to the store and broadcast.
     private func commitScanOffset(_ offset: Pose) {
         guard var scan = store.blocking.roomScan else { return }
         scan.overlayOffset = offset
@@ -237,7 +369,6 @@ struct DirectorImmersiveView: View {
         session.broadcastScanOverlay(offset)
     }
 
-
     private func applyScanOffset(_ entity: Entity, offset: Pose) {
         entity.position = [offset.x, offset.y, offset.z]
         entity.orientation = simd_quatf(angle: offset.yaw, axis: [0, 1, 0])
@@ -245,31 +376,19 @@ struct DirectorImmersiveView: View {
 
     // MARK: - Floating script cards
 
-    /// Attach a SwiftUI MarkScriptCard next to each mark. The attachment's
-    /// entity is positioned slightly up and to the side of the mark so the
-    /// card hovers at readable height without blocking the floor disc.
     private func syncMarkCards(attachments: RealityViewAttachments) {
         let liveIDs = Set(store.blocking.marks.map(\.id))
-        // Remove cards for deleted marks.
         for (id, entity) in markCardEntities where !liveIDs.contains(id) {
             entity.removeFromParent()
             markCardEntities.removeValue(forKey: id)
         }
-        // Add / update cards.
         for mark in store.blocking.marks {
             guard let attach = attachments.entity(for: mark.id.raw) else { continue }
-            // Position: 0.4m up from the floor, 0.6m offset toward +X (stage right).
-            // Attachment entity sits in world space of stageRoot.
             attach.position = [mark.pose.x + 0.6, 0.9, mark.pose.z]
-            // Billboard — face the viewer. Simple yaw-only face: rotate around Y.
-            // Real billboard behavior needs per-frame update via a subscription;
-            // for now we pick a fixed yaw so cards face roughly toward stage center.
             let toCenter = SIMD3<Float>(-mark.pose.x - 0.6, 0, -mark.pose.z)
             let yaw = atan2f(toCenter.x, -toCenter.z)
             attach.orientation = simd_quatf(angle: yaw, axis: [0, 1, 0])
-            if attach.parent !== stageRoot {
-                stageRoot.addChild(attach)
-            }
+            if attach.parent !== stageRoot { stageRoot.addChild(attach) }
             markCardEntities[mark.id] = attach
         }
     }
@@ -278,12 +397,10 @@ struct DirectorImmersiveView: View {
 
     private func syncMarks() {
         let current = Set(store.blocking.marks.map(\.id))
-        // Remove deleted
         for (id, entity) in markEntities where !current.contains(id) {
             entity.removeFromParent()
             markEntities.removeValue(forKey: id)
         }
-        // Add / update
         for mark in store.blocking.marks {
             if let e = markEntities[mark.id] {
                 e.position = [mark.pose.x, 0.005, mark.pose.z]
@@ -303,14 +420,11 @@ struct DirectorImmersiveView: View {
     }
 
     private func buildMarkEntity(_ mark: Mark) -> Entity {
-        if mark.kind == .camera {
-            return buildCameraMarkEntity(mark)
-        }
+        if mark.kind == .camera { return buildCameraMarkEntity(mark) }
         let root = Entity()
         root.name = "mark-\(mark.id.raw)"
         root.position = [mark.pose.x, 0.005, mark.pose.z]
 
-        // Disc
         let disc = ModelEntity(
             mesh: .generateCylinder(height: 0.01, radius: mark.radius),
             materials: [UnlitMaterial(color: .cyan.withAlphaComponent(0.35))]
@@ -318,7 +432,6 @@ struct DirectorImmersiveView: View {
         disc.name = "disc"
         root.addChild(disc)
 
-        // Rim
         let rim = ModelEntity(
             mesh: .generateCylinder(height: 0.012, radius: mark.radius * 0.98),
             materials: [UnlitMaterial(color: .cyan)]
@@ -327,14 +440,9 @@ struct DirectorImmersiveView: View {
         rim.position.y = 0.005
         root.addChild(rim)
 
-        // Floating label
         let label = ModelEntity(
-            mesh: .generateText(
-                mark.name,
-                extrusionDepth: 0.001,
-                font: .systemFont(ofSize: 0.12),
-                alignment: .center
-            ),
+            mesh: .generateText(mark.name, extrusionDepth: 0.001,
+                                font: .systemFont(ofSize: 0.12), alignment: .center),
             materials: [UnlitMaterial(color: .white)]
         )
         label.name = "label"
@@ -344,8 +452,6 @@ struct DirectorImmersiveView: View {
         return root
     }
 
-    /// Camera mark — tripod + camera body + amber FOV wedge showing what
-    /// the lens would frame. Architect-grade pre-viz in mid-air.
     private func buildCameraMarkEntity(_ mark: Mark) -> Entity {
         let root = Entity()
         root.name = "mark-\(mark.id.raw)"
@@ -354,7 +460,6 @@ struct DirectorImmersiveView: View {
         let spec = mark.camera ?? CameraSpec()
         let amber = UIColor(red: 1.0, green: 0.78, blue: 0.3, alpha: 1.0)
 
-        // Floor disc.
         let disc = ModelEntity(
             mesh: .generateCylinder(height: 0.008, radius: 0.22),
             materials: [UnlitMaterial(color: amber.withAlphaComponent(0.5))]
@@ -362,7 +467,6 @@ struct DirectorImmersiveView: View {
         disc.name = "disc"
         root.addChild(disc)
 
-        // Tripod.
         let tripod = ModelEntity(
             mesh: .generateCylinder(height: spec.heightM, radius: 0.015),
             materials: [UnlitMaterial(color: amber)]
@@ -370,7 +474,6 @@ struct DirectorImmersiveView: View {
         tripod.position.y = spec.heightM / 2
         root.addChild(tripod)
 
-        // Camera body — a slightly oversized box so it reads from a few meters away.
         let body = ModelEntity(
             mesh: .generateBox(size: [0.22, 0.12, 0.26], cornerRadius: 0.02),
             materials: [UnlitMaterial(color: amber)]
@@ -379,7 +482,6 @@ struct DirectorImmersiveView: View {
         body.orientation = simd_quatf(angle: spec.tiltRadians, axis: [1, 0, 0])
         root.addChild(body)
 
-        // FOV wedge — three-vertex translucent triangle spreading with HFOV.
         let fovLen: Float = 3.0
         let halfW = tanf(spec.horizontalFOV / 2) * fovLen
         var desc = MeshDescriptor(name: "fovWedge-\(mark.id.raw)")
@@ -398,25 +500,17 @@ struct DirectorImmersiveView: View {
             root.addChild(wedge)
         }
 
-        // Label: name + mm + HFOV.
         let labelText = "\(mark.name)  \(Int(spec.focalLengthMM))mm · \(Int(Double(spec.horizontalFOV) * 180 / .pi))°"
         let label = ModelEntity(
-            mesh: .generateText(
-                labelText,
-                extrusionDepth: 0.001,
-                font: .systemFont(ofSize: 0.09),
-                alignment: .center
-            ),
+            mesh: .generateText(labelText, extrusionDepth: 0.001,
+                                font: .systemFont(ofSize: 0.09), alignment: .center),
             materials: [UnlitMaterial(color: .white)]
         )
         label.name = "label"
         label.position = [-0.3, spec.heightM + 0.35, 0]
         root.addChild(label)
 
-        // Rotate the entire rig by the mark's yaw so the FOV wedge points
-        // in the correct real-world direction.
         root.orientation = simd_quatf(angle: mark.pose.yaw, axis: [0, 1, 0])
-
         return root
     }
 
@@ -432,7 +526,6 @@ struct DirectorImmersiveView: View {
         for perf in others {
             if let e = performerEntities[perf.id] {
                 e.position = [perf.pose.x, 0.9, perf.pose.z]
-                // Spin ghost toward performer yaw.
                 e.orientation = simd_quatf(angle: perf.pose.yaw, axis: [0, 1, 0])
             } else {
                 let e = buildPerformerEntity(perf)
@@ -453,7 +546,6 @@ struct DirectorImmersiveView: View {
         )
         root.addChild(body)
 
-        // Forward-facing cone so the director can read where the performer is facing.
         let nose = ModelEntity(
             mesh: .generateCone(height: 0.3, radius: 0.05),
             materials: [UnlitMaterial(color: .magenta)]
@@ -463,12 +555,8 @@ struct DirectorImmersiveView: View {
         root.addChild(nose)
 
         let tag = ModelEntity(
-            mesh: .generateText(
-                perf.displayName,
-                extrusionDepth: 0.001,
-                font: .systemFont(ofSize: 0.08),
-                alignment: .center
-            ),
+            mesh: .generateText(perf.displayName, extrusionDepth: 0.001,
+                                font: .systemFont(ofSize: 0.08), alignment: .center),
             materials: [UnlitMaterial(color: .white)]
         )
         tag.position = [-0.15, 0.4, 0]
@@ -544,7 +632,6 @@ struct DirectorImmersiveView: View {
     }
 }
 
-/// Convert a SwiftUI Color to a UIColor for RealityKit materials/lights.
 @MainActor
 fileprivate func UIColorFromSwiftUIColor(_ c: Color) -> UIColor {
     #if canImport(UIKit)
@@ -554,7 +641,6 @@ fileprivate func UIColorFromSwiftUIColor(_ c: Color) -> UIColor {
     #endif
 }
 
-// Color helpers that compile on all platforms (UIKit on vision/iOS).
 #if canImport(UIKit)
 import UIKit
 fileprivate extension UnlitMaterial {

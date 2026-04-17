@@ -34,6 +34,8 @@ struct DirectorControlPanel: View {
             VStack(alignment: .leading, spacing: 16) {
                 header
                 roomRow
+                stageToolbar
+                rehearsalTimerStrip
                 marksList
                 transportStrip
                 scanAlignStrip
@@ -83,6 +85,110 @@ struct DirectorControlPanel: View {
             port: port,
             enabled: oscEnabled
         )
+    }
+
+    // MARK: - Stage toolbar (grid, snap, tabletop, prop placement)
+
+    @ViewBuilder private var stageToolbar: some View {
+        HStack(spacing: 10) {
+            // Grid overlay
+            Toggle(isOn: Binding(get: { store.showStageGrid }, set: { store.showStageGrid = $0 })) {
+                Label("Grid", systemImage: "grid")
+            }
+            .toggleStyle(.button)
+            .tint(store.showStageGrid ? .cyan : nil)
+
+            // Snap to grid (only meaningful when grid is shown)
+            Toggle(isOn: Binding(get: { store.snapToGrid }, set: { store.snapToGrid = $0 })) {
+                Label("Snap", systemImage: "scope")
+            }
+            .toggleStyle(.button)
+            .tint(store.snapToGrid ? .cyan : nil)
+            .disabled(!store.showStageGrid)
+
+            Divider().frame(height: 20)
+
+            // Tabletop (director review) mode
+            Toggle(isOn: Binding(get: { store.isTabletopMode }, set: { store.isTabletopMode = $0 })) {
+                Label("Tabletop", systemImage: "rectangle.inset.filled")
+            }
+            .toggleStyle(.button)
+            .tint(store.isTabletopMode ? .orange : nil)
+
+            Divider().frame(height: 20)
+
+            // Prop placement mode
+            Toggle(isOn: Binding(get: { store.isPropPlacementMode }, set: { store.isPropPlacementMode = $0 })) {
+                Label("Props", systemImage: store.isPropPlacementMode ? "cube.fill" : "cube")
+            }
+            .toggleStyle(.button)
+            .tint(store.isPropPlacementMode ? .yellow : nil)
+
+            if store.isPropPlacementMode {
+                Picker("", selection: Binding(
+                    get: { store.selectedPropShape },
+                    set: { store.selectedPropShape = $0 }
+                )) {
+                    Label("Cube", systemImage: "cube").tag(PropShape.cube)
+                    Label("Sphere", systemImage: "circle").tag(PropShape.sphere)
+                    Label("Cylinder", systemImage: "cylinder").tag(PropShape.cylinder)
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 220)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    // MARK: - Rehearsal timer
+
+    @ViewBuilder private var rehearsalTimerStrip: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "timer")
+                .foregroundStyle(.secondary)
+            Text(timerLabel)
+                .font(.system(.title3, design: .monospaced).bold())
+                .foregroundStyle(store.rehearsalTimerRunning ? .primary : .secondary)
+                .frame(minWidth: 90, alignment: .leading)
+
+            Button {
+                if store.rehearsalTimerRunning {
+                    store.stopRehearsalTimer()
+                } else {
+                    store.startRehearsalTimer()
+                }
+            } label: {
+                Image(systemName: store.rehearsalTimerRunning ? "pause.fill" : "play.fill")
+            }
+            .buttonStyle(.bordered)
+            .tint(store.rehearsalTimerRunning ? .orange : .green)
+
+            Button {
+                store.resetRehearsalTimer()
+            } label: {
+                Image(systemName: "arrow.counterclockwise")
+            }
+            .buttonStyle(.bordered)
+            .disabled(store.rehearsalElapsed == 0 && !store.rehearsalTimerRunning)
+
+            Spacer()
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private var timerLabel: String {
+        let t = Int(store.rehearsalElapsed)
+        let h = t / 3600
+        let m = (t % 3600) / 60
+        let s = t % 60
+        if h > 0 {
+            return String(format: "%d:%02d:%02d", h, m, s)
+        }
+        return String(format: "%02d:%02d", m, s)
     }
 
     @ViewBuilder private var scanAlignStrip: some View {
