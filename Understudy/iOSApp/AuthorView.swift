@@ -37,6 +37,8 @@ struct AuthorView: View {
     @State private var scanNameDraft: String = "Room scan"
     @State private var showingScanNameSheet: Bool = false
     @State private var showingTeleprompter: Bool = false
+    @AppStorage("hasSeenOnboarding_author") private var hasSeenOnboarding: Bool = false
+    @State private var showingOnboarding = false
 
     private var gradientOpacity: Double { showARStage ? 0.30 : 1.0 }
 
@@ -97,6 +99,7 @@ struct AuthorView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onAppear { if !hasSeenOnboarding { showingOnboarding = true } }
         .sheet(item: $editingMark) { mark in
             MarkEditorSheet(mark: mark)
                 .environment(store)
@@ -111,6 +114,12 @@ struct AuthorView: View {
             TeleprompterView()
                 .environment(store)
                 .environment(session)
+        }
+        .sheet(isPresented: $showingOnboarding) {
+            OnboardingSheet(mode: .author) {
+                hasSeenOnboarding = true
+                showingOnboarding = false
+            }
         }
         .fileExporter(
             isPresented: Binding(

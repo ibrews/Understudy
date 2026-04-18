@@ -221,6 +221,14 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] `scripts/ship-playstore.sh` — automate the `./gradlew bundleRelease` + Google Play Publisher roll-out. Guide in `HANDOFF_GOOGLE_PLAY.md`.
 - [ ] Long Day's Journey into Night (O'Neill) — copyright expires; check jurisdiction before adding. Beckett's expires 2059 in Europe.
 
+### v0.27 · First-run onboarding + teleprompter word-wrap fix
+
+**1. Role onboarding sheets** — first time a user enters Perform, Author, or Audience mode a 3-step swipeable card sheet walks them through what to do in that role. Cards are role-specific (e.g. Performer: find your mark → follow the script → marks are on the floor). Fires once per role, remembered via `@AppStorage`. Dismiss with "Got it, let's go!"
+
+**2. Teleprompter word-wrap fix** — text no longer clips at the left and right edges on iPhone. Root cause: `Text` inside a `GeometryReader` does not receive a correct width proposal for line-breaking. Fixed by moving `Text` into normal SwiftUI layout and using `GeometryReader` only for viewport-height measurement via `.background {}`. Also fixed controls bar overflow on portrait iPhone (Speed slider 160→100 pt, Size slider 100→80 pt).
+
+---
+
 ### v0.26 · Stage grid, tabletop mode, rehearsal timer, props + three new plays
 A batch of director-facing tools ported from the SharedCubes prototype, plus play library expansion and several finishing items from the roadmap.
 

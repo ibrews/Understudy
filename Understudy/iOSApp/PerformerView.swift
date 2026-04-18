@@ -24,6 +24,8 @@ struct PerformerView: View {
     @State private var showingMarksList = false
     @State private var showingSettings = false
     @State private var showingTeleprompter = false
+    @AppStorage("hasSeenOnboarding_perform") private var hasSeenOnboarding: Bool = false
+    @State private var showingOnboarding = false
     /// True while this device is advancing playbackT locally.
     @State private var isPlayingGhost: Bool = false
     @State private var playbackStartedAt: Date?
@@ -94,7 +96,10 @@ struct PerformerView: View {
                 .allowsHitTesting(false)
         }
         .preferredColorScheme(.dark)
-        .onAppear { prepareHaptics() }
+        .onAppear {
+            prepareHaptics()
+            if !hasSeenOnboarding { showingOnboarding = true }
+        }
         .onDisappear { stopGhostPlayback() }
         .onChange(of: store.localPerformer?.currentMarkID ?? ID("")) { _, newID in
             if newID != lastMarkID {
@@ -114,6 +119,12 @@ struct PerformerView: View {
             TeleprompterView()
                 .environment(store)
                 .environment(session)
+        }
+        .sheet(isPresented: $showingOnboarding) {
+            OnboardingSheet(mode: .perform) {
+                hasSeenOnboarding = true
+                showingOnboarding = false
+            }
         }
     }
 

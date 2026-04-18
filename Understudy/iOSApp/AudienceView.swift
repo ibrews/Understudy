@@ -32,6 +32,8 @@ struct AudienceView: View {
     @State private var lastFiredMarkID: ID?
     @State private var showingSettings = false
     @State private var showingTeleprompter = false
+    @AppStorage("hasSeenOnboarding_audience") private var hasSeenOnboarding: Bool = false
+    @State private var showingOnboarding = false
 
     var body: some View {
         ZStack {
@@ -80,6 +82,7 @@ struct AudienceView: View {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             }
         }
+        .onAppear { if !hasSeenOnboarding { showingOnboarding = true } }
         .sheet(isPresented: $showingSettings) {
             SettingsSheet().environment(store).environment(session)
         }
@@ -87,6 +90,12 @@ struct AudienceView: View {
             TeleprompterView()
                 .environment(store)
                 .environment(session)
+        }
+        .sheet(isPresented: $showingOnboarding) {
+            OnboardingSheet(mode: .audience) {
+                hasSeenOnboarding = true
+                showingOnboarding = false
+            }
         }
     }
 
