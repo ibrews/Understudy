@@ -407,6 +407,7 @@ struct SettingsSheet: View {
     @AppStorage("relayURL") private var relayURL: String = "ws://127.0.0.1:8765"
     @AppStorage("showARStage") private var showARStage: Bool = true
     @AppStorage("appMode") private var appModeRaw: String = AppMode.perform.rawValue
+    @AppStorage("hasPickedMode") private var hasPickedMode: Bool = true
     @AppStorage("oscEnabled") private var oscEnabled: Bool = false
     @AppStorage("oscHost") private var oscHost: String = ""
     @AppStorage("oscPort") private var oscPortStr: String = "53000"
@@ -435,6 +436,11 @@ struct SettingsSheet: View {
                         Text(m.tagline)
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                    }
+                    Button {
+                        hasPickedMode = false
+                    } label: {
+                        Label("Return to main menu", systemImage: "house")
                     }
                 }
                 Section("Identity") {

@@ -1,6 +1,6 @@
 # Understudy
 
-**Multiplayer spatial theater — and film pre-viz. A Vision Pro director, iPhones and Android performers, a Python relay for cross-platform rehearsals, and the full text of Hamlet, Macbeth, and A Midsummer Night's Dream tappable in your pocket.**
+**Multiplayer spatial theater — and film pre-viz. A Vision Pro director, iPhones and Android performers, a Python relay for cross-platform rehearsals, and the full text of ten classic plays tappable in your pocket.**
 
 Understudy turns a real room into a programmable stage.
 
@@ -109,9 +109,16 @@ Understudy/                        Swift source (iOS + visionOS, single target)
 ├── Info.plist / .entitlements
 ├── Assets.xcassets/               App icon + accent color
 ├── Resources/
-│   ├── hamlet.json                Full play — 5 acts, 20 scenes, 1108 lines
-│   ├── macbeth.json               Full play — 5 acts, 28 scenes, 647 lines
-│   └── midsummer.json             Full play — 5 acts, 9 scenes, 484 lines
+│   ├── hamlet.json                Shakespeare — 5 acts, 1108 lines
+│   ├── macbeth.json               Shakespeare — 5 acts, 647 lines
+│   ├── midsummer.json             Shakespeare — 5 acts, 484 lines
+│   ├── seagull.json               Chekhov — 4 acts, 627 lines
+│   ├── cherry-orchard.json        Chekhov — 4 acts, 643 lines
+│   ├── three-sisters.json         Chekhov — 4 acts, 754 lines
+│   ├── uncle_vanya.json           Chekhov — 4 acts, 525 lines
+│   ├── earnest.json               Wilde — 3 acts, 873 lines
+│   ├── salome.json                Wilde — 1 act, 362 lines
+│   └── ghosts.json                Ibsen — 3 acts, 1123 lines
 ├── Models/
 │   ├── CoreModels.swift           Pose, Mark, Cue, MarkKind, CameraSpec, Blocking, Performer, ID, LightColor
 │   └── Version.swift              CFBundle version shown in UI
@@ -196,14 +203,35 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 *(Latest first. Every version shipped is a real commit + push; the "Next up" list is intentional future work.)*
 
 ### Next up
-- [ ] Google AI Glasses companion mode — paired to an iPhone, 480×480 glasses canvas shows the current mark's line cues only. Same wire protocol, same `TeleprompterView` rendering, tighter UI. Alex's reference implementation at `ai-samples/samples/gemini-live-todo/.../teleprompter/`.
 - [ ] Next-mark auto-advance — right now voice auto-fire handles sub-mark cues; the performer still has to physically walk to advance marks. Optional toggle: when the last line on a mark finishes via voice AND the performer is within N seconds of walking, pre-advance the cue cursor.
 - [ ] Migrate Monitoring code to AgileLensMultiplayer SPM dependency (currently copied in)
-- [ ] Gestural rotation on visionOS 2.0 target — v0.12 translates via drag but rotates via ±15° buttons (1.0 has no `RotateGesture3D`). Uniform scale still unbuilt — add when there's a use case beyond "1:1 scale is what I want."
-- [ ] More modern plays — `parse_modern.py` works for Chekhov + Wilde; v0.24 added Cherry Orchard + Three Sisters. Still open: Ghosts (Ibsen), Uncle Vanya, Salomé, Long Day's Journey. Beckett's copyright expires in 2059 in Europe so is off the table.
 - [ ] DMX on Android — v0.24 ships iOS sACN; port `DMXOutput.swift` + `DMXCueMapping.swift` to Kotlin (`java.net.DatagramSocket`/`MulticastSocket`). Hand-roll the same E1.31-2018 packet.
-- [ ] Lens/sensor pickers with real-world presets (ARRI, RED, Sony FX, cine primes)
 - [ ] `scripts/ship-playstore.sh` — automate the `./gradlew bundleRelease` + Google Play Publisher roll-out. Guide in `HANDOFF_GOOGLE_PLAY.md`.
+- [ ] Long Day's Journey into Night (O'Neill) — copyright expires; check jurisdiction before adding. Beckett's expires 2059 in Europe.
+
+### v0.26 · Stage grid, tabletop mode, rehearsal timer, props + three new plays
+A batch of director-facing tools ported from the SharedCubes prototype, plus play library expansion and several finishing items from the roadmap.
+
+**1. 9-zone stage grid** — `StageArea` enum (DS-L/DS-C/DS-R / CS-L/CS/CS-R / US-L/US-C/US-R) with world-space zone centers derived from a configurable half-width × half-depth. Director control panel "Grid" toggle shows translucent floor tiles with zone labels; "Snap" snaps newly placed marks to the nearest zone center within 0.7 m.
+
+**2. Tabletop director view** — "Table" toggle scales the entire stage (marks, props, grid, scan ghost) to 12% at tabletop height (0.8 m high, 0.8 m in front). Director can lean over a table and review the full blocking layout without being in the room. Tap-to-place disabled in this mode to prevent accidental drops.
+
+**3. Rehearsal timer** — compact MM:SS / HH:MM:SS strip in the director panel. Play/pause + reset. Runs on a 500 ms `Task` loop; survives window close as long as the `BlockingStore` is alive.
+
+**4. Prop objects (set construction)** — `PropObject` model (cube/sphere/cylinder, RGB, width×height×depth, 3D pose). Props panel in the director control panel: add named props with the shape picker, resize via the inspector sheet, swipe to delete. Rendered as colored `ModelEntity` primitives in the immersive stage. Round-trips through the wire; Android ignores the new `blocking.props` field cleanly via `ignoreUnknownKeys`.
+
+**5. Three new bundled plays** — library grows from 7 to 10:
+  - *Ghosts* (Ibsen, trans. William Archer — PG #8492) — 3 acts, 1 123 dialogue lines
+  - *Uncle Vanya* (Chekhov, trans. Constance Garnett — PG #1756) — 4 acts, 525 lines
+  - *Salomé* (Wilde, trans. Lord Alfred Douglas — PG #42704) — 1 act, 362 lines. Parsed via HTML (`42704-h.htm`) using a known character-name set to disambiguate speaker `<p>` tags from stage direction paragraphs.
+
+**6. Real-world camera body presets** — `CameraSpec` factory methods for 8 named bodies: ARRI Alexa 35, Alexa Mini LF, RED Monstro 8K, RED Komodo 6K, Sony Venice 2, BMPCC 6K Pro, full-frame reference, iPhone 15 Pro. Exposed as `presetGroups` in the director panel's camera picker.
+
+**7. CSV cue sheet import** — "Import CSV" button in the director marks header. Parses `name,note` rows into marks at y=0.8 m with 0.8 m Z spacing; useful for importing a stage manager's cue sheet from a spreadsheet.
+
+**8. Gestural scan rotation** — upgraded from v0.12's ±15° buttons to a simultaneous `DragGesture + RotateGesture3D(constrainedToAxis: .y)`. The scan ghost can now be freely rotated by pinching and twisting while dragging on visionOS 2.
+
+**Android:** versionCode 28 → 29, versionName 0.25 → 0.26.
 
 ### v0.24 · Feature sprint #2 — five drops in parallel
 Five more parallel agents, zero merge conflicts this time. The batch leans outward: two cross-platform content adds (new plays, new DMX output), two Android polish items, and the Google-Play-Console handoff doc to mirror the iOS TestFlight path.
@@ -443,9 +471,14 @@ The bundled plays are public-domain Project Gutenberg texts, restructured as JSO
 - **Macbeth** — Shakespeare, [eBook #1533](https://www.gutenberg.org/ebooks/1533)
 - **A Midsummer Night's Dream** — Shakespeare, [eBook #1514](https://www.gutenberg.org/ebooks/1514)
 - **The Seagull** — Chekhov (trans. Constance Garnett), [eBook #1754](https://www.gutenberg.org/ebooks/1754)
+- **The Cherry Orchard** — Chekhov (trans. Julius West), [eBook #7986](https://www.gutenberg.org/ebooks/7986)
+- **Three Sisters** — Chekhov (trans. Julius West), [eBook #7986](https://www.gutenberg.org/ebooks/7986)
+- **Uncle Vanya** — Chekhov (trans. Constance Garnett), [eBook #1756](https://www.gutenberg.org/ebooks/1756)
 - **The Importance of Being Earnest** — Wilde, [eBook #844](https://www.gutenberg.org/ebooks/844)
+- **Salomé** — Wilde (trans. Lord Alfred Douglas), [eBook #42704](https://www.gutenberg.org/ebooks/42704)
+- **Ghosts** — Ibsen (trans. William Archer), [eBook #8492](https://www.gutenberg.org/ebooks/8492)
 
-Parsers: `scripts/parse_hamlet.py` (Shakespeare — SCENE-numbered format) and `scripts/parse_modern.py` (Wilde / Chekhov — flexible ACT/SCENE, speaker-inline OR speaker-on-own-line). Extend `Scripts.all` and drop new JSON into `Resources/`.
+Parsers: `scripts/parse_hamlet.py` (Shakespeare — SCENE-numbered format) and `scripts/parse_modern.py` (Wilde / Chekhov — flexible ACT/SCENE, speaker-inline OR speaker-on-own-line). Salomé uses `parse_salome_html.py` (HTML `<p>CHARACTER</p><p>text</p>` shape). Extend `Scripts.all` and drop new JSON into `Resources/`.
 
 ## Credits
 
