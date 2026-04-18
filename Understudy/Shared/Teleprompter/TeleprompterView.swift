@@ -39,6 +39,7 @@ public struct TeleprompterView: View {
     /// Last count of auto-fired cues, for the "🔥 3 cues fired" feedback flash.
     @State private var autoFireFlashCount: Int = 0
     @State private var autoFireFlashAt: Date?
+    @State private var viewportHeight: CGFloat = 700
 
     public init() {}
 
@@ -99,9 +100,12 @@ public struct TeleprompterView: View {
             if let mark = state.document.markAt(progress: state.scrollProgress) {
                 Text(mark.name)
                     .font(.caption.monospaced())
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                     .padding(.horizontal, 8).padding(.vertical, 4)
                     .background(Color.white.opacity(0.12), in: Capsule())
                     .foregroundStyle(.white)
+                    .frame(maxWidth: 120)
             }
         }
     }
@@ -125,65 +129,65 @@ public struct TeleprompterView: View {
     // MARK: - Scrolling text
 
     @ViewBuilder private var scrollingText: some View {
-        GeometryReader { geo in
-            let totalLen = state.document.text.count
-            let cursor = Int(Double(totalLen) * state.scrollProgress)
-                .clamped(to: 0...max(0, totalLen - 1))
-            // Active cyan window — about 30 chars, same as Alex's teleprompter.
-            let activeWindow = 30
-            let activeEnd = (cursor + activeWindow).clamped(to: 0...totalLen)
+        let totalLen = state.document.text.count
+        let cursor = Int(Double(totalLen) * state.scrollProgress)
+            .clamped(to: 0...max(0, totalLen - 1))
+        let activeWindow = 30
+        let activeEnd = (cursor + activeWindow).clamped(to: 0...totalLen)
 
-            let annotated: AttributedString = {
-                var past = AttributedString(String(state.document.text.prefix(cursor)))
-                past.foregroundColor = .white.opacity(0.35)
-                var active = AttributedString(
-                    String(state.document.text[
-                        state.document.text.index(state.document.text.startIndex, offsetBy: cursor)
-                        ..<
-                        state.document.text.index(state.document.text.startIndex, offsetBy: activeEnd)
-                    ])
-                )
-                active.foregroundColor = .cyan
-                var future = AttributedString(
-                    String(state.document.text[
-                        state.document.text.index(state.document.text.startIndex, offsetBy: activeEnd)...
-                    ])
-                )
-                future.foregroundColor = .white
-                var joined = past
-                joined.append(active)
-                joined.append(future)
-                return joined
-            }()
+        let annotated: AttributedString = {
+            var past = AttributedString(String(state.document.text.prefix(cursor)))
+            past.foregroundColor = .white.opacity(0.35)
+            var active = AttributedString(
+                String(state.document.text[
+                    state.document.text.index(state.document.text.startIndex, offsetBy: cursor)
+                    ..<
+                    state.document.text.index(state.document.text.startIndex, offsetBy: activeEnd)
+                ])
+            )
+            active.foregroundColor = .cyan
+            var future = AttributedString(
+                String(state.document.text[
+                    state.document.text.index(state.document.text.startIndex, offsetBy: activeEnd)...
+                ])
+            )
+            future.foregroundColor = .white
+            var joined = past
+            joined.append(active)
+            joined.append(future)
+            return joined
+        }()
 
-            // Center the active window at viewport middle. The full text
-            // renders at (state.scrollProgress * contentHeight) above center.
-            // We do this with a vertical offset rather than a ScrollView so
-            // we have exact per-frame control — Alex's approach.
-            let viewport = geo.size.height
-            // Rough: each line is approximately textSize * 1.4 tall. We don't
-            // have TextLayoutResult in SwiftUI, so the teleprompter uses the
-            // whole text's fractional scroll — imprecise but works cleanly.
-            let estimatedLineHeight = CGFloat(state.textSize * 1.4)
-            let estimatedContentHeight = CGFloat(totalLen) / 60 * estimatedLineHeight
-            let scrollPixels = CGFloat(state.scrollProgress) * max(0, estimatedContentHeight - viewport)
+        let estimatedLineHeight = CGFloat(state.textSize * 1.4)
+        let estimatedContentHeight = CGFloat(totalLen) / 60 * estimatedLineHeight
+        let scrollPixels = CGFloat(state.scrollProgress) * max(0, estimatedContentHeight - viewportHeight)
 
-            Text(annotated)
-                .font(.system(size: CGFloat(state.textSize), weight: .semibold, design: .serif))
-                .multilineTextAlignment(.center)
-                .lineSpacing(CGFloat(state.textSize) * 0.35)
-                .frame(maxWidth: geo.size.width * 0.9, alignment: .top)
-                .offset(y: viewport * 0.3 - scrollPixels)
-                .animation(.easeOut(duration: 0.25), value: state.scrollProgress)
-        }
-        .contentShape(Rectangle())
-        .gesture(
-            DragGesture(minimumDistance: 5)
-                .onChanged { value in
-                    let delta = -value.translation.height / 1200
-                    state.applyManualProgress(state.scrollProgress + delta)
+        // Text lives in normal SwiftUI layout so padding() correctly constrains
+        // its proposed width and word-wrapping works. GeometryReader is used
+        // only to capture viewportHeight for scroll math.
+        Text(annotated)
+            .font(.system(size: CGFloat(state.textSize), weight: .semibold, design: .serif))
+            .multilineTextAlignment(.center)
+            .lineSpacing(CGFloat(state.textSize) * 0.35)
+            .padding(.horizontal, 20)
+            .frame(maxWidth: .infinity, alignment: .top)
+            .offset(y: viewportHeight * 0.3 - scrollPixels)
+            .animation(.easeOut(duration: 0.25), value: state.scrollProgress)
+            .background {
+                GeometryReader { geo in
+                    Color.clear
+                        .onAppear { viewportHeight = geo.size.height }
+                        .onChange(of: geo.size.height) { _, h in viewportHeight = h }
                 }
-        )
+            }
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 5)
+                    .onChanged { value in
+                        let delta = -value.translation.height / 1200
+                        state.applyManualProgress(state.scrollProgress + delta)
+                    }
+            )
     }
 
     // MARK: - Controls
@@ -234,7 +238,7 @@ public struct TeleprompterView: View {
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.white.opacity(0.7))
                     Slider(value: $state.speed, in: 4...40, step: 1)
-                        .frame(width: 160)
+                        .frame(width: 100)
                 }
 
                 VStack {
@@ -242,7 +246,7 @@ public struct TeleprompterView: View {
                         .font(.caption)
                         .foregroundStyle(.white.opacity(0.7))
                     Slider(value: $state.textSize, in: 18...56, step: 1)
-                        .frame(width: 100)
+                        .frame(width: 80)
                 }
 
                 #if canImport(Speech)
