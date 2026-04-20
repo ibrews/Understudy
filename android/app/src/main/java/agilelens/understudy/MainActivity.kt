@@ -82,8 +82,13 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        wireArToStoreAndTransport()
-        wireIncomingEnvelopes()
+        // Wiring is deferred until ready — flows won't emit until transport.start()
+        // and arProvider.resume() are called from onResume (which also awaits ready).
+        lifecycleScope.launch {
+            app.ready.await()
+            wireArToStoreAndTransport()
+            wireIncomingEnvelopes()
+        }
     }
 
     override fun onResume() {
@@ -92,6 +97,7 @@ class MainActivity : ComponentActivity() {
             arProvider.resume(this)
         }
         lifecycleScope.launch {
+            app.ready.await()  // no-op if already complete; safe on every rotation
             val name = app.prefs.displayName.first()
             val room = app.prefs.roomCode.first()
             val url  = app.prefs.relayUrl.first()
@@ -144,8 +150,10 @@ class MainActivity : ComponentActivity() {
         }
 
         // Load all prefs up-front into composition state.
+        // Await `ready` first so store/fx are initialized before the UI uses them.
         val prefsState = remember { mutableStateOf<PrefsSnapshot?>(null) }
         LaunchedEffect(Unit) {
+            app.ready.await()
             prefsState.value = PrefsSnapshot(
                 displayName = app.prefs.displayName.first(),
                 roomCode = app.prefs.roomCode.first(),

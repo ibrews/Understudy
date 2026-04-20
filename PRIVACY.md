@@ -7,7 +7,7 @@ Understudy is a spatial rehearsal tool. This policy describes what data the app 
 ## What happens on your device
 
 - **Camera feed.** Used for AR world tracking (ARKit on iOS/visionOS, ARCore on Android). The feed is never recorded, never transmitted, and never stored. It feeds the tracking engine in memory and is discarded every frame.
-- **Microphone + speech recognition.** Used *only* when you enable "Voice mode" in the teleprompter. Recognition runs entirely on-device — `SFSpeechRecognizer` with `requiresOnDeviceRecognition = true` on Apple platforms, Android's `SpeechRecognizer` with `EXTRA_PREFER_OFFLINE = true` where supported. Audio and transcripts never leave your phone.
+- **Microphone + speech recognition.** Used *only* when you enable "Voice mode" in the teleprompter. On Apple platforms, recognition runs on-device via `SFSpeechRecognizer` with `requiresOnDeviceRecognition = true`. On Android, `EXTRA_PREFER_OFFLINE = true` is set, which requests on-device recognition where the device supports it; devices without a downloaded language model may fall back to the system's cloud recognizer (outside Understudy's control). Audio and transcripts are never sent to Agile Lens servers.
 - **LiDAR mesh.** Captured only when you tap "Scan room" in Author mode on a LiDAR-capable iPhone Pro. Stored locally as part of the blocking document.
 - **Blocking documents** (`.understudy` JSON files). Stored locally. Shared only when you explicitly Export via share sheet.
 

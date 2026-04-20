@@ -69,13 +69,12 @@ class Hub:
                  client.room, client.name, count)
 
     async def broadcast(self, sender: Client, payload: str) -> None:
-        room = self.rooms.get(sender.room)
-        if room is None:
-            return
-        # Snapshot the set so mutation during iteration is safe.
-        for peer in list(room.clients):
-            if peer is sender:
-                continue
+        # Hold the lock only long enough to snapshot recipients — avoids holding
+        # it across the awaited sends (which would block join/leave).
+        async with self._lock:
+            room = self.rooms.get(sender.room)
+            peers = [c for c in room.clients if c is not sender] if room else []
+        for peer in peers:
             try:
                 await peer.ws.send(payload)
             except Exception as exc:  # noqa: BLE001
@@ -95,11 +94,12 @@ async def handler(ws: "websockets.ServerConnection", hub: Hub) -> None:
     client = Client(ws=ws, room=room, perf_id=perf_id, name=name)
     await hub.join(client)
     # Send a tiny welcome frame that Android/iOS can ignore or use for peer-count display.
+    # peer count is others in the room (excluding the joining client itself).
     try:
         await ws.send(json.dumps({
             "_relay": "welcome",
             "room": room,
-            "peers": hub.room_count(room),
+            "peers": max(0, hub.room_count(room) - 1),
         }))
     except Exception:
         pass

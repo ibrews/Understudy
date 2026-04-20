@@ -9,15 +9,15 @@ import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 /**
@@ -27,9 +27,17 @@ import java.util.UUID
 class UnderstudyApp : Application() {
     val appScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    private val _ready = CompletableDeferred<Unit>()
+    /**
+     * Await before accessing store, fx, or localId. Completes once DataStore
+     * reads finish on IO thread; avoids blocking Application.onCreate (ANR risk).
+     */
+    val ready: Deferred<Unit> get() = _ready
+
     lateinit var prefs: PrefsRepo
         private set
 
+    // transport can be created immediately — it needs no DataStore reads.
     lateinit var transport: WebSocketTransport
         private set
 
@@ -50,17 +58,23 @@ class UnderstudyApp : Application() {
     override fun onCreate() {
         super.onCreate()
         prefs = PrefsRepo(this)
-
-        // TODO(alex): move to Dispatchers.IO init; runBlocking on main thread
-        // is an ANR risk on slow storage. Requires restructuring localId/store
-        // init to be async-safe before Activity.onResume can use localId.
-        val raw = runBlocking { prefs.loadOrInitLocalId() }
-        localId = Id(raw)
-        val name = runBlocking { prefs.displayName.first() }
-
-        store = BlockingStore(localID = localId, localDisplayName = name)
         transport = WebSocketTransport(appScope)
-        fx = CueFXEngine(context = this).also { it.attach(store) }
+
+        // Read prefs on IO thread; complete `ready` when store + fx are live.
+        // MainActivity awaits `ready` before calling transport.start() or
+        // accessing store/fx, so the happens-before from CompletableDeferred
+        // makes the lateinit assignments visible on the main thread.
+        appScope.launch(Dispatchers.IO) {
+            val raw = prefs.loadOrInitLocalId()
+            val name = prefs.displayName.first()
+            localId = Id(raw)
+            val newStore = BlockingStore(localID = localId, localDisplayName = name)
+            withContext(Dispatchers.Main) {
+                store = newStore
+                fx = CueFXEngine(context = this@UnderstudyApp).also { it.attach(store) }
+                _ready.complete(Unit)
+            }
+        }
     }
 
     override fun onTerminate() {

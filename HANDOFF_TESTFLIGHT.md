@@ -62,7 +62,7 @@ Open https://appstoreconnect.apple.com/access/integrations/api
 
 ```bash
 cd /Users/Shared/Documents/xcodeproj/Understudy
-scripts/bump-version.sh          # bumps to 0.18 → 0.19
+scripts/bump-version.sh          # bumps to 0.26 → 0.27
 scripts/ship-testflight.sh       # archives, exports, uploads
 ```
 

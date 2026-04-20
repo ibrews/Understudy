@@ -429,6 +429,8 @@ struct SettingsSheet: View {
     @AppStorage("dmxDestinationKind") private var dmxDestinationKind: String = "multicast"
     @AppStorage("dmxDestinationIp") private var dmxDestinationIp: String = ""
     @State private var showingQRTarget: Bool = false
+    @State private var oscBindErrorMessage: String = ""
+    @State private var showOSCBindError: Bool = false
 
     private var appMode: AppMode {
         get { AppMode(rawValue: appModeRaw) ?? .perform }
@@ -592,6 +594,11 @@ struct SettingsSheet: View {
             .sheet(isPresented: $showingQRTarget) {
                 QRCalibrationView()
             }
+            .alert("Cannot Open OSC Port", isPresented: $showOSCBindError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(oscBindErrorMessage)
+            }
         }
     }
 
@@ -606,6 +613,10 @@ struct SettingsSheet: View {
 
     private func applyOSCReceive() {
         let port = UInt16(oscReceivePortStr) ?? 53001
+        fx.oscIn.onBindError = { [self] error in
+            oscBindErrorMessage = "Port \(port) is in use. \(error.localizedDescription)"
+            showOSCBindError = true
+        }
         fx.configureOSCReceive(port: port, enabled: oscReceiveEnabled)
     }
 
