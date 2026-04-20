@@ -54,6 +54,8 @@ public final class OSCReceiver {
     }
 
     public var onMessage: ((Message) -> Void)?
+    /// Called on MainActor when `start(port:)` fails (most likely: port in use).
+    public var onBindError: ((Error) -> Void)?
     public private(set) var isRunning: Bool = false
     public private(set) var port: UInt16 = 53001
 
@@ -78,9 +80,8 @@ public final class OSCReceiver {
             self.listener = l
             self.isRunning = true
         } catch {
-            // Most likely: port already in use. Silently fail — the UI
-            // can surface this if it cares.
             self.isRunning = false
+            onBindError?(error)
         }
     }
 

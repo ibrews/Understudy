@@ -97,6 +97,13 @@ class WebSocketTransport(
         return sock.send(text)
     }
 
+    /** True when already connected to this exact relay URL + room combination. */
+    fun isConnected(relayUrl: String, roomCode: String): Boolean {
+        if (_status.value != Status.Connected) return false
+        val target = buildUrl(relayUrl, roomCode, "", "").substringBefore("&id=")
+        return currentUrl?.substringBefore("&id=") == target
+    }
+
     fun dispose() {
         stop()
         scope.cancel()

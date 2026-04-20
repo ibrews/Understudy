@@ -96,13 +96,17 @@ class MainActivity : ComponentActivity() {
             val room = app.prefs.roomCode.first()
             val url  = app.prefs.relayUrl.first()
             app.store.updateLocalDisplayName(name)
-            app.transport.stop()
-            app.transport.start(
-                relayUrl = url,
-                roomCode = room,
-                localID = app.localId,
-                displayName = name
-            )
+            // Guard against rotation-induced duplicate connections: only
+            // restart the socket when the destination or room has changed.
+            if (!app.transport.isConnected(relayUrl = url, roomCode = room)) {
+                app.transport.stop()
+                app.transport.start(
+                    relayUrl = url,
+                    roomCode = room,
+                    localID = app.localId,
+                    displayName = name
+                )
+            }
             app.transport.send(NetMessage.Hello(app.store.localPerformer.value), app.localId)
         }
     }

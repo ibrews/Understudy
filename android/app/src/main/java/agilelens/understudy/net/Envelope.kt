@@ -41,6 +41,8 @@ sealed class NetMessage {
     data class MarkRemoved(val id: Id) : NetMessage()
     data class CueFired(val markID: Id, val cueID: Id, val by: Id) : NetMessage()
     data class PlaybackState(val t: Double?) : NetMessage()
+    /** Placeholder for message types this client doesn't implement yet. */
+    object Unknown : NetMessage()
 }
 
 object NetMessageSerializer : KSerializer<NetMessage> {
@@ -123,7 +125,9 @@ object NetMessageSerializer : KSerializer<NetMessage> {
             "playbackState" -> NetMessage.PlaybackState(
                 t = inner["t"]?.jsonPrimitive?.doubleOrNull
             )
-            else -> throw IllegalArgumentException("Unknown NetMessage case: $key")
+            // iOS-only and future message types — drop gracefully per PROTOCOL.md
+            // so older Android builds stay compatible with newer iOS peers.
+            else -> NetMessage.Unknown
         }
     }
 }

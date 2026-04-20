@@ -135,7 +135,6 @@ public final class BlockingStore {
         public let cue: Cue
         public let markName: String
         public let performerID: ID
-        public let at: Date = Date()
     }
 
     private func fireCues(for mark: Mark, triggeredBy performerID: ID) {

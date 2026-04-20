@@ -43,13 +43,6 @@ Apple-only sessions can skip the relay entirely — MultipeerConnectivity auto-d
 4. On the director, open a mark, add a line cue (e.g. "Something is rotten in the state of Denmark"). Next time anyone steps on that mark, the line appears on their phone.
 5. Hit the phone's record button, walk a path through all the marks, stop. Scrub the playback slider on the director panel — a ghost replays your walk across everyone's view.
 
-## Known limitations in v0.2
-
-- **Co-location is manual.** Each device's AR world has its own origin, so the same `Mark` coordinate isn't the same real-world spot across devices. Workaround: everyone starts facing the same direction at the same spot, or mark a physical anchor (a piece of tape) and everyone launches from there. Shared-origin ceremony is on the roadmap.
-- **Android is performer-only.** No authoring from Android yet.
-- **SFX/Light cues** play system sounds and flash colors on phones. For real theater rigs, wire up to QLab / DMX on the director side (not done).
-- **No persistence.** Quit the director and the blocking is gone. Save/load is on the roadmap.
-
 ## Troubleshooting
 
 | Symptom                                  | Fix                                                                 |

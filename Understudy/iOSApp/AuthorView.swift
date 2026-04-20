@@ -141,6 +141,11 @@ struct AuthorView: View {
                 importBlocking(from: url)
             }
         }
+        .alert("Import Failed", isPresented: $showImportError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(importErrorMessage ?? "Could not read blocking file.")
+        }
         .alert("Clear all marks?", isPresented: $confirmClear) {
             Button("Cancel", role: .cancel) {}
             Button("Clear", role: .destructive) {
@@ -149,6 +154,7 @@ struct AuthorView: View {
                 }
                 store.blocking.marks.removeAll()
                 store.blocking.modifiedAt = Date()
+                BlockingAutosave.save(store.blocking)
             }
         } message: {
             Text("This removes every mark in '\(store.blocking.title)'. The reference walk is kept.")
@@ -540,11 +546,16 @@ struct AuthorView: View {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
     }
 
+    @State private var importErrorMessage: String?
+    @State private var showImportError = false
+
     private func importBlocking(from url: URL) {
         let granted = url.startAccessingSecurityScopedResource()
         defer { if granted { url.stopAccessingSecurityScopedResource() } }
         guard let data = try? Data(contentsOf: url),
               let loaded = try? WireCoding.decoder.decode(Blocking.self, from: data) else {
+            importErrorMessage = "Could not read blocking file. Make sure it was exported from Understudy."
+            showImportError = true
             return
         }
         // Broadcast removals of the old blocking, then the new snapshot.
@@ -737,7 +748,7 @@ struct MarkEditorSheet: View {
                     Button {
                         showingScriptBrowser = true
                     } label: {
-                        Label("Pick from Hamlet…", systemImage: "text.book.closed")
+                        Label("Pick from script…", systemImage: "text.book.closed")
                     }
                     .tint(.purple)
                     TextField("Character (optional)", text: $newCharacter)

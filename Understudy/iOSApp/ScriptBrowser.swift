@@ -31,6 +31,7 @@ struct ScriptBrowser: View {
     /// Which script to browse. Today just Hamlet; future scripts can be
     /// selected via `Scripts.all`.
     @State private var script: PlayScript = Scripts.hamlet
+    @State private var allScripts: [PlayScript] = [Scripts.hamlet]
     @State private var query: String = ""
     @State private var sceneFilter: SceneFilter = .all
     @FocusState private var searchFocused: Bool
@@ -64,7 +65,7 @@ struct ScriptBrowser: View {
                 ToolbarItem(placement: .cancellationAction) {
                     HStack(spacing: 12) {
                         Menu {
-                            ForEach(Scripts.all, id: \.title) { s in
+                            ForEach(allScripts, id: \.title) { s in
                                 Button {
                                     script = s
                                     sceneFilter = .all
@@ -99,6 +100,12 @@ struct ScriptBrowser: View {
                 }
             }
             .preferredColorScheme(.dark)
+            .task {
+                let loaded = await Task.detached(priority: .userInitiated) {
+                    Scripts.all
+                }.value
+                allScripts = loaded
+            }
             .alert(
                 "Drop whole scene?",
                 isPresented: Binding(

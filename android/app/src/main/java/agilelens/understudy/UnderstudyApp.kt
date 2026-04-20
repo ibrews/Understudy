@@ -51,7 +51,9 @@ class UnderstudyApp : Application() {
         super.onCreate()
         prefs = PrefsRepo(this)
 
-        // Bootstrap local identity
+        // TODO(alex): move to Dispatchers.IO init; runBlocking on main thread
+        // is an ANR risk on slow storage. Requires restructuring localId/store
+        // init to be async-safe before Activity.onResume can use localId.
         val raw = runBlocking { prefs.loadOrInitLocalId() }
         localId = Id(raw)
         val name = runBlocking { prefs.displayName.first() }

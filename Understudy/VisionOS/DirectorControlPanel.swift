@@ -74,6 +74,7 @@ struct DirectorControlPanel: View {
                     .frame(minWidth: 420, minHeight: 360)
             }
             .onAppear { applyOSC() }
+            .onDisappear { stopDirectorPlayback() }
         }
     }
 
@@ -584,6 +585,8 @@ struct DirectorControlPanel: View {
                     session.broadcastMarkRemoved(m.id)
                 }
                 store.blocking.marks.removeAll()
+                store.blocking.modifiedAt = Date()
+                BlockingAutosave.save(store.blocking)
             } label: {
                 Label("Clear Stage", systemImage: "trash")
             }
@@ -800,7 +803,7 @@ struct MarkEditor: View {
                     Button {
                         showingScriptBrowser = true
                     } label: {
-                        Label("Pick from Hamlet…", systemImage: "text.book.closed")
+                        Label("Pick from script…", systemImage: "text.book.closed")
                     }
                     VStack(alignment: .leading) {
                         TextField("Character (optional)", text: $newCharacter)

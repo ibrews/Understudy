@@ -22,13 +22,8 @@ final class ARPoseProvider: NSObject, ARSessionDelegate {
     /// (snapshot this as `DeviceCalibration.anchor` when the user taps
     /// "Set Origin Here").
     private(set) var latestRawPose: Pose = Pose()
-    /// When image-based calibration is desired, we detect a Vision request
-    /// every ~1 s rather than re-detecting per frame — the QR doesn't move
-    /// and per-frame is wasteful. Timestamp-gated.
-    private var lastImageScanAt: Date = .distantPast
     /// Detected QR calibrations are written to PerformerARHost.shared
-    /// directly (same place the compass button writes). This closure lets
-    /// the host know when we've updated.
+    /// directly (same place the compass button writes).
     var onDetectedCalibration: ((DeviceCalibration, String) -> Void)?
 
     /// Original init — provider creates and runs its own ARSession.

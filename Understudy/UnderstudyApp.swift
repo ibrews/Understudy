@@ -14,7 +14,6 @@ struct UnderstudyApp: App {
     @State private var fx: CueFXEngine
     @AppStorage("displayName") private var displayName: String = ""
     @AppStorage("roomCode") private var roomCode: String = "rehearsal"
-    @AppStorage("seededDemo") private var seededDemo: Bool = false
     @State private var hasOnboarded = false
 
     init() {
@@ -111,9 +110,6 @@ struct UnderstudyApp: App {
         #endif
     }
 }
-
-/// A reasonable default name on first launch.
-private func UnderstudyApp_DummyFunc() {}
 
 @MainActor
 fileprivate func UIDeviceOrFallbackName() -> String {

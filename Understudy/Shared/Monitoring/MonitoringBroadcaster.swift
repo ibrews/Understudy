@@ -45,7 +45,7 @@ public final class MonitoringBroadcaster: Sendable {
         deviceName: String,
         platform: String,
         deviceID: String = UUID().uuidString
-    ) {
+    ) throws {
         self.gameType = gameType
         self.sessionID = sessionID
         self.deviceID = deviceID
@@ -54,7 +54,7 @@ public final class MonitoringBroadcaster: Sendable {
 
         let params = NWParameters.tcp
         params.includePeerToPeer = true
-        self.listener = try! NWListener(using: params)
+        self.listener = try NWListener(using: params)
 
         // Bonjour advertisement with metadata in TXT record
         var txtRecord = NWTXTRecord()

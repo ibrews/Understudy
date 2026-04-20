@@ -40,6 +40,7 @@ public struct TeleprompterView: View {
     @State private var autoFireFlashCount: Int = 0
     @State private var autoFireFlashAt: Date?
     @State private var viewportHeight: CGFloat = 700
+    @GestureState private var dragStartProgress: Double? = nil
 
     public init() {}
 
@@ -120,7 +121,7 @@ public struct TeleprompterView: View {
             Text("No lines on this blocking yet.")
                 .font(.title2)
                 .foregroundStyle(.white.opacity(0.8))
-            Text("Author mode → tap a mark → Pick from Hamlet…")
+            Text("Author mode → tap a mark → Pick from script…")
                 .font(.body)
                 .foregroundStyle(.white.opacity(0.5))
         }
@@ -183,9 +184,13 @@ public struct TeleprompterView: View {
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 5)
+                    .updating($dragStartProgress) { _, start, _ in
+                        if start == nil { start = state.scrollProgress }
+                    }
                     .onChanged { value in
+                        let base = dragStartProgress ?? state.scrollProgress
                         let delta = -value.translation.height / 1200
-                        state.applyManualProgress(state.scrollProgress + delta)
+                        state.applyManualProgress(base + delta)
                     }
             )
     }

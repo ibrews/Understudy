@@ -12,7 +12,8 @@
     <uses-feature android:name="android.hardware.camera.ar" android:required="false" />
     <uses-feature android:glEsVersion="0x00030000" android:required="true" />
 
-    <!-- Allow plaintext ws:// to the LAN relay -->
+    <!-- Cleartext ws:// allowed for LAN relay only — relay is designed for
+         private networks and must never be exposed to the internet. -->
     <application
         android:name=".UnderstudyApp"
         android:allowBackup="true"

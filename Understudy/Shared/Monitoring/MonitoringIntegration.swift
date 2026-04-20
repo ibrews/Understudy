@@ -45,13 +45,16 @@ public final class MonitoringIntegration {
         if let b = broadcaster, b.isRunning { return }
         let me = store.localPerformer
         let name = me?.displayName ?? "Understudy"
-        let b = MonitoringBroadcaster(
+        guard let b = try? MonitoringBroadcaster(
             gameType: Self.gameType,
             sessionID: sessionKey,
             deviceName: name,
             platform: Self.currentPlatformLabel,
             deviceID: me?.id.raw ?? UUID().uuidString
-        )
+        ) else {
+            print("[MonitoringIntegration] Failed to create broadcaster (port conflict?)")
+            return
+        }
         b.start()
         self.broadcaster = b
 

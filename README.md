@@ -8,7 +8,7 @@ A **director** wearing Apple Vision Pro places blocking marks on the floor — a
 
 Record a blocking once and anyone else with a phone can *walk it back* — the app becomes a self-paced AR audio tour of your own show. Site-specific theater becomes shareable. Rehearsal becomes async. The audience can literally step into the actor's path after the curtain falls.
 
-And because three whole Shakespeare plays are bundled in the app, you don't have to type a single line. Drop a mark at Francisco's post, open the Script Browser, tap Bernardo's "Who's there?" — it's on the mark. Tap the next line, the next.
+And because ten classic plays are bundled in the app — Shakespeare, Chekhov, Ibsen, Wilde — you don't have to type a single line. Drop a mark at Francisco's post, open the Script Browser, tap Bernardo's "Who's there?" — it's on the mark. Tap the next line, the next.
 
 As of v0.8, the same model serves **film directors, DPs, and location scouts**: drop virtual camera marks with real lens specs (14/24/35/50/85/135mm), see FOV wedges in the room, and use the phone as a literal viewfinder that shows what each lens would frame from each spot.
 
@@ -22,7 +22,7 @@ As of v0.8, the same model serves **film directors, DPs, and location scouts**: 
 
 | You are… | Understudy gives you… |
 |----|----|
-| **A theater director or stage manager** | Block scenes without a venue. Save blockings as files, share them with your cast, rehearse remotely. Fire real QLab cues over OSC. The full text of Hamlet, Macbeth, and Midsummer is tappable. |
+| **A theater director or stage manager** | Block scenes without a venue. Save blockings as files, share them with your cast, rehearse remotely. Fire real QLab cues over OSC. Ten bundled plays — Shakespeare, Chekhov, Ibsen, Wilde — are tappable line by line. |
 | **A film director or DP location-scouting** | Drop virtual camera marks with real lens specs (14/24/35/50/85/135mm) and see their FOV wedges anchored in the real room. The phone is a viewfinder — see what each lens frames from each spot *before* the shoot. |
 | **An architect designing a venue** | Walk sightlines and circulation paths with real bodies before construction. Mix actor marks and camera marks to rehearse a venue's cinematic use. |
 | **An XR pre-viz team** | Scout spatial choreography with phones you already have, before you commit to MoCap or a game engine. |
@@ -72,7 +72,7 @@ The flowing teleprompter scrolls the full script — voice recognition drives th
 ![Perform mode — flowing teleprompter with mark headers and dialogue](Screenshots/perform-teleprompter.png)
 
 ### Author (iPhone + Android)
-Tap the floor to drop a mark at the raycast point. Tap an existing mark to open the inline editor — name, radius, lines (with character labels), sounds, lights, holds, director notes. A **"Pick from Hamlet…"** button opens the full Shakespeare library (three plays) with search, scene filter, and already-used indicators. **"Drop whole scene"** auto-lays out a zig-zag path of marks in front of you with every line pre-populated.
+Tap the floor to drop a mark at the raycast point. Tap an existing mark to open the inline editor — name, radius, lines (with character labels), sounds, lights, holds, director notes. A **"Pick from script…"** button opens the full play library (ten plays) with search, scene filter, and already-used indicators. **"Drop whole scene"** auto-lays out a zig-zag path of marks in front of you with every line pre-populated.
 
 ![Author mode — blocking with all marks listed, cue counts visible](Screenshots/author-marks-list.png)
 
