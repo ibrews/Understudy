@@ -39,7 +39,10 @@ public struct TeleprompterView: View {
     /// Last count of auto-fired cues, for the "🔥 3 cues fired" feedback flash.
     @State private var autoFireFlashCount: Int = 0
     @State private var autoFireFlashAt: Date?
-    @State private var viewportHeight: CGFloat = 700
+    /// Height of the visible window/screen — captured at ZStack level.
+    @State private var screenHeight: CGFloat = 700
+    /// Actual rendered height of the full text content — captured from text background.
+    @State private var contentHeight: CGFloat = 0
     @GestureState private var dragStartProgress: Double? = nil
 
     public init() {}
@@ -58,6 +61,13 @@ public struct TeleprompterView: View {
                 controls
             }
             .padding()
+        }
+        .background {
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { screenHeight = geo.size.height }
+                    .onChange(of: geo.size.height) { _, h in screenHeight = h }
+            }
         }
         .preferredColorScheme(.dark)
         .onAppear {
@@ -159,26 +169,26 @@ public struct TeleprompterView: View {
             return joined
         }()
 
-        let estimatedLineHeight = CGFloat(state.textSize * 1.4)
-        let estimatedContentHeight = CGFloat(totalLen) / 60 * estimatedLineHeight
-        let scrollPixels = CGFloat(state.scrollProgress) * max(0, estimatedContentHeight - viewportHeight)
+        // Scroll so at progress=0 the first line sits 30% down the screen,
+        // and at progress=1 the last line sits at that same 30% anchor.
+        // contentHeight is the actual rendered text height; screenHeight is
+        // the visible viewport — both measured via GeometryReader.
+        let maxScroll = max(0, contentHeight - screenHeight * 0.7)
+        let scrollPixels = CGFloat(state.scrollProgress) * maxScroll
 
-        // Text lives in normal SwiftUI layout so padding() correctly constrains
-        // its proposed width and word-wrapping works. GeometryReader is used
-        // only to capture viewportHeight for scroll math.
         Text(annotated)
             .font(.system(size: CGFloat(state.textSize), weight: .semibold, design: .serif))
             .multilineTextAlignment(.center)
             .lineSpacing(CGFloat(state.textSize) * 0.35)
             .padding(.horizontal, 20)
             .frame(maxWidth: .infinity, alignment: .top)
-            .offset(y: viewportHeight * 0.3 - scrollPixels)
+            .offset(y: screenHeight * 0.3 - scrollPixels)
             .animation(.easeOut(duration: 0.25), value: state.scrollProgress)
             .background {
                 GeometryReader { geo in
                     Color.clear
-                        .onAppear { viewportHeight = geo.size.height }
-                        .onChange(of: geo.size.height) { _, h in viewportHeight = h }
+                        .onAppear { contentHeight = geo.size.height }
+                        .onChange(of: geo.size.height) { _, h in contentHeight = h }
                 }
             }
             .contentShape(Rectangle())

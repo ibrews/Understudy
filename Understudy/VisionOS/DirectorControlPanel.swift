@@ -350,9 +350,14 @@ struct DirectorControlPanel: View {
                 .frame(maxWidth: 180)
 
                 Toggle(isOn: $immersiveActive) {
-                    Text(immersiveActive ? "Stage On" : "Stage Off")
+                    Label(
+                        immersiveActive ? "Mixed Reality On" : "Enter Mixed Reality",
+                        systemImage: immersiveActive ? "arkit" : "arkit"
+                    )
                 }
                 .toggleStyle(.button)
+                .tint(immersiveActive ? .green : .blue)
+                .controlSize(.large)
                 .onChange(of: immersiveActive) { _, on in
                     Task {
                         if on { _ = await openImmersiveSpace(id: "Stage") }
