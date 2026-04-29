@@ -60,16 +60,19 @@ To mirror to the GitHub Wiki tab, you need to **visit https://github.com/ibrews/
 
 ## What's left for you
 
-1. **Verify the visionOS fix on real Vision Pro hardware.** Sim screenshots can't show floor-level immersive content (the user is always looking straight ahead). Look down at the floor when you launch the app — you should see the red center disc + cyan perimeter within ~1s of the panel appearing. If they're missing, see [REVIEW_NEEDED.md § 1-2](./REVIEW_NEEDED.md).
-2. **Bootstrap the GitHub Wiki tab.** One UI click on `https://github.com/ibrews/Understudy/wiki` then run the sync per `wiki/README.md`.
-3. **Verify TestFlight builds work end-to-end.** v0.30 (33) iOS should be processing in App Store Connect. Once it's available, install and walk through:
+1. **v0.30 (33) is already on your iPhone 15 Pro.** I built Debug-iphoneos and installed via `xcrun devicectl device install app --device E2669A13-...`. Just unlock the phone — the new build replaced the previous Understudy.app. **Test journey:**
    - First-launch role picker → pick Author
-   - Tap the floor → mark drops
+   - Tap the floor → mark drops, hint pill confirms
    - Tap a mark → editor opens, cues are previewable
-   - Settings → Mode → Perform — walk the demo
-   - Settings → Mode → Audience — scrub the progress bar
-   - Settings → New Blocking… — confirm fresh blocking
-4. **Decide on visionOS TestFlight.** I shipped iOS first; visionOS attempt is documented in REVIEW_NEEDED.md. The new profile supports xrOS too, so a `scripts/ship-testflight.sh --platform visionos` should work — but per REVIEW_NEEDED, the App Store Connect record may need visionOS added under App Information → Add Platform first. **I did not auto-add the platform** since that's a record-level change.
+   - Tap any line in the marks list → cues fire (NEW)
+   - Hit record → REC pill flashes (NEW), stop → "Walk saved" toast (NEW)
+   - Settings → Mode → Audience → tap progress bar to scrub (NEW)
+   - Settings → New Blocking… → fresh title (NEW)
+2. **Verify the visionOS fix on real Vision Pro hardware.** I tried to install Debug-xros to "Agile Alex Apple Vision Pro" via devicectl but the developer disk image wasn't mounted — needs to be done once via Xcode (connect headset, open Window → Devices and Simulators → unlock the headset). Once that's done, you can install with: `xcodebuild -project Understudy.xcodeproj -scheme Understudy -destination 'platform=visionOS,id=2642855C-6B73-5D5B-9387-6B110E7A7CF3' -configuration Debug -derivedDataPath build/visionos-device -allowProvisioningUpdates build` then `xcrun devicectl device install app --device 2642855C-... build/visionos-device/Build/Products/Debug-xros/Understudy.app`.
+   When you launch on hardware, **look down at the floor as the panel appears**. You should see a red center puddle + cyan stage perimeter within ~1s. If missing, see [REVIEW_NEEDED.md § 1-2](./REVIEW_NEEDED.md).
+3. **Bootstrap the GitHub Wiki tab.** One UI click on <https://github.com/ibrews/Understudy/wiki> then run the sync per `wiki/README.md`.
+4. **TestFlight iOS — status uncertain.** I attempted four uploads. The first three failed on a cert/profile mismatch (the existing manual profile pinned the wrong Apple Distribution cert). I wrote `scripts/regenerate-ios-profile.sh` to fix this — it now includes BOTH active iOS Distribution certs in a single profile so xcodebuild matches whichever it picks from keychain. The fourth attempt is still archiving/exporting/uploading as I'm writing this. **Check `https://appstoreconnect.apple.com/apps` in the morning** — if v0.30 (33) is processing, success. If not, run `bash scripts/ship-testflight.sh --skip-preflight --no-testers` again from a fresh shell with `~/.zprofile` sourced.
+5. **visionOS TestFlight — not attempted yet.** The regenerated profile supports xrOS too (it's a multi-platform profile). When iOS uploads work, run `bash scripts/ship-testflight.sh --platform visionos --skip-preflight --no-testers`. Expect possible "missing supported platforms" rejection if the App Store Connect record was created iOS-only — see [REVIEW_NEEDED.md § visionOS TestFlight](./REVIEW_NEEDED.md) for fix.
 
 ## Branch and version
 
