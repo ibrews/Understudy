@@ -31,6 +31,10 @@ struct PerformerView: View {
     @State private var playbackStartedAt: Date?
     @State private var playbackTimer: Timer?
     @AppStorage("showARStage") private var showARStage: Bool = true
+    /// Wall-clock start of the current recording, for the live "REC 12s" badge.
+    @State private var recordingStartedAt: Date?
+    /// "Walk saved (Xs)" toast that appears for ~2s after stopRecording.
+    @State private var savedWalkToast: (durationLabel: String, shownAt: Date)?
 
     /// Opacity for the curtain gradient — dialed back when AR background is visible
     /// so the camera reads through but the theatrical vibe stays.
@@ -108,7 +112,9 @@ struct PerformerView: View {
             }
         }
         .sheet(isPresented: $showingMarksList) {
-            MarksOverview().environment(store)
+            MarksOverview()
+                .environment(store)
+                .environment(fx)
         }
         .sheet(isPresented: $showingSettings) {
             SettingsSheet()
@@ -157,6 +163,7 @@ struct PerformerView: View {
                     .background(.white.opacity(0.08), in: Circle())
                     .foregroundStyle(.white)
             }
+            .accessibilityLabel("Settings")
             Button { showingMarksList = true } label: {
                 Image(systemName: "list.bullet")
                     .font(.title3)
@@ -164,6 +171,7 @@ struct PerformerView: View {
                     .background(.white.opacity(0.08), in: Circle())
                     .foregroundStyle(.white)
             }
+            .accessibilityLabel("Show all marks")
         }
     }
 
@@ -251,6 +259,35 @@ struct PerformerView: View {
                   systemImage: quality > 0.6 ? "location.fill" : "location.slash")
                 .foregroundStyle(quality > 0.6 ? .green : .orange)
                 .font(.caption)
+
+            // Live recording indicator — flashing red REC + elapsed time.
+            // Without this, hitting "record" gave no visible confirmation
+            // that anything was actually being recorded.
+            if store.isRecording, let started = recordingStartedAt {
+                TimelineView(.periodic(from: .now, by: 0.5)) { ctx in
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(.red)
+                            .frame(width: 8, height: 8)
+                            .opacity(ctx.date.timeIntervalSince1970.truncatingRemainder(dividingBy: 1) < 0.5 ? 1.0 : 0.4)
+                        Text("REC \(formatRecElapsed(ctx.date.timeIntervalSince(started)))")
+                            .font(.caption.monospacedDigit().bold())
+                            .foregroundStyle(.red)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(.red.opacity(0.15), in: Capsule())
+                }
+            } else if let toast = savedWalkToast,
+                      Date().timeIntervalSince(toast.shownAt) < 2.5 {
+                Label("Walk saved (\(toast.durationLabel))", systemImage: "checkmark.circle.fill")
+                    .font(.caption.bold())
+                    .foregroundStyle(.green)
+                    .padding(.horizontal, 10).padding(.vertical, 4)
+                    .background(.green.opacity(0.15), in: Capsule())
+                    .transition(.opacity)
+            }
+
             Spacer()
             // Ghost playback toggle — only meaningful if we have a reference walk.
             Button {
@@ -267,19 +304,39 @@ struct PerformerView: View {
 
             Button {
                 if store.isRecording {
-                    _ = store.stopRecording(
+                    if let walk = store.stopRecording(
                         saveAsReference: true,
                         performerName: store.localPerformer?.displayName ?? "me"
-                    )
+                    ) {
+                        let secs = walk.duration
+                        savedWalkToast = (
+                            durationLabel: secs >= 60
+                                ? String(format: "%dm %02ds", Int(secs) / 60, Int(secs) % 60)
+                                : String(format: "%.1fs", secs),
+                            shownAt: Date()
+                        )
+                    }
+                    recordingStartedAt = nil
                 } else {
                     store.startRecording()
+                    recordingStartedAt = Date()
+                    savedWalkToast = nil
                 }
             } label: {
                 Image(systemName: store.isRecording ? "stop.circle.fill" : "record.circle")
                     .font(.title)
                     .foregroundStyle(store.isRecording ? .red : .white)
             }
+            .accessibilityLabel(store.isRecording ? "Stop recording walk" : "Record reference walk")
         }
+    }
+
+    private func formatRecElapsed(_ s: TimeInterval) -> String {
+        let total = Int(s)
+        if total >= 60 {
+            return String(format: "%d:%02d", total / 60, total % 60)
+        }
+        return String(format: "%ds", total)
     }
 
     private var ghostReadyColor: Color {
@@ -431,6 +488,9 @@ struct SettingsSheet: View {
     @State private var showingQRTarget: Bool = false
     @State private var oscBindErrorMessage: String = ""
     @State private var showOSCBindError: Bool = false
+    @State private var newBlockingTitle: String = ""
+    @State private var showingNewBlockingAlert: Bool = false
+    @State private var confirmReplaceBlocking: Bool = false
 
     private var appMode: AppMode {
         get { AppMode(rawValue: appModeRaw) ?? .perform }
@@ -574,6 +634,17 @@ struct SettingsSheet: View {
                         .font(.caption)
                 }
 
+                Section {
+                    Button {
+                        newBlockingTitle = ""
+                        showingNewBlockingAlert = true
+                    } label: {
+                        Label("New Blocking…", systemImage: "doc.badge.plus")
+                    }
+                    Text("Starts a fresh empty blocking. The current one is replaced — export it first if you want to keep it.")
+                        .font(.caption).foregroundStyle(.secondary)
+                } header: { Text("Blocking") }
+
                 Section("About") {
                     LabeledContent("Version", value: AppVersion.formatted)
                     Text(store.blocking.title).foregroundStyle(.secondary)
@@ -599,6 +670,31 @@ struct SettingsSheet: View {
             } message: {
                 Text(oscBindErrorMessage)
             }
+            .alert("New Blocking", isPresented: $showingNewBlockingAlert) {
+                TextField("Title (e.g. Hamlet — Act 1)", text: $newBlockingTitle)
+                Button("Cancel", role: .cancel) {}
+                Button("Create", role: .destructive) {
+                    let title = newBlockingTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !title.isEmpty else { return }
+                    startNewBlocking(title: title)
+                    dismiss()
+                }
+            } message: {
+                Text("Replaces the current blocking. Any unexported marks will be lost.")
+            }
+        }
+    }
+
+    private func startNewBlocking(title: String) {
+        for m in store.blocking.marks {
+            session.broadcastMarkRemoved(m.id)
+        }
+        var fresh = Blocking()
+        fresh.title = title
+        store.blocking = fresh
+        BlockingAutosave.save(fresh)
+        if let me = store.localPerformer {
+            session.transport.send(.blockingSnapshot(fresh), from: me.id)
         }
     }
 
@@ -733,15 +829,53 @@ final class PerformerARHost {
 
 private struct MarksOverview: View {
     @Environment(BlockingStore.self) private var store
+    @Environment(CueFXEngine.self) private var fx
     @Environment(\.dismiss) private var dismiss
+    @State private var lastFiredMarkID: ID?
+
     var body: some View {
         NavigationStack {
-            List(store.blocking.marks.sorted(by: { $0.sequenceIndex < $1.sequenceIndex })) { mark in
-                VStack(alignment: .leading) {
-                    Text("\(mark.sequenceIndex + 1). \(mark.name)").font(.headline)
-                    ForEach(mark.cues, id: \.id) { cue in
-                        Text(cue.humanLabel).font(.caption).foregroundStyle(.secondary)
+            List {
+                Section {
+                    ForEach(store.blocking.marks.sorted(by: { $0.sequenceIndex < $1.sequenceIndex })) { mark in
+                        Button {
+                            // Preview every cue on this mark — useful when
+                            // testing in the simulator (no real walking) or
+                            // when a director wants to scrub through a
+                            // specific beat before rehearsal.
+                            previewMark(mark)
+                        } label: {
+                            HStack {
+                                ZStack {
+                                    Circle()
+                                        .fill(lastFiredMarkID == mark.id ? Color.red.opacity(0.85) : Color.white.opacity(0.12))
+                                        .frame(width: 28, height: 28)
+                                    Text("\(mark.sequenceIndex + 1)")
+                                        .font(.caption.bold())
+                                        .foregroundStyle(lastFiredMarkID == mark.id ? .white : .primary)
+                                }
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(mark.name).font(.headline)
+                                    if mark.cues.isEmpty {
+                                        Text("No cues — hold").font(.caption).foregroundStyle(.tertiary)
+                                    } else {
+                                        Text(mark.cues.map(\.humanLabel).joined(separator: " · "))
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(2)
+                                    }
+                                }
+                                Spacer()
+                                Image(systemName: "play.circle")
+                                    .foregroundStyle(.tint)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                     }
+                } footer: {
+                    Text("Tap any mark to fire its cues now — useful for previewing in the simulator or scrubbing to a specific beat in rehearsal.")
+                        .font(.caption)
                 }
             }
             .navigationTitle("Blocking")
@@ -749,6 +883,21 @@ private struct MarksOverview: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
+            }
+        }
+    }
+
+    private func previewMark(_ mark: Mark) {
+        for cue in mark.cues {
+            fx.preview(cue)
+        }
+        lastFiredMarkID = mark.id
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        // Clear the highlight after a beat so subsequent taps re-flash.
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            if lastFiredMarkID == mark.id {
+                lastFiredMarkID = nil
             }
         }
     }
