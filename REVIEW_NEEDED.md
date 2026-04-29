@@ -20,19 +20,13 @@ These are changes I made overnight that compiled and launched cleanly in sim, bu
 
 7. **TestFlight signing approach changed from manual to automatic.** The previous "Understudy App Store" provisioning profile was out of sync with the active Apple Distribution cert (probably a re-issue; keychain has both old and new certs but the profile pinned the old one). Switched ExportOptions.plist to `signingStyle: automatic` and added `-allowProvisioningUpdates` to the export step. This matches the KB pattern in `~/knowledge/departments/engineering/testflight-autonomous-upload.md` Step 3. **First successful upload will confirm this works.** If it fails, fall back to: regenerate the iOS profile via `bootstrap-asc-profile.sh` adapted for `profileType=IOS_APP_STORE`, then revert to manual signing.
 
-## visionOS TestFlight — first from this fleet
+## visionOS TestFlight — first from this fleet (2026-04-29 partial update)
 
-**What we don't know:** per Alex's handoff to this session, no visionOS archive has ever been uploaded to App Store Connect from the Agile Lens fleet. Everything below is an educated guess until exercised.
-
-**Specific open questions when you first run `scripts/ship-testflight.sh --platform visionos`:**
-
-## visionOS TestFlight — first from this fleet
-
-**What we don't know:** per Alex's handoff to this session, no visionOS archive has ever been uploaded to App Store Connect from the Agile Lens fleet. Everything below is an educated guess until exercised.
+**What we now know** (from the v0.30 overnight-review session): the App Store Connect record at id `6762416596` ("Understudy — Agile Lens") DOES support both iOS and visionOS — confirmed via the ASC API probe logs in `IDEDistributionAppStoreConnect.log` during the upload attempts. The response showed two `appStoreVersions`: one with `platform: ios`, one with `platform: visionOs`. **So question 1 is resolved — no separate app record needed.** The remaining questions (2–5) below are still open until the first visionOS upload completes.
 
 **Specific open questions when you first run `scripts/ship-testflight.sh --platform visionos`:**
 
-1. **Separate app record?** Apple's newer "multi-platform app" model lets a single App Store Connect record cover iOS + visionOS, but you opt in at record-creation time. If the record was created iOS-only, the visionOS archive will be rejected with something like "missing supported platforms." Fix: recreate the record with both platforms checked, OR add the platform under App Information → App Availability → Add Platform.
+1. ~~**Separate app record?**~~ ✓ Resolved 2026-04-29 — record DOES support both iOS and visionOS (id 6762416596, two appStoreVersions of platforms ios + visionOs).
 2. **visionOS app icon coverage.** Alex flagged that "visionOS requires appicons / app bundle" — this likely means the asset catalog needs the visionOS-specific icon layers (front/middle/back parallax). Our `AppIcon.appiconset/Contents.json` has a `visionos` entry pointing to a single `Icon-visionOS.png`; Apple might reject if the record is visionOS-strict and no parallax layers exist. Field-verify by archiving for visionOS; if it fails asset-catalog validation, split the icon into the three required layers.
 3. **Export Compliance on visionOS side.** Should inherit from the same Info.plist build settings (`ITSAppUsesNonExemptEncryption = NO`) since the visionOS build reads the same plist. Confirm it actually does by watching for "Missing Compliance" after visionOS upload.
 4. **Build number collision across platforms.** If iOS build 20 and visionOS build 20 both upload to the same app record, Apple may treat them as one or as a conflict. Best practice: bump between platform uploads (iOS 20 → visionOS 21) until we confirm. `scripts/bump-version.sh` handles this.
