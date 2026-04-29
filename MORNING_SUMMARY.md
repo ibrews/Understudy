@@ -71,8 +71,35 @@ To mirror to the GitHub Wiki tab, you need to **visit https://github.com/ibrews/
 2. **Verify the visionOS fix on real Vision Pro hardware.** I tried to install Debug-xros to "Agile Alex Apple Vision Pro" via devicectl but the developer disk image wasn't mounted — needs to be done once via Xcode (connect headset, open Window → Devices and Simulators → unlock the headset). Once that's done, you can install with: `xcodebuild -project Understudy.xcodeproj -scheme Understudy -destination 'platform=visionOS,id=2642855C-6B73-5D5B-9387-6B110E7A7CF3' -configuration Debug -derivedDataPath build/visionos-device -allowProvisioningUpdates build` then `xcrun devicectl device install app --device 2642855C-... build/visionos-device/Build/Products/Debug-xros/Understudy.app`.
    When you launch on hardware, **look down at the floor as the panel appears**. You should see a red center puddle + cyan stage perimeter within ~1s. If missing, see [REVIEW_NEEDED.md § 1-2](./REVIEW_NEEDED.md).
 3. **Bootstrap the GitHub Wiki tab.** One UI click on <https://github.com/ibrews/Understudy/wiki> then run the sync per `wiki/README.md`.
-4. **TestFlight iOS — status uncertain.** I attempted four uploads. The first three failed on a cert/profile mismatch (the existing manual profile pinned the wrong Apple Distribution cert). I wrote `scripts/regenerate-ios-profile.sh` to fix this — it now includes BOTH active iOS Distribution certs in a single profile so xcodebuild matches whichever it picks from keychain. The fourth attempt is still archiving/exporting/uploading as I'm writing this. **Check `https://appstoreconnect.apple.com/apps` in the morning** — if v0.30 (33) is processing, success. If not, run `bash scripts/ship-testflight.sh --skip-preflight --no-testers` again from a fresh shell with `~/.zprofile` sourced.
-5. **visionOS TestFlight — not attempted yet.** The regenerated profile supports xrOS too (it's a multi-platform profile). When iOS uploads work, run `bash scripts/ship-testflight.sh --platform visionos --skip-preflight --no-testers`. Expect possible "missing supported platforms" rejection if the App Store Connect record was created iOS-only — see [REVIEW_NEEDED.md § visionOS TestFlight](./REVIEW_NEEDED.md) for fix.
+4. **TestFlight uploads — DID NOT COMPLETE. One step from success.** I got everything working except the very last step. **Run this command in your terminal in the morning** (one-time fix, then both platforms upload normally):
+
+   ```bash
+   security set-key-partition-list -S apple-tool:,apple:,codesign: -s \
+     -k <your-login-password> ~/Library/Keychains/login.keychain-db
+   ```
+
+   (You have to type your real macOS password — I can't do that from a non-interactive shell, which is why I got stuck.)
+
+   Then run:
+
+   ```bash
+   source ~/.zprofile
+   bash scripts/retry-testflight-upload.sh ios
+   bash scripts/retry-testflight-upload.sh visionos
+   ```
+
+   I wrote `retry-testflight-upload.sh` to be a clean, separated workflow: `xcodebuild -exportArchive` produces a .ipa, then `xcrun altool --upload-app` does the upload. Bypasses the combined `destination:upload` mode in the original script that was hanging.
+
+   **What I confirmed works:**
+   - The provisioning profile is regenerated and correct (signed with both Apple Distribution certs in keychain)
+   - Both iOS and visionOS archives exist and are at the latest version (v0.30 (33))
+   - The App Store Connect record at `id 6762416596` ("Understudy — Agile Lens") supports both iOS AND visionOS — confirmed from the upload logs
+   - ASC API key auth works (200 OK responses to all probe calls)
+
+   **What hung:**
+   - Every `xcodebuild -exportArchive` invocation got stuck during the codesign step. The codesign processes are alive but at 0% CPU, indicating they're waiting on a partition-list authorization. The fix is the `set-key-partition-list` command above — it has to be run interactively because `security` requires the password as an argument (no stdin prompt).
+
+5. **visionOS TestFlight record IS configured.** The ASC API logs confirmed two appStoreVersions on the record — one iOS, one visionOS. So once the codesign hang is resolved, `retry-testflight-upload.sh visionos` should ship cleanly with no "missing supported platforms" rejection.
 
 ## Branch and version
 
