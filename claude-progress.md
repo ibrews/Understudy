@@ -57,7 +57,11 @@ Order of operations:
 
 ## Failed approaches
 
-(none yet)
+**1. Automatic signing for export.** The KB pattern says use `signingStyle: automatic` + `-allowProvisioningUpdates`. Tried it; failed with "Cloud signing permission error" because our App Manager API key lacks the Cloud Managed App Distribution Certificate permission. Reverted to manual signing.
+
+**2. First profile regeneration with single cert.** Picked `S23TY572FR` (DISTRIBUTION, expires 2027-04-17) — this matched the keychain cert by SHA1. But export still failed because there were TWO profiles named "Understudy App Store" on disk (the old UUID-named one shadowing the new). Fixed by deleting stale profiles and renaming the new one to UUID-canonical filename.
+
+**3. Including all distribution certs in the profile.** Added both DISTRIBUTION certs (S23TY572FR and YABMP5PBH2) to the regenerated profile. Re-running ship now.
 
 ## Notes
 

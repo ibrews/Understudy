@@ -57,28 +57,29 @@ BUNDLE_RESOURCE_ID=$(asc_curl -G "https://api.appstoreconnect.apple.com/v1/bundl
 [ -n "$BUNDLE_RESOURCE_ID" ] || { echo "✗ Bundle ID $BUNDLE_ID not found in ASC (filter: IOS/UNIVERSAL platform)"; exit 1; }
 echo "  bundle: $BUNDLE_RESOURCE_ID"
 
-echo "▶ Listing distribution certs…"
-CERT_ID=$(asc_curl "https://api.appstoreconnect.apple.com/v1/certificates" \
+echo "▶ Listing distribution certs (will include all valid ones in the profile)…"
+CERT_IDS=$(asc_curl "https://api.appstoreconnect.apple.com/v1/certificates" \
   | python3 -c '
 import sys, json
 d = json.load(sys.stdin)
-PRIORITY = ["DISTRIBUTION", "IOS_DISTRIBUTION"]
-found = {}
+ALLOWED = {"DISTRIBUTION", "IOS_DISTRIBUTION"}
+ids = []
 for c in d.get("data", []):
     attrs = c.get("attributes", {})
     ctype = attrs.get("certificateType", "")
     cid = c.get("id", "")
     name = attrs.get("name", "")
     expires = attrs.get("expirationDate", "")
-    print(f"  {cid}  {ctype:24s}  expires {expires}  {name}", file=sys.stderr)
-    if ctype in PRIORITY and ctype not in found:
-        found[ctype] = cid
-for t in PRIORITY:
-    if t in found:
-        print(found[t]); break
+    if ctype in ALLOWED:
+        ids.append(cid)
+        print(f"  ✓ {cid}  {ctype:18s}  expires {expires}  {name}", file=sys.stderr)
+    else:
+        print(f"    {cid}  {ctype:18s}  expires {expires}  {name}", file=sys.stderr)
+print(",".join(ids))
 ')
-[ -n "$CERT_ID" ] || { echo "✗ No DISTRIBUTION/IOS_DISTRIBUTION cert found in ASC"; exit 2; }
-echo "  cert  : $CERT_ID"
+[ -n "$CERT_IDS" ] || { echo "✗ No DISTRIBUTION/IOS_DISTRIBUTION cert found in ASC"; exit 2; }
+echo "  certs : $CERT_IDS"
+CERT_ID="$CERT_IDS"  # comma-separated for the JSON builder below
 
 echo "▶ Looking up Dev Team device list (App Store profiles can include them, harmless)…"
 # Skip — not required for AppStore profiles.
@@ -99,6 +100,7 @@ echo "▶ Creating new IOS_APP_STORE profile '$PROFILE_NAME'…"
 export PROFILE_NAME BUNDLE_RESOURCE_ID CERT_ID
 PROFILE_PAYLOAD=$(python3 -c '
 import json, os
+ids = [c.strip() for c in os.environ["CERT_ID"].split(",") if c.strip()]
 print(json.dumps({
   "data": {
     "type": "profiles",
@@ -107,8 +109,8 @@ print(json.dumps({
       "profileType": "IOS_APP_STORE"
     },
     "relationships": {
-      "bundleId":     {"data": {"type": "bundleIds",    "id": os.environ["BUNDLE_RESOURCE_ID"]}},
-      "certificates": {"data": [{"type": "certificates","id": os.environ["CERT_ID"]}]}
+      "bundleId":     {"data": {"type": "bundleIds", "id": os.environ["BUNDLE_RESOURCE_ID"]}},
+      "certificates": {"data": [{"type": "certificates", "id": cid} for cid in ids]}
     }
   }
 }))')
