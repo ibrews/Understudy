@@ -219,7 +219,23 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] Migrate Monitoring code to AgileLensMultiplayer SPM dependency (currently copied in)
 - [ ] DMX on Android — v0.24 ships iOS sACN; port `DMXOutput.swift` + `DMXCueMapping.swift` to Kotlin (`java.net.DatagramSocket`/`MulticastSocket`). Hand-roll the same E1.31-2018 packet.
 - [ ] `scripts/ship-playstore.sh` — automate the `./gradlew bundleRelease` + Google Play Publisher roll-out. Guide in `HANDOFF_GOOGLE_PLAY.md`.
+- [ ] In-app script importer (drop a `.txt` or `.json` in via Files → it appears in the Script Browser).
+- [ ] Multiple reference walks per blocking, with picker. Today only the most recent walk is kept.
 - [ ] Long Day's Journey into Night (O'Neill) — copyright expires; check jurisdiction before adding. Beckett's expires 2059 in Europe.
+
+### v0.30 · Overnight UX overhaul + user-facing wiki
+
+User feedback: visionOS shows just a "black floating window," many iOS buttons appear non-functional. Three batches of fixes plus a 13-page user-facing wiki targeted at theatre and film artists who don't read code.
+
+**1. visionOS — the immersive stage actually opens, and is actually visible.** Auto-opens the Stage immersive space on first appearance (gated on a new `@AppStorage("autoOpenStage")` toggle, default ON). When inside the stage, a **0.4 m red puddle** marks the origin and a **4×6 m translucent cyan rectangle** marks the playing area — you can SEE where the stage is even before dropping any marks. A floating welcome card reads *"Tap the floor to drop a mark"* until the first mark exists. Brighter mark discs (cyan @ 0.55 alpha + 0.95 rim) so they read against bright passthrough.
+
+**2. visionOS Director Panel: Quick Start strip + Preview Show.** A new prominent strip at the top with three buttons: **Open Stage / Close Stage**, **Teleprompter**, **Preview Show**. Preview Show is new — walks the GO cursor through every actor mark in sequence at 2.5 s per beat, firing the same cue path as a real walk-on. **Lets a director rehearse the cue stack with no performers in the room.** The legacy "Mixed Reality On/Off" toggle is renamed to "Auto-open stage" (since Quick Start now owns the open/close action).
+
+**3. iOS dead-button + dead-feedback fixes.** PerformerView's MarksOverview list rows are now buttons — tapping any mark fires its cues immediately via `fx.preview()`. Live recording indicator: a flashing red REC pill with elapsed seconds while recording, "Walk saved (X.Ys)" toast on stop. Accessibility labels on every icon-only button. AuthorView's "Tap the floor" hint card no longer disappears as soon as marks exist — adapts to a small capsule pill so the gesture is always discoverable. Audience progress bar is now scrubbable with beat ticks, fires the cues for the tapped beat. New "New Blocking…" action in Settings that replaces the bundled Hamlet demo title.
+
+**4. Onboarding copy fixed.** Author step 1 told users to "tap the ⊕ button" but the actual UI is tap-the-floor; rewrote to match. Audience flow was structured around joining a director's room as the primary path, but the lead use case is a single phone walking a recorded show; rewrote to lead with self-paced solo, mention live director room as the third step.
+
+**5. The wiki — `/wiki/` folder + GitHub Wiki tab mirror.** 13 pages: Home, Quick-Start, Director-Guide, Performer-Guide, Author-Guide, Audience-Mode, Camera-and-Film-Mode, Multiple-Devices, QLab-and-OSC, DMX-Lighting, Room-Scanning, Bundled-Plays, Troubleshooting, Glossary. Voice tuned for theatre and film artists (no jargon dumps). Each page ends with cross-links so a first-time reader can navigate by curiosity. See [`wiki/`](wiki/) or the GitHub Wiki tab once it's bootstrapped.
 
 ### v0.27 · First-run onboarding + teleprompter word-wrap fix
 
