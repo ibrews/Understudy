@@ -14,6 +14,10 @@ struct UnderstudyApp: App {
     @State private var fx: CueFXEngine
     @AppStorage("displayName") private var displayName: String = ""
     @AppStorage("roomCode") private var roomCode: String = "rehearsal"
+    /// When true, the immersive stage opens automatically on launch (visionOS).
+    /// Director can disable this from the control panel if they want the
+    /// floating window to stay solo.
+    @AppStorage("autoOpenStage") private var autoOpenStage: Bool = true
     @State private var hasOnboarded = false
 
     init() {

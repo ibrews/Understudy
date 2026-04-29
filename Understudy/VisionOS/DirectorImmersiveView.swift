@@ -48,8 +48,19 @@ struct DirectorImmersiveView: View {
     // Scan rotation gesture state.
     @State private var scanRotateStartYaw: Float?
 
+    /// A subtle visible disc at the stage center — gives the director a
+    /// visual anchor when the stage is empty so they can tell they're
+    /// actually inside the immersive space.
+    @State private var stageCenterDisc: Entity = Entity()
+    /// A wider, dimmer ring extending out from center — defines the
+    /// "playing area" so the director sees where they can place marks.
+    @State private var stagePerimeter: Entity = Entity()
+    /// "Tap the floor to drop a mark" empty-state attachment, anchored
+    /// over the stage center. Shown only when there are zero marks.
+    @State private var emptyHintEntity: Entity = Entity()
+
     var body: some View {
-        RealityView { content, _ in
+        RealityView { content, attachments in
             // stageContainer wraps stageRoot so we can scale the whole stage
             // in tabletop mode without disturbing individual entity positions.
             content.add(stageContainer)
@@ -58,6 +69,8 @@ struct DirectorImmersiveView: View {
             stageRoot.position = [0, -1.0, -0.5]
             stageRoot.addChild(sequenceRibbon)
 
+            // Tap-detection plane — invisible, but covers a 20×20m floor area
+            // so taps anywhere in the stage register.
             let plane = ModelEntity(
                 mesh: .generatePlane(width: 20, depth: 20),
                 materials: [UnlitMaterial(color: .white.withAlphaComponent(0.0001))]
@@ -66,6 +79,39 @@ struct DirectorImmersiveView: View {
             plane.components.set(InputTargetComponent())
             plane.name = "stageFloor"
             stageRoot.addChild(plane)
+
+            // Visible stage-center disc — a glowing red puddle so the
+            // director can SEE where the stage origin is even before
+            // dropping any marks. This is what was missing in v0.29 —
+            // entering immersive mode showed a totally empty space.
+            let centerDisc = ModelEntity(
+                mesh: .generatePlane(width: 0.4, depth: 0.4, cornerRadius: 0.2),
+                materials: [Self.centerDiscMaterial()]
+            )
+            centerDisc.position.y = 0.002
+            centerDisc.name = "stageCenterDisc"
+            stageRoot.addChild(centerDisc)
+            stageCenterDisc = centerDisc
+
+            // Stage perimeter — a 4 m × 6 m soft rectangle on the floor
+            // marking the playing area. Theater convention: longer
+            // upstage-downstage axis. Translucent so it doesn't dominate.
+            let perimeter = ModelEntity(
+                mesh: .generatePlane(width: 4.0, depth: 6.0, cornerRadius: 0.1),
+                materials: [Self.perimeterMaterial()]
+            )
+            perimeter.position.y = 0.001
+            perimeter.name = "stagePerimeter"
+            stageRoot.addChild(perimeter)
+            stagePerimeter = perimeter
+
+            // Empty-state hint card — anchored 1.5 m above the stage
+            // center. Shown only when the stage has no marks yet.
+            if let hint = attachments.entity(for: "emptyHint") {
+                hint.position = [0, 1.4, 0]
+                stageRoot.addChild(hint)
+                emptyHintEntity = hint
+            }
 
             let light = ModelEntity(
                 mesh: .generateSphere(radius: 0.6),
@@ -103,8 +149,14 @@ struct DirectorImmersiveView: View {
                 syncFlash()
                 syncMarkCards(attachments: attachments)
                 syncRoomScan()
+                syncEmptyHint()
             }
         } attachments: {
+            // Empty-state floating card. Visible only when the stage has zero
+            // marks — guides first-time directors to the tap gesture.
+            Attachment(id: "emptyHint") {
+                EmptyStageHintCard()
+            }
             ForEach(store.blocking.marks, id: \.id) { mark in
                 Attachment(id: mark.id.raw) {
                     MarkScriptCard(
@@ -216,6 +268,46 @@ struct DirectorImmersiveView: View {
             stageContainer.scale = [1, 1, 1]
             stageContainer.position = .zero
         }
+    }
+
+    // MARK: - Empty-state hint
+
+    /// Show the floating "Tap the floor to drop a mark" card when the stage
+    /// is empty. Hide it the moment the first mark exists.
+    private func syncEmptyHint() {
+        let hasMarks = !store.blocking.marks.isEmpty
+        emptyHintEntity.isEnabled = !hasMarks
+        // Also dim the perimeter ring once marks are placed — we don't need
+        // both the perimeter AND the marks to compete for attention.
+        if hasMarks {
+            stagePerimeter.components.set(OpacityComponent(opacity: 0.25))
+        } else {
+            stagePerimeter.components.set(OpacityComponent(opacity: 1.0))
+        }
+    }
+
+    // MARK: - Floor materials
+
+    /// Soft red puddle at the stage origin — enough to read as "the
+    /// stage is here" without dominating the view.
+    fileprivate static func centerDiscMaterial() -> RealityKit.Material {
+        var m = UnlitMaterial()
+        let c = UIColor(red: 0.85, green: 0.18, blue: 0.22, alpha: 0.55)
+        m.color = .init(tint: c)
+        m.blending = .transparent(opacity: .init(floatLiteral: 0.55))
+        return m
+    }
+
+    /// Translucent perimeter rectangle that defines the playing area.
+    /// 4 m wide × 6 m deep — typical theater stage proportions, with the
+    /// long axis upstage-downstage so the director's natural orientation
+    /// (facing -Z) reads as "house at +Z, upstage at -Z".
+    fileprivate static func perimeterMaterial() -> RealityKit.Material {
+        var m = UnlitMaterial()
+        let c = UIColor(red: 0.4, green: 0.85, blue: 1.0, alpha: 0.06)
+        m.color = .init(tint: c)
+        m.blending = .transparent(opacity: .init(floatLiteral: 0.06))
+        return m
     }
 
     // MARK: - Stage grid overlay
@@ -447,16 +539,20 @@ struct DirectorImmersiveView: View {
         root.name = "mark-\(mark.id.raw)"
         root.position = [mark.pose.x, 0.005, mark.pose.z]
 
+        // A theatrical "spike mark" — bright fill so it reads against
+        // passthrough, with a brighter rim ring on top. Cyan because it's
+        // visible across most rehearsal-room palettes (red walls, beige
+        // wood, white floor).
         let disc = ModelEntity(
             mesh: .generateCylinder(height: 0.01, radius: mark.radius),
-            materials: [UnlitMaterial(color: .cyan.withAlphaComponent(0.35))]
+            materials: [UnlitMaterial(color: UIColor(red: 0.25, green: 0.85, blue: 1.0, alpha: 0.55))]
         )
         disc.name = "disc"
         root.addChild(disc)
 
         let rim = ModelEntity(
-            mesh: .generateCylinder(height: 0.012, radius: mark.radius * 0.98),
-            materials: [UnlitMaterial(color: .cyan)]
+            mesh: .generateCylinder(height: 0.014, radius: mark.radius * 0.98),
+            materials: [UnlitMaterial(color: UIColor(red: 0.6, green: 0.95, blue: 1.0, alpha: 0.95))]
         )
         rim.scale = [1, 0.1, 1]
         rim.position.y = 0.005
@@ -672,4 +768,32 @@ fileprivate extension UnlitMaterial {
     }
 }
 #endif
+
+/// Floating welcome card shown when the immersive stage has no marks.
+/// Anchored above the stage center so directors see it the moment they
+/// enter MR for the first time.
+private struct EmptyStageHintCard: View {
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "hand.tap.fill")
+                .font(.system(size: 42))
+                .foregroundStyle(.white.opacity(0.95))
+            Text("Tap the floor to drop a mark")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(.white)
+            Text("Each mark is a blocking position.\nLines, sounds, and lights attach to it.")
+                .font(.body)
+                .foregroundStyle(.white.opacity(0.75))
+                .multilineTextAlignment(.center)
+        }
+        .padding(28)
+        .frame(width: 380)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(.white.opacity(0.2), lineWidth: 1)
+        )
+        .shadow(radius: 20)
+    }
+}
 #endif

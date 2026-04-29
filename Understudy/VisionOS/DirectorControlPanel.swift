@@ -28,25 +28,30 @@ struct DirectorControlPanel: View {
     @State private var directorPlaybackStartedAt: Date?
     @State private var directorPlaybackTimer: Timer?
     @State private var showingOSCSettings = false
+    @State private var simulateWalkTask: Task<Void, Never>?
+    @State private var simulateWalkActive: Bool = false
     @AppStorage("oscEnabled") private var oscEnabled: Bool = false
     @AppStorage("oscHost") private var oscHost: String = ""
     @AppStorage("oscPort") private var oscPortStr: String = "53000"
+    @AppStorage("autoOpenStage") private var autoOpenStage: Bool = true
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                header
-                roomRow
-                stageToolbar
-                rehearsalTimerStrip
-                marksList
-                propsList
-                transportStrip
-                scanAlignStrip
-                Spacer()
-                footer
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    header
+                    quickStart
+                    roomRow
+                    stageToolbar
+                    rehearsalTimerStrip
+                    marksList
+                    propsList
+                    transportStrip
+                    scanAlignStrip
+                    footer
+                }
+                .padding(24)
             }
-            .padding(24)
             .navigationTitle("Understudy — Director")
             .sheet(item: $editingMark) { mark in
                 MarkEditor(mark: mark)
@@ -73,9 +78,125 @@ struct DirectorControlPanel: View {
                     .environment(fx)
                     .frame(minWidth: 420, minHeight: 360)
             }
-            .onAppear { applyOSC() }
-            .onDisappear { stopDirectorPlayback() }
+            .onAppear {
+                applyOSC()
+                // Auto-open the immersive stage on first appearance so directors
+                // don't have to hunt for the toggle. Disabled on subsequent
+                // toggles by tracking immersiveActive separately.
+                if autoOpenStage && !immersiveActive {
+                    Task {
+                        let result = await openImmersiveSpace(id: "Stage")
+                        if case .opened = result {
+                            immersiveActive = true
+                        }
+                    }
+                }
+            }
+            .onDisappear {
+                stopDirectorPlayback()
+                stopSimulateWalk()
+            }
         }
+    }
+
+    // MARK: - Quick Start (the obvious-first-action strip)
+    //
+    // The DirectorControlPanel is dense — three sections of toggles, a marks
+    // list, props, transport, OSC. New theater directors don't know which
+    // knob to turn first. Quick Start surfaces the three most impactful
+    // actions: enter the stage, drop a demo, and preview the show end-to-end.
+
+    @ViewBuilder private var quickStart: some View {
+        HStack(spacing: 12) {
+            // 1. Enter Stage — the headline action. Big, green, obvious.
+            Button {
+                Task {
+                    if immersiveActive {
+                        await dismissImmersiveSpace()
+                        immersiveActive = false
+                    } else {
+                        let result = await openImmersiveSpace(id: "Stage")
+                        if case .opened = result { immersiveActive = true }
+                    }
+                }
+            } label: {
+                Label(immersiveActive ? "Close Stage" : "Open Stage",
+                      systemImage: immersiveActive ? "rectangle.compress.vertical" : "theatermasks.fill")
+                    .font(.title3.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(immersiveActive ? .gray : .green)
+            .controlSize(.large)
+
+            // 2. Open Teleprompter — directors love to see the script
+            // floating in space alongside the marks.
+            Button {
+                openWindow(id: "Teleprompter")
+            } label: {
+                Label("Teleprompter", systemImage: "text.quote")
+                    .font(.title3.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+
+            // 3. Simulate Walk — preview the entire show without performers.
+            // Walks the cursor through every mark in sequence, firing cues
+            // and pausing so the director can see + hear what each beat
+            // sounds like. Requires marks to exist.
+            Button {
+                if simulateWalkActive {
+                    stopSimulateWalk()
+                } else {
+                    startSimulateWalk()
+                }
+            } label: {
+                Label(simulateWalkActive ? "Stop Preview" : "Preview Show",
+                      systemImage: simulateWalkActive ? "stop.fill" : "play.rectangle.fill")
+                    .font(.title3.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(.bordered)
+            .tint(simulateWalkActive ? .red : .orange)
+            .controlSize(.large)
+            .disabled(store.blocking.marks.filter { $0.sequenceIndex >= 0 }.isEmpty)
+        }
+        .padding(.vertical, 6)
+    }
+
+    // MARK: - Simulate Walk
+    //
+    // Steps the GO cursor through every actor mark in sequence with a
+    // configurable dwell time, firing the same cue path as a real walk-on.
+    // Lets a director rehearse the cue stack before any performers arrive.
+
+    private func startSimulateWalk() {
+        simulateWalkActive = true
+        // Reset the cursor so we always start at the top.
+        fx.goCursor = -1
+        let dwellSeconds: UInt64 = 2_500_000_000  // 2.5s per beat
+        let ordered = store.blocking.marks
+            .filter { $0.sequenceIndex >= 0 }
+            .sorted { $0.sequenceIndex < $1.sequenceIndex }
+        simulateWalkTask = Task { @MainActor in
+            for _ in ordered {
+                guard !Task.isCancelled, simulateWalkActive else { break }
+                fx.goForward()
+                try? await Task.sleep(nanoseconds: dwellSeconds)
+            }
+            // Loop end — reset state for next run.
+            await MainActor.run { simulateWalkActive = false }
+        }
+    }
+
+    private func stopSimulateWalk() {
+        simulateWalkActive = false
+        simulateWalkTask?.cancel()
+        simulateWalkTask = nil
     }
 
     private func nudgeScanRotation(by radians: Float) {
@@ -349,27 +470,13 @@ struct DirectorControlPanel: View {
                 .textFieldStyle(.roundedBorder)
                 .frame(maxWidth: 180)
 
-                Toggle(isOn: $immersiveActive) {
-                    Label(
-                        immersiveActive ? "Mixed Reality On" : "Enter Mixed Reality",
-                        systemImage: immersiveActive ? "arkit" : "arkit"
-                    )
+                Toggle(isOn: $autoOpenStage) {
+                    Label("Auto-open stage", systemImage: "wand.and.stars")
                 }
                 .toggleStyle(.button)
-                .tint(immersiveActive ? .green : .blue)
-                .controlSize(.large)
-                .onChange(of: immersiveActive) { _, on in
-                    Task {
-                        if on { _ = await openImmersiveSpace(id: "Stage") }
-                        else { await dismissImmersiveSpace() }
-                    }
-                }
+                .controlSize(.regular)
+                .help("Open the immersive stage automatically when this window appears")
 
-                Button {
-                    openWindow(id: "Teleprompter")
-                } label: {
-                    Label("Teleprompter", systemImage: "text.quote")
-                }
                 Button {
                     openWindow(id: "QRTarget")
                 } label: {
