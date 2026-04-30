@@ -13,6 +13,8 @@ import SwiftUI
 struct ModeSelector: View {
     @AppStorage("appMode") private var appModeRaw: String = ""
     @AppStorage("hasPickedMode") private var hasPickedMode: Bool = false
+    @State private var showingDemoLauncher = false
+    @State private var showingGuidedTour = false
     var onPicked: (AppMode) -> Void
 
     var body: some View {
@@ -33,12 +35,69 @@ struct ModeSelector: View {
                         }
                     }
                 }
+                // Headline CTA — the on-rails interactive tour for absolute
+                // newcomers. Designed to be handed to a stranger at a
+                // conference booth and produce a "wow" moment in 60 seconds.
+                Button {
+                    showingGuidedTour = true
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "sparkles")
+                            .font(.title2)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Try the 60-second tour")
+                                .font(.headline)
+                            Text("New here? Tap-tap-tap — feel what Understudy does.")
+                                .font(.caption2)
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.callout)
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 14)
+                    .background(
+                        LinearGradient(colors: [Color.purple.opacity(0.85), Color.red.opacity(0.65)],
+                                       startPoint: .leading, endPoint: .trailing),
+                        in: RoundedRectangle(cornerRadius: 18)
+                    )
+                    .overlay(RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.25), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4)
+
+                // Secondary: the auto-play showcase library.
+                Button {
+                    showingDemoLauncher = true
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "sparkles.tv.fill")
+                            .font(.callout)
+                        Text("Browse showcase demos")
+                            .font(.subheadline)
+                    }
+                    .foregroundStyle(.white.opacity(0.7))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color.white.opacity(0.06), in: Capsule())
+                    .overlay(Capsule().stroke(.white.opacity(0.12), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
                 Spacer()
                 footer
             }
             .padding(20)
         }
         .preferredColorScheme(.dark)
+        .sheet(isPresented: $showingGuidedTour) {
+            GuidedTourView()
+        }
+        .sheet(isPresented: $showingDemoLauncher) {
+            DemoLauncherView()
+        }
     }
 
     private func pick(_ mode: AppMode) {

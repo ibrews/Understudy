@@ -12,6 +12,10 @@ struct UnderstudyApp: App {
     @State private var store: BlockingStore
     @State private var sessionController: SessionController
     @State private var fx: CueFXEngine
+    @State private var demoRunner: DemoRunner
+    #if os(visionOS)
+    @State private var controllerInput: ControllerInput
+    #endif
     @AppStorage("displayName") private var displayName: String = ""
     @AppStorage("roomCode") private var roomCode: String = "rehearsal"
     /// When true, the immersive stage opens automatically on launch (visionOS).
@@ -37,9 +41,15 @@ struct UnderstudyApp: App {
         let t = MultipeerTransport()
         let sc = SessionController(transport: t, kind: .multipeer, store: s, roomCode: "rehearsal")
         let engine = CueFXEngine()
+        let runner = DemoRunner()
         _store = State(wrappedValue: s)
         _sessionController = State(wrappedValue: sc)
         _fx = State(wrappedValue: engine)
+        _demoRunner = State(wrappedValue: runner)
+        #if os(visionOS)
+        let ci = ControllerInput()
+        _controllerInput = State(wrappedValue: ci)
+        #endif
     }
 
     var body: some Scene {
@@ -48,6 +58,11 @@ struct UnderstudyApp: App {
                 .environment(store)
                 .environment(sessionController)
                 .environment(fx)
+                .environment(demoRunner)
+                #if os(visionOS)
+                .environment(controllerInput)
+                #endif
+                .overlay(DemoRunnerOverlay().environment(demoRunner))
                 .onAppear {
                     if !hasOnboarded {
                         // Seed default display name from device name if user hasn't set one.
@@ -91,6 +106,8 @@ struct UnderstudyApp: App {
                 .environment(store)
                 .environment(sessionController)
                 .environment(fx)
+                .environment(demoRunner)
+                .environment(controllerInput)
         }
         .immersionStyle(selection: .constant(.mixed), in: .mixed)
 

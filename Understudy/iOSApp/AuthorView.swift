@@ -37,6 +37,9 @@ struct AuthorView: View {
     @State private var scanNameDraft: String = "Room scan"
     @State private var showingScanNameSheet: Bool = false
     @State private var showingTeleprompter: Bool = false
+    @State private var showingDemoLauncher: Bool = false
+    @State private var showingStageMap: Bool = false
+    @State private var showingMetrics: Bool = false
     @AppStorage("hasSeenOnboarding_author") private var hasSeenOnboarding: Bool = false
     @State private var showingOnboarding = false
 
@@ -114,6 +117,10 @@ struct AuthorView: View {
             TeleprompterView()
                 .environment(store)
                 .environment(session)
+        }
+        .sheet(isPresented: $showingStageMap) {
+            StageMapView()
+                .environment(store)
         }
         .sheet(isPresented: $showingOnboarding) {
             OnboardingSheet(mode: .author) {
@@ -195,6 +202,14 @@ struct AuthorView: View {
                     .foregroundStyle(.white)
             }
             .accessibilityLabel("Open teleprompter")
+            Button { showingStageMap = true } label: {
+                Image(systemName: "map")
+                    .font(.title3)
+                    .padding(10)
+                    .background(.white.opacity(0.08), in: Circle())
+                    .foregroundStyle(.white)
+            }
+            .accessibilityLabel("Stage map")
             Button { showingSettings = true } label: {
                 Image(systemName: "gearshape")
                     .font(.title3)
@@ -814,6 +829,19 @@ struct MarkEditorSheet: View {
                             color: selectedLight,
                             intensity: Float(lightIntensity)
                         ))
+                    }
+                    // Gel presets — one tap appends a multi-cue mood.
+                    Menu {
+                        ForEach(LightGelPreset.allCases) { gel in
+                            Button {
+                                mark.cues.append(contentsOf: gel.makeCues())
+                            } label: {
+                                Label(gel.rawValue, systemImage: gel.systemImage)
+                            }
+                        }
+                    } label: {
+                        Label("Apply Gel Preset…", systemImage: "wand.and.stars")
+                            .foregroundStyle(.purple)
                     }
                 }
 
