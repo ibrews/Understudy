@@ -33,6 +33,8 @@ struct DirectorImmersiveView: View {
     @State private var stageLight: ModelEntity = ModelEntity()
     @State private var ghostEntity: Entity = Entity()
     @State private var lastRenderedFlashID: UUID?
+    /// Tracks the last cue-fire event we animated, so we only pulse once per fire.
+    @State private var lastRenderedFireID: UUID?
     @State private var roomScanEntity: ModelEntity?
     @State private var renderedScanHash: Int?
     @State private var roomScanBounds: SIMD3<Float> = .zero
@@ -141,6 +143,7 @@ struct DirectorImmersiveView: View {
                 syncRibbon()
                 syncGhost()
                 syncFlash()
+                syncCueFire()
                 syncMarkCards(attachments: attachments)
                 syncRoomScan()
                 syncEmptyHint()
@@ -768,6 +771,54 @@ struct DirectorImmersiveView: View {
         }
     }
 
+    /// Reacts to every new CueFireEvent: pulses the originating mark and
+    /// (for light cues) washes the stage perimeter in the cue's colour.
+    private func syncCueFire() {
+        guard let fire = fx.lastFire, fire.id != lastRenderedFireID else { return }
+        lastRenderedFireID = fire.id
+        guard let mark = store.blocking.marks.first(where: { $0.name == fire.markName }),
+              let entity = markEntities[mark.id] else { return }
+        pulseMarkEntity(entity)
+        if case .light(_, let lightColor, let intensity) = fire.cue {
+            flashPerimeter(lightColor: lightColor, intensity: intensity)
+        }
+    }
+
+    /// Snap-scale the entity up then spring it back — cheap "cue fired here" read.
+    private func pulseMarkEntity(_ entity: Entity) {
+        let base = entity.transform
+        var big = base
+        big.scale = base.scale * 1.6
+        entity.move(to: big, relativeTo: entity.parent, duration: 0.07, timingFunction: .easeOut)
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 70_000_000)
+            entity.move(to: base, relativeTo: entity.parent, duration: 0.4, timingFunction: .easeOut)
+        }
+    }
+
+    /// Briefly colour the stage-perimeter rectangle with a light-cue wash,
+    /// then fade it back to the default translucent blue.
+    private func flashPerimeter(lightColor: LightColor, intensity: Float) {
+        guard let model = stagePerimeter as? ModelEntity else { return }
+        let uiColor = UIColor(stageColor: lightColor)
+        let peak = CGFloat(min(intensity * 0.38, 0.38))
+        var m = UnlitMaterial()
+        m.color = .init(tint: uiColor.withAlphaComponent(peak))
+        m.blending = .transparent(opacity: .init(floatLiteral: Float(peak)))
+        model.model?.materials = [m]
+        Task { @MainActor in
+            for i in 1...10 {
+                try? await Task.sleep(nanoseconds: 55_000_000)
+                let alpha = peak * (1.0 - CGFloat(i) / 10.0)
+                var mat = UnlitMaterial()
+                mat.color = .init(tint: uiColor.withAlphaComponent(alpha))
+                mat.blending = .transparent(opacity: .init(floatLiteral: Float(alpha)))
+                model.model?.materials = [mat]
+            }
+            model.model?.materials = [Self.perimeterMaterial()]
+        }
+    }
+
     private func setStageLight(color: UIColor, alpha: CGFloat) {
         var m = UnlitMaterial()
         let a = min(0.55, max(0, alpha))
@@ -792,6 +843,20 @@ fileprivate extension UnlitMaterial {
     init(color: UIColor) {
         self.init()
         self.color = .init(tint: color)
+    }
+}
+
+fileprivate extension UIColor {
+    convenience init(stageColor: LightColor) {
+        switch stageColor {
+        case .warm:     self.init(red: 1.0,  green: 0.85, blue: 0.5,  alpha: 1)
+        case .cool:     self.init(red: 0.55, green: 0.8,  blue: 1.0,  alpha: 1)
+        case .red:      self.init(red: 1.0,  green: 0.15, blue: 0.15, alpha: 1)
+        case .blue:     self.init(red: 0.2,  green: 0.4,  blue: 1.0,  alpha: 1)
+        case .green:    self.init(red: 0.15, green: 0.9,  blue: 0.4,  alpha: 1)
+        case .amber:    self.init(red: 1.0,  green: 0.6,  blue: 0.1,  alpha: 1)
+        case .blackout: self.init(red: 0.05, green: 0.05, blue: 0.05, alpha: 1)
+        }
     }
 }
 #endif

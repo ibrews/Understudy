@@ -30,6 +30,8 @@ struct PerformerView: View {
     @State private var isPlayingGhost: Bool = false
     @State private var playbackStartedAt: Date?
     @State private var playbackTimer: Timer?
+    @State private var isScrubbing: Bool = false
+    @State private var loopPlayback: Bool = false
     @AppStorage("showARStage") private var showARStage: Bool = true
     /// Wall-clock start of the current recording, for the live "REC 12s" badge.
     @State private var recordingStartedAt: Date?
@@ -293,6 +295,56 @@ struct PerformerView: View {
     }
 
     private var bottomBar: some View {
+        VStack(spacing: 6) {
+            // Scrub bar — visible while ghost is playing so the performer can seek.
+            if isPlayingGhost, let recording = store.activeRecording, recording.duration > 0 {
+                HStack(spacing: 8) {
+                    Text(formatScrubTime((store.playbackT ?? 0) * recording.duration))
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.white.opacity(0.5))
+                        .frame(width: 34, alignment: .trailing)
+                    Slider(
+                        value: Binding(
+                            get: { store.playbackT ?? 0 },
+                            set: { t in
+                                store.playbackT = t
+                                session.broadcastPlayback(t: t)
+                            }
+                        ),
+                        in: 0...1
+                    ) { editing in
+                        isScrubbing = editing
+                        if editing {
+                            playbackTimer?.invalidate()
+                            playbackTimer = nil
+                        } else {
+                            let t = store.playbackT ?? 0
+                            if t < 1.0 {
+                                // Rewind the virtual start time so the timer picks up from here.
+                                playbackStartedAt = Date().addingTimeInterval(-(t * recording.duration))
+                                restartPlaybackTimer(duration: recording.duration)
+                            } else {
+                                stopGhostPlayback()
+                            }
+                        }
+                    }
+                    .tint(Color(red: 1.0, green: 0.4, blue: 0.9))
+                    Text(formatScrubTime(recording.duration))
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.white.opacity(0.5))
+                        .frame(width: 34, alignment: .leading)
+                    Button {
+                        loopPlayback.toggle()
+                    } label: {
+                        Image(systemName: loopPlayback ? "repeat.1" : "repeat")
+                            .font(.caption)
+                            .foregroundStyle(loopPlayback ? Color(red: 1.0, green: 0.4, blue: 0.9) : .white.opacity(0.5))
+                    }
+                    .accessibilityLabel(loopPlayback ? "Loop on" : "Loop off")
+                }
+                .padding(.horizontal, 4)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         HStack(spacing: 14) {
             let quality = store.localPerformer?.trackingQuality ?? 0
             Label(trackingLabel(quality),
@@ -372,6 +424,8 @@ struct PerformerView: View {
             }
             .accessibilityLabel(store.isRecording ? "Stop recording walk" : "Record reference walk")
         }
+        } // VStack (scrub bar + controls)
+        .animation(.easeInOut(duration: 0.2), value: isPlayingGhost)
     }
 
     private func formatRecElapsed(_ s: TimeInterval) -> String {
@@ -380,6 +434,28 @@ struct PerformerView: View {
             return String(format: "%d:%02d", total / 60, total % 60)
         }
         return String(format: "%ds", total)
+    }
+
+    private func formatScrubTime(_ s: TimeInterval) -> String {
+        let total = Int(max(0, s))
+        return total >= 60
+            ? String(format: "%d:%02d", total / 60, total % 60)
+            : String(format: "0:%02d", total)
+    }
+
+    /// Restart the playback timer without resetting playbackStartedAt (used after scrubbing).
+    private func restartPlaybackTimer(duration: TimeInterval) {
+        playbackTimer?.invalidate()
+        playbackTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { _ in
+            Task { @MainActor in
+                guard let started = playbackStartedAt else { return }
+                let elapsed = Date().timeIntervalSince(started)
+                let t = min(1, elapsed / duration)
+                store.playbackT = t
+                session.broadcastPlayback(t: t)
+                if t >= 1 { stopGhostPlayback() }
+            }
+        }
     }
 
     private var ghostReadyColor: Color {
@@ -411,7 +487,14 @@ struct PerformerView: View {
                 let t = min(1, elapsed / duration)
                 store.playbackT = t
                 session.broadcastPlayback(t: t)
-                if t >= 1 { stopGhostPlayback() }
+                if t >= 1 {
+                    if loopPlayback {
+                        // Restart from the top without tearing down the UI state.
+                        playbackStartedAt = Date()
+                    } else {
+                        stopGhostPlayback()
+                    }
+                }
             }
         }
     }
