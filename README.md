@@ -14,6 +14,8 @@ As of v0.8, the same model serves **film directors, DPs, and location scouts**: 
 
 <a href="Understudy/Assets.xcassets/AppIcon.appiconset/Icon-1024.png"><img src="Understudy/Assets.xcassets/AppIcon.appiconset/Icon-1024.png" width="120" alt="Understudy app icon"></a>
 
+<video src="Screenshots/understudy-promo.mp4" autoplay muted loop playsinline width="100%"></video>
+
 > *"Figma for stage direction."*
 
 ---
