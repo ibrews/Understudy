@@ -36,6 +36,8 @@ You can:
 
 Tap any mark to open the editor sheet. The editor has six sections:
 
+![Mark editor — name, radius, lines, sound, light, beat sections](https://raw.githubusercontent.com/ibrews/Understudy/main/Screenshots/author-marks-list.png)
+
 ### Mark
 - **Name** — what shows on the floor card and in the marks list
 - **Radius** — how close a performer needs to be to "arrive" on the mark (0.2 – 3.0 m)
@@ -66,18 +68,7 @@ The complete running order for this mark, in firing order. Tap the ▷ next to a
 
 Tap **Pick from script…** in the Lines section. The Script Browser slides up.
 
-```
-┌─────────────────────────────────────┐
-│  Hamlet ▼      Act I, Scene I ▼     │
-│  [search]                           │
-├─────────────────────────────────────┤
-│  BERNARDO   Who's there?           │
-│  FRANCISCO  Nay, answer me…        │  ← tap to attach
-│  BERNARDO   Long live the king!    │
-│  FRANCISCO  Bernardo? ✓            │  ← already attached (green check)
-│  ...                                │
-└─────────────────────────────────────┘
-```
+![Script Browser — play and scene pickers, line list with attach/detach](https://raw.githubusercontent.com/ibrews/Understudy/main/Screenshots/author-script-browser.png)
 
 Top of the dialog:
 - **Play picker** — switch between Hamlet, Macbeth, Midsummer, The Seagull, Cherry Orchard, Three Sisters, Uncle Vanya, Earnest, Salomé, Ghosts.
@@ -95,6 +86,19 @@ The layout algorithm:
 - Up to **4 lines per beat** (long monologues stay on one mark)
 - 1.2 m forward spacing, 0.8 m lateral offset alternating sides
 - Yaw points each mark towards the next beat
+
+```
+                       ↑ upstage
+
+  Speaker A:  ●──────────────►●──────────────►●
+              M1   1.2 m      M3   1.2 m      M5
+               ╲                ╲               ╲
+                ╲ 0.8 m          ╲ 0.8 m         ╲
+  Speaker B:    ●──────────────►●──────────────►●
+                M2   1.2 m      M4   1.2 m      M6
+
+                       ↓ downstage
+```
 
 A 20-beat scene becomes a walkable blocking in under a second. Adjust by dragging marks individually after the fact.
 

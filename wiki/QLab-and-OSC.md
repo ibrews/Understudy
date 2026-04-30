@@ -121,27 +121,21 @@ Same code path — same outbound OSC, same cue firing logic.
 
 ## A typical wiring diagram
 
-```
-              [SM laptop]
-                  ▼
-          [QLab — show document]
-                  ▼
-        OSC /understudy/go (53001)
-                  ▼
-          [Understudy device]
-       (visionOS director or
-       a primary iPhone)
-                  │
-                  ▼
-        Cue queue advances
-                  │
-        ┌─────────┴─────────┐
-        ▼                   ▼
-   [Phones in            OSC /understudy/cue/* (53000)
-   the room —             back to QLab
-   teleprompter,             ▼
-   haptic, light          [QLab]
-   wash]                  Light/sound cues fire
+```mermaid
+sequenceDiagram
+    participant SM as 🎭 Stage Manager
+    participant QL as QLab
+    participant US as Understudy<br/>(Vision Pro / iPhone)
+    participant PH as Performer Phones
+
+    SM->>QL: press GO
+    QL->>US: OSC /understudy/go (port 53001)
+    Note over US: cue queue advances
+    US->>PH: next mark + cue (Multipeer / WebSocket)
+    PH->>PH: line appears · haptic fires · light wash
+    US->>QL: OSC /understudy/cue/sfx "thunder" (port 53000)
+    US->>QL: OSC /understudy/cue/light "cool" 0.8
+    QL->>QL: audio + light cues fire
 ```
 
 ---

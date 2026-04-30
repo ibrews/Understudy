@@ -24,6 +24,8 @@ You just blocked a two-shot in 60 seconds. No camera, no rental, no permit.
 
 When **Drop kind = Camera**, a **rule-of-thirds-grid framing rectangle** stays anchored on the live AR feed showing what the selected lens would capture from the phone's current viewpoint:
 
+![Camera viewfinder overlay — 35mm framing rectangle with rule-of-thirds grid over live AR feed](https://raw.githubusercontent.com/ibrews/Understudy/main/Screenshots/author-camera-viewfinder.png)
+
 - Outer rectangle = exact frame edges
 - Corner ticks = clear visual lock
 - Rule-of-thirds grid inside = composition guide

@@ -45,18 +45,7 @@ Top of the dialog:
 - **Scene filter** — drill down to a specific Act / Scene
 - **Search** — find any character's line by typing part of their name or a phrase
 
-```
-┌─────────────────────────────────────┐
-│  Hamlet ▼      Act I, Scene I ▼     │
-│  [search]                           │
-├─────────────────────────────────────┤
-│  BERNARDO   Who's there?           │
-│  FRANCISCO  Nay, answer me…        │
-│  BERNARDO   Long live the king!    │
-│  FRANCISCO  Bernardo? ✓            │
-│  ...                                │
-└─────────────────────────────────────┘
-```
+![Script Browser — play/scene pickers, search, line list with green ✓ on attached lines](https://raw.githubusercontent.com/ibrews/Understudy/main/Screenshots/author-script-browser.png)
 
 Already-attached lines get a green ✓ on the right. Tap any other line to attach it.
 

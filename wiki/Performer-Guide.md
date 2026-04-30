@@ -31,6 +31,8 @@ When you launch in Perform mode, the screen is structured like a theatrical eye-
 
 Behind everything: the live AR camera feed with marks rendered as glowing discs on the floor.
 
+![Perform mode — guidance ring and cue card in an AR rehearsal space](https://raw.githubusercontent.com/ibrews/Understudy/main/Screenshots/perform-ar-guidance.png)
+
 ---
 
 ## The basic flow
@@ -48,6 +50,8 @@ If you have AirPods or other audio out, sound effects (doorbells, thunder, appla
 ## Teleprompter
 
 Tap the **quote icon** at the top of the screen to open the teleprompter as a full-screen overlay. The script displays in karaoke style:
+
+![Teleprompter full-screen overlay — karaoke scrolling with cyan active window](https://raw.githubusercontent.com/ibrews/Understudy/main/Screenshots/perform-teleprompter.png)
 - **Past text** in dimmed grey
 - A **30-character active window** in cyan — that's where the scroll cursor sits
 - **Future text** in white serif

@@ -49,6 +49,29 @@ A **floating script card** appears next to each mark, hovering at shoulder heigh
 
 > **Snap to grid.** Toggle "Grid" in the stage toolbar to overlay a 9-zone theatrical grid (DSL, DSC, DSR, CSL, CS, CSR, USL, USC, USR). Toggle "Snap" to make new marks lock to zone centres within 0.7 m. Useful when you want clean stage geometry, not just real-room coordinates.
 
+```
+                    ↑  UPSTAGE  ↑
+     ┌──────────┬──────────┬──────────┐
+     │  USL     │   USC    │   USR    │
+     │  (Up     │   (Up    │   (Up    │
+     │  Stage   │  Stage   │  Stage   │
+     │  Left)   │  Centre) │  Right)  │
+     ├──────────┼──────────┼──────────┤
+     │  CSL     │   CS     │   CSR    │
+     │ (Centre  │ (Centre  │ (Centre  │
+     │  Stage   │  Stage)  │  Stage   │
+     │  Left)   │          │  Right)  │
+     ├──────────┼──────────┼──────────┤
+     │  DSL     │   DSC    │   DSR    │
+     │  (Down   │  (Down   │  (Down   │
+     │  Stage   │  Stage   │  Stage   │
+     │  Left)   │  Centre) │  Right)  │
+     └──────────┴──────────┴──────────┘
+                    ↓  AUDIENCE  ↓
+         Stage Right = audience's left
+         Stage Left  = audience's right
+```
+
 ---
 
 ## Tabletop mode

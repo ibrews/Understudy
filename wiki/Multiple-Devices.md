@@ -89,24 +89,17 @@ The "peers" count will update once everyone is connected.
 
 The whole point. A typical session looks like:
 
-```
-┌──────────────────────────┐    Bonjour MPC     ┌──────────────────────────┐
-│  Apple Vision Pro        │◄──────────────────►│  iPhone (Performer)      │
-│  Director                │                    │                          │
-└──────────────────────────┘                    └──────────────────────────┘
-            │                                                  │
-            │           Both also reach over WebSocket         │
-            ▼                                                  ▼
-       ┌────────────────────────────────────────────────────────┐
-       │  Python relay (ws://host:8765)                         │
-       │  Rebroadcasts JSON — no state, no auth, just a pipe    │
-       └────────────────────────────────────────────────────────┘
-                                  ▲
-                                  │
-                       ┌──────────────────────┐
-                       │  Android (Performer) │
-                       │  ARCore + OkHttp     │
-                       └──────────────────────┘
+```mermaid
+graph TD
+    VP["🥽 Apple Vision Pro<br/><b>Director</b>"]
+    IP["📱 iPhone / iPad<br/><b>Performer (Apple)</b>"]
+    AN["🤖 Android<br/><b>Performer (ARCore)</b>"]
+    REL["🖥️ Python Relay<br/>ws://host:8765<br/><i>no state · just a pipe</i>"]
+
+    VP <-->|"Bonjour Multipeer<br/>(LAN, sub-100ms)"| IP
+    VP <-->|WebSocket| REL
+    IP <-->|WebSocket| REL
+    AN <-->|WebSocket| REL
 ```
 
 Apple devices run **both** transports simultaneously — Multipeer between themselves AND WebSocket if you've set Transport = WebSocket. You can configure all three platforms in the same session: Apple director on visionOS, Apple performer on iPhone, Android performer on a Pixel.
