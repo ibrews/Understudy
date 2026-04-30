@@ -145,4 +145,64 @@ class WireCompatTest {
         assertNull(decoded.roomScan)
         assertNull(decoded.reference)
     }
+
+    @Test
+    fun performerWithAvatarRoundTrips() {
+        val original = Performer(
+            id = Id("perf-1"),
+            displayName = "Alex",
+            role = Role.performer,
+            avatar = Avatar(style = AvatarStyle.ghost, primaryHex = "3FE0D0", secondaryHex = "FFFFFF")
+        )
+        val json = Wire.encodeToString(Performer.serializer(), original)
+        val decoded = Wire.decodeFromString(Performer.serializer(), json)
+        assertNotNull(decoded.avatar)
+        assertEquals(AvatarStyle.ghost, decoded.avatar!!.style)
+        assertEquals("3FE0D0", decoded.avatar!!.primaryHex)
+    }
+
+    @Test
+    fun legacyPerformerWithoutAvatarStillDecodes() {
+        val legacyJson = """
+            {
+              "id": {"raw": "perf-legacy"},
+              "displayName": "Bob",
+              "role": "performer",
+              "pose": {"x": 0, "y": 0, "z": 0, "yaw": 0},
+              "trackingQuality": 1.0
+            }
+        """.trimIndent()
+        val decoded = Wire.decodeFromString(Performer.serializer(), legacyJson)
+        assertNull(decoded.avatar)
+        assertEquals("Bob", decoded.displayName)
+    }
+
+    @Test
+    fun blockingWithRecordingsRoundTrips() {
+        val recording = NamedRecording(
+            id = Id("rec-1"),
+            name = "Take 1",
+            performerName = "Alex",
+            avatar = Avatar(style = AvatarStyle.ghost, primaryHex = "FF3366", secondaryHex = "FFFFFF"),
+            samples = listOf(
+                RecordedWalkSample(t = 0.0, pose = Pose()),
+                RecordedWalkSample(t = 1.0, pose = Pose(x = 1f, z = -1f))
+            ),
+            duration = 45.0,
+            createdAt = "2026-04-30T10:00:00Z",
+            blockingTitle = "Hamlet – Act I"
+        )
+        val blocking = Blocking(
+            id = Id("b-rec"),
+            title = "Hamlet – Act I",
+            createdAt = "2026-04-30T10:00:00Z",
+            modifiedAt = "2026-04-30T10:00:00Z",
+            recordings = listOf(recording)
+        )
+        val json = Wire.encodeToString(Blocking.serializer(), blocking)
+        val decoded = Wire.decodeFromString(Blocking.serializer(), json)
+        assertEquals(1, decoded.recordings.size)
+        assertEquals("Take 1", decoded.recordings[0].name)
+        assertEquals(AvatarStyle.ghost, decoded.recordings[0].avatar!!.style)
+    }
 }

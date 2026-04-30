@@ -3,6 +3,7 @@ package agilelens.understudy.net
 import agilelens.understudy.model.Blocking
 import agilelens.understudy.model.Id
 import agilelens.understudy.model.Mark
+import agilelens.understudy.model.NamedRecording
 import agilelens.understudy.model.Performer
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -41,6 +42,7 @@ sealed class NetMessage {
     data class MarkRemoved(val id: Id) : NetMessage()
     data class CueFired(val markID: Id, val cueID: Id, val by: Id) : NetMessage()
     data class PlaybackState(val t: Double?) : NetMessage()
+    data class RecordingAdded(val recording: NamedRecording) : NetMessage()
     /** Placeholder for message types this client doesn't implement yet. */
     object Unknown : NetMessage()
 }
@@ -84,6 +86,9 @@ object NetMessageSerializer : KSerializer<NetMessage> {
                     // Swift omits nil — do the same so round-trip matches.
                     value.t?.let { put("t", JsonPrimitive(it)) }
                 })
+                is NetMessage.RecordingAdded -> put("recordingAdded", buildJsonObject {
+                    put("_0", json.encodeToJsonElement(NamedRecording.serializer(), value.recording))
+                })
             }
         }
         encoder.encodeJsonElement(outer)
@@ -124,6 +129,9 @@ object NetMessageSerializer : KSerializer<NetMessage> {
             )
             "playbackState" -> NetMessage.PlaybackState(
                 t = inner["t"]?.jsonPrimitive?.doubleOrNull
+            )
+            "recordingAdded" -> NetMessage.RecordingAdded(
+                json.decodeFromJsonElement(NamedRecording.serializer(), inner.getValue("_0"))
             )
             // iOS-only and future message types — drop gracefully per PROTOCOL.md
             // so older Android builds stay compatible with newer iOS peers.
