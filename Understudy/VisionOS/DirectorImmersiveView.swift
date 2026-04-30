@@ -33,6 +33,8 @@ struct DirectorImmersiveView: View {
     @State private var stageLight: ModelEntity = ModelEntity()
     @State private var ghostEntity: Entity = Entity()
     @State private var lastRenderedFlashID: UUID?
+    /// Tracks the last cue-fire event we animated, so we only pulse once per fire.
+    @State private var lastRenderedFireID: UUID?
     @State private var roomScanEntity: ModelEntity?
     @State private var renderedScanHash: Int?
     @State private var roomScanBounds: SIMD3<Float> = .zero
@@ -48,8 +50,19 @@ struct DirectorImmersiveView: View {
     // Scan rotation gesture state.
     @State private var scanRotateStartYaw: Float?
 
+    /// A subtle visible disc at the stage center — gives the director a
+    /// visual anchor when the stage is empty so they can tell they're
+    /// actually inside the immersive space.
+    @State private var stageCenterDisc: Entity = Entity()
+    /// A wider, dimmer ring extending out from center — defines the
+    /// "playing area" so the director sees where they can place marks.
+    @State private var stagePerimeter: Entity = Entity()
+    /// "Tap the floor to drop a mark" empty-state attachment, anchored
+    /// over the stage center. Shown only when there are zero marks.
+    @State private var emptyHintEntity: Entity = Entity()
+
     var body: some View {
-        RealityView { content, _ in
+        RealityView { content, attachments in
             // stageContainer wraps stageRoot so we can scale the whole stage
             // in tabletop mode without disturbing individual entity positions.
             content.add(stageContainer)
@@ -58,6 +71,8 @@ struct DirectorImmersiveView: View {
             stageRoot.position = [0, -1.0, -0.5]
             stageRoot.addChild(sequenceRibbon)
 
+            // Tap-detection plane — invisible, but covers a 20×20m floor area
+            // so taps anywhere in the stage register.
             let plane = ModelEntity(
                 mesh: .generatePlane(width: 20, depth: 20),
                 materials: [UnlitMaterial(color: .white.withAlphaComponent(0.0001))]
@@ -66,6 +81,39 @@ struct DirectorImmersiveView: View {
             plane.components.set(InputTargetComponent())
             plane.name = "stageFloor"
             stageRoot.addChild(plane)
+
+            // Visible stage-center disc — a glowing red puddle so the
+            // director can SEE where the stage origin is even before
+            // dropping any marks. This is what was missing in v0.29 —
+            // entering immersive mode showed a totally empty space.
+            let centerDisc = ModelEntity(
+                mesh: .generatePlane(width: 0.4, depth: 0.4, cornerRadius: 0.2),
+                materials: [Self.centerDiscMaterial()]
+            )
+            centerDisc.position.y = 0.002
+            centerDisc.name = "stageCenterDisc"
+            stageRoot.addChild(centerDisc)
+            stageCenterDisc = centerDisc
+
+            // Stage perimeter — a 4 m × 6 m soft rectangle on the floor
+            // marking the playing area. Theater convention: longer
+            // upstage-downstage axis. Translucent so it doesn't dominate.
+            let perimeter = ModelEntity(
+                mesh: .generatePlane(width: 4.0, depth: 6.0, cornerRadius: 0.1),
+                materials: [Self.perimeterMaterial()]
+            )
+            perimeter.position.y = 0.001
+            perimeter.name = "stagePerimeter"
+            stageRoot.addChild(perimeter)
+            stagePerimeter = perimeter
+
+            // Empty-state hint card — anchored 1.5 m above the stage
+            // center. Shown only when the stage has no marks yet.
+            if let hint = attachments.entity(for: "emptyHint") {
+                hint.position = [0, 1.4, 0]
+                stageRoot.addChild(hint)
+                emptyHintEntity = hint
+            }
 
             let light = ModelEntity(
                 mesh: .generateSphere(radius: 0.6),
@@ -76,18 +124,12 @@ struct DirectorImmersiveView: View {
             stageRoot.addChild(light)
             stageLight = light
 
+            // Recording-playback ghost. The actual avatar is rebuilt in
+            // syncGhost() based on store.ghostAvatar, so this is just a
+            // bare placeholder root that becomes alive (visible) when a
+            // recording starts playing back.
             let ghost = Entity()
             ghost.name = "ghost"
-            let body = ModelEntity(
-                mesh: .generateSphere(radius: 0.25),
-                materials: [UnlitMaterial(color: .magenta.withAlphaComponent(0.55))]
-            )
-            ghost.addChild(body)
-            let halo = ModelEntity(
-                mesh: .generateSphere(radius: 0.38),
-                materials: [UnlitMaterial(color: .magenta.withAlphaComponent(0.18))]
-            )
-            ghost.addChild(halo)
             ghost.isEnabled = false
             stageRoot.addChild(ghost)
             ghostEntity = ghost
@@ -101,10 +143,17 @@ struct DirectorImmersiveView: View {
                 syncRibbon()
                 syncGhost()
                 syncFlash()
+                syncCueFire()
                 syncMarkCards(attachments: attachments)
                 syncRoomScan()
+                syncEmptyHint()
             }
         } attachments: {
+            // Empty-state floating card. Visible only when the stage has zero
+            // marks — guides first-time directors to the tap gesture.
+            Attachment(id: "emptyHint") {
+                EmptyStageHintCard()
+            }
             ForEach(store.blocking.marks, id: \.id) { mark in
                 Attachment(id: mark.id.raw) {
                     MarkScriptCard(
@@ -216,6 +265,46 @@ struct DirectorImmersiveView: View {
             stageContainer.scale = [1, 1, 1]
             stageContainer.position = .zero
         }
+    }
+
+    // MARK: - Empty-state hint
+
+    /// Show the floating "Tap the floor to drop a mark" card when the stage
+    /// is empty. Hide it the moment the first mark exists.
+    private func syncEmptyHint() {
+        let hasMarks = !store.blocking.marks.isEmpty
+        emptyHintEntity.isEnabled = !hasMarks
+        // Also dim the perimeter ring once marks are placed — we don't need
+        // both the perimeter AND the marks to compete for attention.
+        if hasMarks {
+            stagePerimeter.components.set(OpacityComponent(opacity: 0.25))
+        } else {
+            stagePerimeter.components.set(OpacityComponent(opacity: 1.0))
+        }
+    }
+
+    // MARK: - Floor materials
+
+    /// Soft red puddle at the stage origin — enough to read as "the
+    /// stage is here" without dominating the view.
+    fileprivate static func centerDiscMaterial() -> RealityKit.Material {
+        var m = UnlitMaterial()
+        let c = UIColor(red: 0.85, green: 0.18, blue: 0.22, alpha: 0.55)
+        m.color = .init(tint: c)
+        m.blending = .transparent(opacity: .init(floatLiteral: 0.55))
+        return m
+    }
+
+    /// Translucent perimeter rectangle that defines the playing area.
+    /// 4 m wide × 6 m deep — typical theater stage proportions, with the
+    /// long axis upstage-downstage so the director's natural orientation
+    /// (facing -Z) reads as "house at +Z, upstage at -Z".
+    fileprivate static func perimeterMaterial() -> RealityKit.Material {
+        var m = UnlitMaterial()
+        let c = UIColor(red: 0.4, green: 0.85, blue: 1.0, alpha: 0.06)
+        m.color = .init(tint: c)
+        m.blending = .transparent(opacity: .init(floatLiteral: 0.06))
+        return m
     }
 
     // MARK: - Stage grid overlay
@@ -447,16 +536,20 @@ struct DirectorImmersiveView: View {
         root.name = "mark-\(mark.id.raw)"
         root.position = [mark.pose.x, 0.005, mark.pose.z]
 
+        // A theatrical "spike mark" — bright fill so it reads against
+        // passthrough, with a brighter rim ring on top. Cyan because it's
+        // visible across most rehearsal-room palettes (red walls, beige
+        // wood, white floor).
         let disc = ModelEntity(
             mesh: .generateCylinder(height: 0.01, radius: mark.radius),
-            materials: [UnlitMaterial(color: .cyan.withAlphaComponent(0.35))]
+            materials: [UnlitMaterial(color: UIColor(red: 0.25, green: 0.85, blue: 1.0, alpha: 0.55))]
         )
         disc.name = "disc"
         root.addChild(disc)
 
         let rim = ModelEntity(
-            mesh: .generateCylinder(height: 0.012, radius: mark.radius * 0.98),
-            materials: [UnlitMaterial(color: .cyan)]
+            mesh: .generateCylinder(height: 0.014, radius: mark.radius * 0.98),
+            materials: [UnlitMaterial(color: UIColor(red: 0.6, green: 0.95, blue: 1.0, alpha: 0.95))]
         )
         rim.scale = [1, 0.1, 1]
         rim.position.y = 0.005
@@ -560,29 +653,32 @@ struct DirectorImmersiveView: View {
     private func buildPerformerEntity(_ perf: Performer) -> Entity {
         let root = Entity()
         root.name = "perf-\(perf.id.raw)"
-        root.position = [perf.pose.x, 0.9, perf.pose.z]
-
-        let body = ModelEntity(
-            mesh: .generateSphere(radius: 0.25),
-            materials: [UnlitMaterial(color: .magenta.withAlphaComponent(0.5))]
+        root.position = [perf.pose.x, 0.0, perf.pose.z]
+        // Build the avatar parts. Anchored to ground; the entity-internal
+        // origin sits on the floor so different styles can have different
+        // heights without the ghost floating off.
+        AvatarEntityBuilder.attach(
+            avatar: perf.avatar ?? .defaultPick,
+            to: root
         )
-        root.addChild(body)
-
-        let nose = ModelEntity(
-            mesh: .generateCone(height: 0.3, radius: 0.05),
-            materials: [UnlitMaterial(color: .magenta)]
-        )
-        nose.orientation = simd_quatf(angle: -.pi / 2, axis: [1, 0, 0])
-        nose.position = [0, 0, -0.25]
-        root.addChild(nose)
 
         let tag = ModelEntity(
             mesh: .generateText(perf.displayName, extrusionDepth: 0.001,
                                 font: .systemFont(ofSize: 0.08), alignment: .center),
             materials: [UnlitMaterial(color: .white)]
         )
-        tag.position = [-0.15, 0.4, 0]
+        tag.position = [-0.15, 1.95, 0]
         root.addChild(tag)
+
+        // Forward-pointing nose so observers can read body orientation
+        // — common to all avatar styles.
+        let nose = ModelEntity(
+            mesh: .generateCone(height: 0.18, radius: 0.04),
+            materials: [UnlitMaterial(color: UIColor(white: 1, alpha: 0.85))]
+        )
+        nose.orientation = simd_quatf(angle: -.pi / 2, axis: [1, 0, 0])
+        nose.position = [0, 1.5, -0.18]
+        root.addChild(nose)
 
         return root
     }
@@ -610,14 +706,44 @@ struct DirectorImmersiveView: View {
         }
     }
 
+    /// Avatar currently rendered on the playback ghost. Tracked so we
+    /// only rebuild the entity when the active recording (and therefore
+    /// its avatar) changes, not every frame.
+    @State private var renderedGhostAvatar: Avatar?
+
     private func syncGhost() {
         guard let t = store.playbackT, let pose = store.ghostPose(at: t) else {
             ghostEntity.isEnabled = false
             return
         }
         ghostEntity.isEnabled = true
-        ghostEntity.position = [pose.x, 0.9, pose.z]
+        // Rebuild avatar geometry if the active recording's avatar changed.
+        // Use a slightly translucent variant for the ghost so it reads as
+        // playback, not a live performer.
+        let avatar = ghostAvatarFromActiveRecording()
+        if avatar != renderedGhostAvatar {
+            ghostEntity.children.removeAll()
+            AvatarEntityBuilder.attach(avatar: avatar, to: ghostEntity)
+            renderedGhostAvatar = avatar
+        }
+        ghostEntity.position = [pose.x, 0.0, pose.z]
         ghostEntity.orientation = simd_quatf(angle: pose.yaw, axis: [0, 1, 0])
+    }
+
+    /// Pull the avatar bound to the active recording, falling back to a
+    /// translucent ghost-style avatar so the playback always reads as
+    /// "this is a recording" even when no avatar was captured.
+    private func ghostAvatarFromActiveRecording() -> Avatar {
+        if let captured = store.ghostAvatar {
+            // Force the captured avatar into translucent ghost form for
+            // the playback puppet — same colours, ghost silhouette.
+            return Avatar(
+                style: .ghost,
+                primaryHex: captured.primaryHex,
+                secondaryHex: captured.secondaryHex
+            )
+        }
+        return Avatar(style: .ghost, primaryHex: "FF3366", secondaryHex: "FFFFFF")
     }
 
     private func syncFlash() {
@@ -642,6 +768,54 @@ struct DirectorImmersiveView: View {
                 let remaining = max(0, 1 - progress)
                 setStageLight(color: uiColor, alpha: CGFloat(flash.alpha * remaining))
             }
+        }
+    }
+
+    /// Reacts to every new CueFireEvent: pulses the originating mark and
+    /// (for light cues) washes the stage perimeter in the cue's colour.
+    private func syncCueFire() {
+        guard let fire = fx.lastFire, fire.id != lastRenderedFireID else { return }
+        lastRenderedFireID = fire.id
+        guard let mark = store.blocking.marks.first(where: { $0.name == fire.markName }),
+              let entity = markEntities[mark.id] else { return }
+        pulseMarkEntity(entity)
+        if case .light(_, let lightColor, let intensity) = fire.cue {
+            flashPerimeter(lightColor: lightColor, intensity: intensity)
+        }
+    }
+
+    /// Snap-scale the entity up then spring it back — cheap "cue fired here" read.
+    private func pulseMarkEntity(_ entity: Entity) {
+        let base = entity.transform
+        var big = base
+        big.scale = base.scale * 1.6
+        entity.move(to: big, relativeTo: entity.parent, duration: 0.07, timingFunction: .easeOut)
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 70_000_000)
+            entity.move(to: base, relativeTo: entity.parent, duration: 0.4, timingFunction: .easeOut)
+        }
+    }
+
+    /// Briefly colour the stage-perimeter rectangle with a light-cue wash,
+    /// then fade it back to the default translucent blue.
+    private func flashPerimeter(lightColor: LightColor, intensity: Float) {
+        guard let model = stagePerimeter as? ModelEntity else { return }
+        let uiColor = UIColor(stageColor: lightColor)
+        let peak = CGFloat(min(intensity * 0.38, 0.38))
+        var m = UnlitMaterial()
+        m.color = .init(tint: uiColor.withAlphaComponent(peak))
+        m.blending = .transparent(opacity: .init(floatLiteral: Float(peak)))
+        model.model?.materials = [m]
+        Task { @MainActor in
+            for i in 1...10 {
+                try? await Task.sleep(nanoseconds: 55_000_000)
+                let alpha = peak * (1.0 - CGFloat(i) / 10.0)
+                var mat = UnlitMaterial()
+                mat.color = .init(tint: uiColor.withAlphaComponent(alpha))
+                mat.blending = .transparent(opacity: .init(floatLiteral: Float(alpha)))
+                model.model?.materials = [mat]
+            }
+            model.model?.materials = [Self.perimeterMaterial()]
         }
     }
 
@@ -671,5 +845,47 @@ fileprivate extension UnlitMaterial {
         self.color = .init(tint: color)
     }
 }
+
+fileprivate extension UIColor {
+    convenience init(stageColor: LightColor) {
+        switch stageColor {
+        case .warm:     self.init(red: 1.0,  green: 0.85, blue: 0.5,  alpha: 1)
+        case .cool:     self.init(red: 0.55, green: 0.8,  blue: 1.0,  alpha: 1)
+        case .red:      self.init(red: 1.0,  green: 0.15, blue: 0.15, alpha: 1)
+        case .blue:     self.init(red: 0.2,  green: 0.4,  blue: 1.0,  alpha: 1)
+        case .green:    self.init(red: 0.15, green: 0.9,  blue: 0.4,  alpha: 1)
+        case .amber:    self.init(red: 1.0,  green: 0.6,  blue: 0.1,  alpha: 1)
+        case .blackout: self.init(red: 0.05, green: 0.05, blue: 0.05, alpha: 1)
+        }
+    }
+}
 #endif
+
+/// Floating welcome card shown when the immersive stage has no marks.
+/// Anchored above the stage center so directors see it the moment they
+/// enter MR for the first time.
+private struct EmptyStageHintCard: View {
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "hand.tap.fill")
+                .font(.system(size: 42))
+                .foregroundStyle(.white.opacity(0.95))
+            Text("Tap the floor to drop a mark")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(.white)
+            Text("Each mark is a blocking position.\nLines, sounds, and lights attach to it.")
+                .font(.body)
+                .foregroundStyle(.white.opacity(0.75))
+                .multilineTextAlignment(.center)
+        }
+        .padding(28)
+        .frame(width: 380)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24))
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(.white.opacity(0.2), lineWidth: 1)
+        )
+        .shadow(radius: 20)
+    }
+}
 #endif

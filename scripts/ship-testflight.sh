@@ -224,6 +224,8 @@ xcodebuild -exportArchive \
 # signing. That flag triggers Xcode's cloud-managed-cert refresh call
 # which fails without the separate per-key permission. Manual signing
 # reads the on-disk profile directly; no refresh needed.
+# If the local profile gets out of sync with the active cert, run
+# `scripts/regenerate-ios-profile.sh` to recreate it via the ASC API.
 
 if [[ "$DRY_RUN" == "true" ]]; then
   IPA_PATH="$(find "$EXPORT_PATH" -name '*.ipa' | head -1)"

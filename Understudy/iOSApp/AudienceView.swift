@@ -34,6 +34,10 @@ struct AudienceView: View {
     @State private var showingTeleprompter = false
     @AppStorage("hasSeenOnboarding_audience") private var hasSeenOnboarding: Bool = false
     @State private var showingOnboarding = false
+    /// Mark the audience has manually scrubbed to via the progress bar.
+    /// Overrides the AR-pose-derived current mark so taking control of
+    /// the journey is as easy as tapping a beat. Cleared by hitting Stop.
+    @State private var scrubbedMarkID: ID?
 
     var body: some View {
         ZStack {
@@ -139,6 +143,7 @@ struct AudienceView: View {
                     .background(.white.opacity(0.08), in: Circle())
                     .foregroundStyle(.white)
             }
+            .accessibilityLabel("Settings")
         }
     }
 
@@ -231,11 +236,12 @@ struct AudienceView: View {
         let ordered = store.blocking.marks
             .filter { $0.sequenceIndex >= 0 }
             .sorted { $0.sequenceIndex < $1.sequenceIndex }
-        let currentIdx = ordered.firstIndex(where: { $0.id == store.localPerformer?.currentMarkID }) ?? -1
+        let activeID = scrubbedMarkID ?? store.localPerformer?.currentMarkID
+        let currentIdx = ordered.firstIndex(where: { $0.id == activeID }) ?? -1
         let fraction: Double = ordered.isEmpty
             ? 0
             : Double(currentIdx + 1) / Double(ordered.count)
-        return VStack(alignment: .leading, spacing: 4) {
+        return VStack(alignment: .leading, spacing: 6) {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule().fill(.white.opacity(0.15))
@@ -243,13 +249,55 @@ struct AudienceView: View {
                         .fill(Color.red.opacity(0.8))
                         .frame(width: max(6, geo.size.width * fraction))
                         .animation(.easeInOut, value: fraction)
+                    // Beat ticks — one mark = one tick — make scrubbing
+                    // legible.
+                    if ordered.count > 1 {
+                        ForEach(0..<ordered.count, id: \.self) { i in
+                            let t = Double(i + 1) / Double(ordered.count)
+                            Rectangle()
+                                .fill(.white.opacity(0.25))
+                                .frame(width: 1, height: 8)
+                                .offset(x: geo.size.width * t - 0.5, y: -1)
+                        }
+                    }
+                }
+                // Tap or drag anywhere on the bar to jump the audience to
+                // that beat. Useful for re-experiencing a moment without
+                // walking the entire path again.
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            jumpToBeat(at: value.location.x, width: geo.size.width, ordered: ordered)
+                        }
+                )
+            }
+            .frame(height: 14)
+            HStack {
+                Text("\(max(0, currentIdx + 1)) of \(ordered.count) marks")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.white.opacity(0.55))
+                Spacer()
+                if scrubbedMarkID != nil {
+                    Text("Scrubbing — tap Stop to release")
+                        .font(.caption2.italic())
+                        .foregroundStyle(.cyan.opacity(0.75))
                 }
             }
-            .frame(height: 6)
-            Text("\(max(0, currentIdx + 1)) of \(ordered.count) marks")
-                .font(.caption2.monospacedDigit())
-                .foregroundStyle(.white.opacity(0.55))
         }
+    }
+
+    private func jumpToBeat(at x: CGFloat, width: CGFloat, ordered: [Mark]) {
+        guard !ordered.isEmpty, width > 0 else { return }
+        let frac = max(0, min(1, x / width))
+        let idx = min(ordered.count - 1, max(0, Int(frac * CGFloat(ordered.count))))
+        let mark = ordered[idx]
+        guard mark.id != scrubbedMarkID else { return }
+        scrubbedMarkID = mark.id
+        // Fire the cues for this beat so the audience hears + sees what
+        // would have happened on a real walk-on.
+        for cue in mark.cues { fx.preview(cue) }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
     private var bottomBar: some View {
@@ -264,11 +312,13 @@ struct AudienceView: View {
                 Button {
                     started = false
                     lastFiredMarkID = nil
+                    scrubbedMarkID = nil
                 } label: {
                     Image(systemName: "stop.circle")
                         .font(.title)
                         .foregroundStyle(.white.opacity(0.8))
                 }
+                .accessibilityLabel("Stop audience tour")
             }
         }
     }

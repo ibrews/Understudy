@@ -14,6 +14,8 @@ struct DirectorControlPanel: View {
     @Environment(BlockingStore.self) private var store
     @Environment(SessionController.self) private var session
     @Environment(CueFXEngine.self) private var fx
+    @Environment(DemoRunner.self) private var demoRunner
+    @Environment(ControllerInput.self) private var controllerInput
     @Environment(\.openImmersiveSpace) private var openImmersiveSpace
     @Environment(\.dismissImmersiveSpace) private var dismissImmersiveSpace
     @Environment(\.openWindow) private var openWindow
@@ -28,25 +30,34 @@ struct DirectorControlPanel: View {
     @State private var directorPlaybackStartedAt: Date?
     @State private var directorPlaybackTimer: Timer?
     @State private var showingOSCSettings = false
+    @State private var simulateWalkTask: Task<Void, Never>?
+    @State private var simulateWalkActive: Bool = false
+    @State private var showingDemoLauncher = false
+    @State private var showingStageMap = false
+    @State private var showingMetrics = false
+    @State private var showingControllerHelp = false
     @AppStorage("oscEnabled") private var oscEnabled: Bool = false
     @AppStorage("oscHost") private var oscHost: String = ""
     @AppStorage("oscPort") private var oscPortStr: String = "53000"
+    @AppStorage("autoOpenStage") private var autoOpenStage: Bool = true
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                header
-                roomRow
-                stageToolbar
-                rehearsalTimerStrip
-                marksList
-                propsList
-                transportStrip
-                scanAlignStrip
-                Spacer()
-                footer
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    header
+                    quickStart
+                    roomRow
+                    stageToolbar
+                    rehearsalTimerStrip
+                    marksList
+                    propsList
+                    transportStrip
+                    scanAlignStrip
+                    footer
+                }
+                .padding(24)
             }
-            .padding(24)
             .navigationTitle("Understudy — Director")
             .sheet(item: $editingMark) { mark in
                 MarkEditor(mark: mark)
@@ -73,9 +84,188 @@ struct DirectorControlPanel: View {
                     .environment(fx)
                     .frame(minWidth: 420, minHeight: 360)
             }
-            .onAppear { applyOSC() }
-            .onDisappear { stopDirectorPlayback() }
+            .onAppear {
+                applyOSC()
+                // Auto-open the immersive stage on first appearance so directors
+                // don't have to hunt for the toggle. Disabled on subsequent
+                // toggles by tracking immersiveActive separately.
+                if autoOpenStage && !immersiveActive {
+                    Task {
+                        let result = await openImmersiveSpace(id: "Stage")
+                        if case .opened = result {
+                            immersiveActive = true
+                        }
+                    }
+                }
+                wireControllerInput()
+            }
+            .onDisappear {
+                stopDirectorPlayback()
+                stopSimulateWalk()
+                controllerInput.stop()
+            }
         }
+    }
+
+    // MARK: - Quick Start (the obvious-first-action strip)
+    //
+    // The DirectorControlPanel is dense — three sections of toggles, a marks
+    // list, props, transport, OSC. New theater directors don't know which
+    // knob to turn first. Quick Start surfaces the three most impactful
+    // actions: enter the stage, drop a demo, and preview the show end-to-end.
+
+    @ViewBuilder private var quickStart: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 12) {
+                // 1. Enter Stage — the headline action. Big, green, obvious.
+                Button {
+                    Task {
+                        if immersiveActive {
+                            await dismissImmersiveSpace()
+                            immersiveActive = false
+                        } else {
+                            let result = await openImmersiveSpace(id: "Stage")
+                            if case .opened = result { immersiveActive = true }
+                        }
+                    }
+                } label: {
+                    Label(immersiveActive ? "Close Stage" : "Open Stage",
+                          systemImage: immersiveActive ? "rectangle.compress.vertical" : "theatermasks.fill")
+                        .font(.title3.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(immersiveActive ? .gray : .green)
+                .controlSize(.large)
+
+                // 2. Open Teleprompter — directors love to see the script
+                // floating in space alongside the marks.
+                Button {
+                    openWindow(id: "Teleprompter")
+                } label: {
+                    Label("Teleprompter", systemImage: "text.quote")
+                        .font(.title3.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+
+                // 3. Simulate Walk — preview the entire show without performers.
+                Button {
+                    if simulateWalkActive {
+                        stopSimulateWalk()
+                    } else {
+                        startSimulateWalk()
+                    }
+                } label: {
+                    Label(simulateWalkActive ? "Stop Preview" : "Preview Show",
+                          systemImage: simulateWalkActive ? "stop.fill" : "play.rectangle.fill")
+                        .font(.title3.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                }
+                .buttonStyle(.bordered)
+                .tint(simulateWalkActive ? .red : .orange)
+                .controlSize(.large)
+                .disabled(store.blocking.marks.filter { $0.sequenceIndex >= 0 }.isEmpty)
+            }
+
+            // Second row — three less-frequent actions that still belong
+            // up top because they're presentation / planning tools.
+            HStack(spacing: 12) {
+                // 4. Run Demo — the FMX / showcase button. Curated demo
+                // blockings + auto-play with cinematic timing.
+                Button {
+                    showingDemoLauncher = true
+                } label: {
+                    Label("Run Demo", systemImage: "sparkles.tv.fill")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(.bordered)
+                .tint(.purple)
+
+                // 5. Stage Map — a 2D top-down diagram of the blocking,
+                // exportable as PDF / PNG for the cast and crew.
+                Button {
+                    showingStageMap = true
+                } label: {
+                    Label("Stage Map", systemImage: "map")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(.bordered)
+
+                // 6. Show Metrics — counts, runtime estimate, missing-cue
+                // warnings, calibration health.
+                Button {
+                    showingMetrics = true
+                } label: {
+                    Label("Show Stats", systemImage: "chart.bar.fill")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .padding(.vertical, 6)
+        .sheet(isPresented: $showingDemoLauncher) {
+            DemoLauncherView()
+                .environment(store)
+                .environment(fx)
+                .environment(session)
+                .environment(demoRunner)
+                .frame(minWidth: 560, minHeight: 720)
+        }
+        .sheet(isPresented: $showingStageMap) {
+            StageMapView()
+                .environment(store)
+                .frame(minWidth: 720, minHeight: 720)
+        }
+        .sheet(isPresented: $showingMetrics) {
+            ShowMetricsView()
+                .environment(store)
+                .environment(session)
+                .frame(minWidth: 540, minHeight: 640)
+        }
+        .sheet(isPresented: $showingControllerHelp) {
+            ControllerHelpView()
+                .environment(controllerInput)
+                .frame(minWidth: 480, minHeight: 640)
+        }
+    }
+
+    // MARK: - Simulate Walk
+    //
+    // Steps the GO cursor through every actor mark in sequence with a
+    // configurable dwell time, firing the same cue path as a real walk-on.
+    // Lets a director rehearse the cue stack before any performers arrive.
+
+    private func startSimulateWalk() {
+        simulateWalkActive = true
+        // Reset the cursor so we always start at the top.
+        fx.goCursor = -1
+        let dwellSeconds: UInt64 = 2_500_000_000  // 2.5s per beat
+        let ordered = store.blocking.marks
+            .filter { $0.sequenceIndex >= 0 }
+            .sorted { $0.sequenceIndex < $1.sequenceIndex }
+        simulateWalkTask = Task { @MainActor in
+            for _ in ordered {
+                guard !Task.isCancelled, simulateWalkActive else { break }
+                fx.goForward()
+                try? await Task.sleep(nanoseconds: dwellSeconds)
+            }
+            // Loop end — reset state for next run.
+            await MainActor.run { simulateWalkActive = false }
+        }
+    }
+
+    private func stopSimulateWalk() {
+        simulateWalkActive = false
+        simulateWalkTask?.cancel()
+        simulateWalkTask = nil
     }
 
     private func nudgeScanRotation(by radians: Float) {
@@ -94,6 +284,65 @@ struct DirectorControlPanel: View {
         store.blocking.modifiedAt = Date()
         BlockingAutosave.save(store.blocking)
         session.broadcastScanOverlay(Pose())
+    }
+
+    // MARK: - Controller wiring (PSVR2 Sense + any extended-gamepad MFi)
+
+    /// Drop a SetPreset into the blocking. Each preset's props are
+    /// instantiated with fresh IDs at the stage origin, then broadcast
+    /// over the wire so connected peers see the same set.
+    private func dropSet(_ preset: SetPreset) {
+        let props = preset.makeProps()
+        for prop in props {
+            store.addProp(prop)
+        }
+        BlockingAutosave.save(store.blocking)
+        // Props don't currently broadcast over the wire (props are a
+        // visionOS-only field as of v0.26). Saving locally is enough.
+    }
+
+    private func wireControllerInput() {
+        controllerInput.start()
+
+        // Trigger — fire next cue (GO).
+        controllerInput.onTrigger = { [self] in fx.goForward() }
+        // Grip / shoulder — toggle the stage.
+        controllerInput.onGrip = { [self] in
+            Task {
+                if immersiveActive {
+                    await dismissImmersiveSpace()
+                    immersiveActive = false
+                } else {
+                    let result = await openImmersiveSpace(id: "Stage")
+                    if case .opened = result { immersiveActive = true }
+                }
+            }
+        }
+        // Stick forward / back → GO next / back.
+        controllerInput.onStickForward = { [self] in fx.goForward() }
+        controllerInput.onStickBack = { [self] in fx.goBack() }
+        // Stick click → teleprompter.
+        controllerInput.onStickClick = { [self] in openWindow(id: "Teleprompter") }
+        // Cross / X → run a demo.
+        controllerInput.onCross = { [self] in showingDemoLauncher = true }
+        // Circle / O → tabletop view.
+        controllerInput.onCircle = { [self] in store.isTabletopMode.toggle() }
+        // Triangle → grid overlay.
+        controllerInput.onTriangle = { [self] in store.showStageGrid.toggle() }
+        // Square → open mark editor for the next mark in sequence.
+        controllerInput.onSquare = { [self] in
+            if let next = store.nextMark(after: store.localPerformer?.currentMarkID) {
+                editingMark = next
+            } else if let first = store.blocking.marks
+                .filter({ $0.sequenceIndex >= 0 })
+                .sorted(by: { $0.sequenceIndex < $1.sequenceIndex })
+                .first {
+                editingMark = first
+            }
+        }
+        // Menu — open the controller help sheet so first-time PSVR2 users
+        // see the mapping. Tap again to dismiss.
+        controllerInput.onMenu = { [self] in showingControllerHelp.toggle() }
     }
 
     private func applyOSC() {
@@ -349,32 +598,29 @@ struct DirectorControlPanel: View {
                 .textFieldStyle(.roundedBorder)
                 .frame(maxWidth: 180)
 
-                Toggle(isOn: $immersiveActive) {
-                    Label(
-                        immersiveActive ? "Mixed Reality On" : "Enter Mixed Reality",
-                        systemImage: immersiveActive ? "arkit" : "arkit"
-                    )
+                Toggle(isOn: $autoOpenStage) {
+                    Label("Auto-open stage", systemImage: "wand.and.stars")
                 }
                 .toggleStyle(.button)
-                .tint(immersiveActive ? .green : .blue)
-                .controlSize(.large)
-                .onChange(of: immersiveActive) { _, on in
-                    Task {
-                        if on { _ = await openImmersiveSpace(id: "Stage") }
-                        else { await dismissImmersiveSpace() }
-                    }
-                }
+                .controlSize(.regular)
+                .help("Open the immersive stage automatically when this window appears")
 
-                Button {
-                    openWindow(id: "Teleprompter")
-                } label: {
-                    Label("Teleprompter", systemImage: "text.quote")
-                }
                 Button {
                     openWindow(id: "QRTarget")
                 } label: {
                     Label("QR Target", systemImage: "qrcode")
                 }
+                Button {
+                    showingControllerHelp = true
+                } label: {
+                    Image(systemName: controllerInput.hasController
+                          ? "gamecontroller.fill"
+                          : "gamecontroller")
+                        .foregroundStyle(controllerInput.hasController ? .green : .secondary)
+                }
+                .help(controllerInput.hasController
+                      ? "PSVR2 / MFi controller connected — tap for mapping"
+                      : "Pair a PSVR2 Sense or MFi controller in System Settings → Bluetooth")
             }
             HStack {
                 Label("Transport", systemImage: "antenna.radiowaves.left.and.right")
@@ -431,6 +677,38 @@ struct DirectorControlPanel: View {
     }
 
     @ViewBuilder private var propsList: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Set & Props")
+                    .font(.headline)
+                Spacer()
+                Menu {
+                    ForEach(SetPreset.allCases) { preset in
+                        Button {
+                            dropSet(preset)
+                        } label: {
+                            Label(preset.rawValue, systemImage: preset.systemImage)
+                        }
+                    }
+                } label: {
+                    Label("Drop Set…", systemImage: "rectangle.3.group.fill")
+                        .font(.caption)
+                }
+                if !store.blocking.props.isEmpty {
+                    Button(role: .destructive) {
+                        store.blocking.props.removeAll()
+                    } label: {
+                        Label("Clear", systemImage: "trash")
+                            .font(.caption)
+                    }
+                }
+            }
+            if store.blocking.props.isEmpty {
+                Text("Drop a curated set (Throne Room, Tavern, Forest…) or build one piece by piece in prop placement mode.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
         if !store.blocking.props.isEmpty {
             VStack(alignment: .leading) {
                 HStack {

@@ -149,12 +149,21 @@ public final class BlockingStore {
 
     // MARK: - Recording
 
+    /// Which named recording is currently selected for ghost playback.
+    /// Nil = use the legacy `blocking.reference` walk if it exists, or
+    /// the most recent named recording.
+    public var selectedRecordingID: ID? = nil
+
     public func startRecording() {
         currentRecording = []
         recordStart = Date()
         isRecording = true
     }
 
+    /// Legacy stop — kept for backward-compat callers (PerformerView).
+    /// Internally now delegates to stopRecording(name:performerName:avatar:)
+    /// with a default name.
+    @discardableResult
     public func stopRecording(saveAsReference: Bool, performerName: String) -> RecordedWalk? {
         isRecording = false
         guard let start = recordStart else { return nil }
@@ -172,38 +181,88 @@ public final class BlockingStore {
         return walk
     }
 
+    /// Stop recording and append a NamedRecording to the blocking. The
+    /// avatar parameter captures whatever the local performer was using
+    /// at recording time, so playback can render with the correct avatar.
+    @discardableResult
+    public func stopRecordingNamed(
+        name: String,
+        performerName: String,
+        avatar: Avatar?
+    ) -> NamedRecording? {
+        isRecording = false
+        guard let start = recordStart else { return nil }
+        let duration = Date().timeIntervalSince(start)
+        let recording = NamedRecording(
+            name: name,
+            performerName: performerName,
+            avatar: avatar,
+            samples: currentRecording,
+            duration: duration,
+            blockingTitle: blocking.title
+        )
+        recordStart = nil
+        currentRecording = []
+        blocking.recordings.append(recording)
+        // Also write to the legacy `reference` slot so older code keeps
+        // working until every call site is migrated to recordings[].
+        blocking.reference = RecordedWalk(
+            performerName: performerName,
+            samples: recording.samples,
+            duration: duration
+        )
+        blocking.modifiedAt = Date()
+        selectedRecordingID = recording.id
+        BlockingAutosave.save(blocking)
+        return recording
+    }
+
+    public func deleteRecording(id: ID) {
+        blocking.recordings.removeAll { $0.id == id }
+        if selectedRecordingID == id {
+            selectedRecordingID = blocking.recordings.last?.id
+        }
+        blocking.modifiedAt = Date()
+        BlockingAutosave.save(blocking)
+    }
+
+    public func renameRecording(id: ID, to newName: String) {
+        guard let i = blocking.recordings.firstIndex(where: { $0.id == id }) else { return }
+        blocking.recordings[i].name = newName
+        blocking.modifiedAt = Date()
+        BlockingAutosave.save(blocking)
+    }
+
+    /// Currently active recording for ghost playback. Defaults to the
+    /// selected one, or the most-recent named recording, or the legacy
+    /// `reference` walk wrapped as a NamedRecording on demand.
+    public var activeRecording: NamedRecording? {
+        if let id = selectedRecordingID,
+           let r = blocking.recordings.first(where: { $0.id == id }) {
+            return r
+        }
+        if let last = blocking.recordings.last { return last }
+        if let legacy = blocking.reference {
+            return NamedRecording(legacyWalk: legacy, blockingTitle: blocking.title)
+        }
+        return nil
+    }
+
     // MARK: - Playback
 
-    /// Interpolate the recorded reference walk at a given 0…1 normalized time.
-    /// Returns `nil` if no reference walk exists, or if its samples are empty.
-    /// Linear interpolation between the two bracketing samples.
+    /// Interpolate the active named recording (or legacy reference) at a
+    /// given 0…1 normalized time. Returns `nil` if there's no recording.
     public func ghostPose(at normalizedT: Double) -> Pose? {
-        guard let walk = blocking.reference, !walk.samples.isEmpty else { return nil }
-        let t = max(0, min(1, normalizedT)) * walk.duration
-        let samples = walk.samples
-        if samples.count == 1 { return samples[0].pose }
-        // Find the bracketing indices.
-        if t <= samples.first!.t { return samples.first!.pose }
-        if t >= samples.last!.t { return samples.last!.pose }
-        var lo = 0
-        var hi = samples.count - 1
-        while hi - lo > 1 {
-            let mid = (lo + hi) / 2
-            if samples[mid].t <= t { lo = mid } else { hi = mid }
+        if let recording = activeRecording {
+            return recording.pose(at: normalizedT)
         }
-        let a = samples[lo]
-        let b = samples[hi]
-        let span = b.t - a.t
-        let alpha: Float = span > 0 ? Float((t - a.t) / span) : 0
-        // Lerp position; shortest-arc blend for yaw.
-        let x = a.pose.x + (b.pose.x - a.pose.x) * alpha
-        let y = a.pose.y + (b.pose.y - a.pose.y) * alpha
-        let z = a.pose.z + (b.pose.z - a.pose.z) * alpha
-        var dy = b.pose.yaw - a.pose.yaw
-        while dy >  .pi { dy -= 2 * .pi }
-        while dy < -.pi { dy += 2 * .pi }
-        let yaw = a.pose.yaw + dy * alpha
-        return Pose(x: x, y: y, z: z, yaw: yaw)
+        return nil
+    }
+
+    /// The avatar to render the ghost with — the one that was bound to
+    /// the recording at capture time, or nil to fall back to the default.
+    public var ghostAvatar: Avatar? {
+        activeRecording?.avatar
     }
 
     // MARK: - Sequencing helpers

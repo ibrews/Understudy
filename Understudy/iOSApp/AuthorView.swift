@@ -37,6 +37,9 @@ struct AuthorView: View {
     @State private var scanNameDraft: String = "Room scan"
     @State private var showingScanNameSheet: Bool = false
     @State private var showingTeleprompter: Bool = false
+    @State private var showingDemoLauncher: Bool = false
+    @State private var showingStageMap: Bool = false
+    @State private var showingMetrics: Bool = false
     @AppStorage("hasSeenOnboarding_author") private var hasSeenOnboarding: Bool = false
     @State private var showingOnboarding = false
 
@@ -114,6 +117,10 @@ struct AuthorView: View {
             TeleprompterView()
                 .environment(store)
                 .environment(session)
+        }
+        .sheet(isPresented: $showingStageMap) {
+            StageMapView()
+                .environment(store)
         }
         .sheet(isPresented: $showingOnboarding) {
             OnboardingSheet(mode: .author) {
@@ -195,6 +202,14 @@ struct AuthorView: View {
                     .foregroundStyle(.white)
             }
             .accessibilityLabel("Open teleprompter")
+            Button { showingStageMap = true } label: {
+                Image(systemName: "map")
+                    .font(.title3)
+                    .padding(10)
+                    .background(.white.opacity(0.08), in: Circle())
+                    .foregroundStyle(.white)
+            }
+            .accessibilityLabel("Stage map")
             Button { showingSettings = true } label: {
                 Image(systemName: "gearshape")
                     .font(.title3)
@@ -202,6 +217,7 @@ struct AuthorView: View {
                     .background(.white.opacity(0.08), in: Circle())
                     .foregroundStyle(.white)
             }
+            .accessibilityLabel("Settings")
         }
     }
 
@@ -242,25 +258,45 @@ struct AuthorView: View {
     }
 
     private var hintCard: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "hand.tap")
-                .font(.largeTitle)
-                .foregroundStyle(.white.opacity(0.8))
-            Text("Tap the floor to drop a mark")
-                .font(.title3).bold()
-                .foregroundStyle(.white)
-            Text("Tap a mark to edit its cues")
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.6))
+        // Adaptive hint — adapts copy based on current state and stays
+        // visible at small size when the stage already has marks. Before,
+        // this card was hidden whenever marks existed, but the bundled
+        // Hamlet demo means it's hidden on every fresh launch.
+        Group {
+            if store.blocking.marks.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "hand.tap")
+                        .font(.largeTitle)
+                        .foregroundStyle(.white.opacity(0.8))
+                    Text(dropKind == .camera ? "Tap to place a camera here" : "Tap the floor to drop a mark")
+                        .font(.title3).bold()
+                        .foregroundStyle(.white)
+                    Text("Tap any existing mark to edit its cues")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                .padding(22)
+                .frame(maxWidth: .infinity)
+                .background(.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 20))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(.white.opacity(0.12), lineWidth: 1)
+                )
+            } else {
+                HStack(spacing: 10) {
+                    Image(systemName: "hand.tap")
+                        .foregroundStyle(.white.opacity(0.7))
+                    Text(dropKind == .camera
+                         ? "Tap floor → camera mark.  Tap a mark → edit lens."
+                         : "Tap floor → new mark.  Tap a mark → edit cues.")
+                        .font(.caption.bold())
+                        .foregroundStyle(.white.opacity(0.85))
+                }
+                .padding(.horizontal, 14).padding(.vertical, 8)
+                .background(.black.opacity(0.45), in: Capsule())
+                .overlay(Capsule().stroke(.white.opacity(0.08), lineWidth: 1))
+            }
         }
-        .padding(22)
-        .frame(maxWidth: .infinity)
-        .background(.black.opacity(0.35), in: RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(.white.opacity(0.12), lineWidth: 1)
-        )
-        .opacity(store.blocking.marks.isEmpty ? 1.0 : 0.0)
         .allowsHitTesting(false)
     }
 
@@ -793,6 +829,19 @@ struct MarkEditorSheet: View {
                             color: selectedLight,
                             intensity: Float(lightIntensity)
                         ))
+                    }
+                    // Gel presets — one tap appends a multi-cue mood.
+                    Menu {
+                        ForEach(LightGelPreset.allCases) { gel in
+                            Button {
+                                mark.cues.append(contentsOf: gel.makeCues())
+                            } label: {
+                                Label(gel.rawValue, systemImage: gel.systemImage)
+                            }
+                        }
+                    } label: {
+                        Label("Apply Gel Preset…", systemImage: "wand.and.stars")
+                            .foregroundStyle(.purple)
                     }
                 }
 

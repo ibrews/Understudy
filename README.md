@@ -12,9 +12,26 @@ And because ten classic plays are bundled in the app — Shakespeare, Chekhov, I
 
 As of v0.8, the same model serves **film directors, DPs, and location scouts**: drop virtual camera marks with real lens specs (14/24/35/50/85/135mm), see FOV wedges in the room, and use the phone as a literal viewfinder that shows what each lens would frame from each spot.
 
-![Understudy app icon](Understudy/Assets.xcassets/AppIcon.appiconset/Icon-1024.png)
+<a href="Understudy/Assets.xcassets/AppIcon.appiconset/Icon-1024.png"><img src="Understudy/Assets.xcassets/AppIcon.appiconset/Icon-1024.png" width="120" alt="Understudy app icon"></a>
 
 > *"Figma for stage direction."*
+
+---
+
+## Screenshots
+
+<table>
+<tr>
+  <td align="center"><a href="Screenshots/perform-ar-guidance.png"><img src="Screenshots/perform-ar-guidance.png" width="200" alt="Perform — AR guidance ring"></a><br><sub><b>Perform</b> — AR guidance ring shrinks as you approach your mark</sub></td>
+  <td align="center"><a href="Screenshots/perform-teleprompter.png"><img src="Screenshots/perform-teleprompter.png" width="200" alt="Perform — teleprompter"></a><br><sub><b>Perform</b> — flowing teleprompter with karaoke scroll and voice mode</sub></td>
+  <td align="center"><a href="Screenshots/author-marks-list.png"><img src="Screenshots/author-marks-list.png" width="200" alt="Author — marks list"></a><br><sub><b>Author</b> — blocking with all marks listed and cue counts</sub></td>
+</tr>
+<tr>
+  <td align="center"><a href="Screenshots/author-script-browser.png"><img src="Screenshots/author-script-browser.png" width="200" alt="Author — Script Browser"></a><br><sub><b>Author</b> — Script Browser open on Hamlet Act I Scene I</sub></td>
+  <td align="center"><a href="Screenshots/author-camera-viewfinder.png"><img src="Screenshots/author-camera-viewfinder.png" width="200" alt="Author — camera viewfinder"></a><br><sub><b>Author</b> — 35mm viewfinder overlay with rule-of-thirds grid</sub></td>
+  <td></td>
+</tr>
+</table>
 
 ---
 
@@ -65,22 +82,12 @@ On visionOS, you're always the **Director**. On iPhone / Android, a first-launch
 ### Perform
 Walk the blocking. A full-screen AR camera feed behind a dark curtain gradient shows where the marks are as glowing discs on the floor; a guidance ring shrinks as you approach the next one. Haptic pulse on entry. The next line materialises in serif type over the camera feed. System-sound SFX cues fire; screen flashes for light cues.
 
-![Perform mode — AR guidance ring shrinking as the performer approaches Francisco's Post](Screenshots/perform-ar-guidance.png)
-
 The flowing teleprompter scrolls the full script — voice recognition drives the cursor so your hands stay free.
-
-![Perform mode — flowing teleprompter with mark headers and dialogue](Screenshots/perform-teleprompter.png)
 
 ### Author (iPhone + Android)
 Tap the floor to drop a mark at the raycast point. Tap an existing mark to open the inline editor — name, radius, lines (with character labels), sounds, lights, holds, director notes. A **"Pick from script…"** button opens the full play library (ten plays) with search, scene filter, and already-used indicators. **"Drop whole scene"** auto-lays out a zig-zag path of marks in front of you with every line pre-populated.
 
-![Author mode — blocking with all marks listed, cue counts visible](Screenshots/author-marks-list.png)
-
-![Author mode — Script Browser open on Hamlet Act I Scene I](Screenshots/author-script-browser.png)
-
 In Author mode on iPhone, a segmented picker at the top switches between actor and **camera** marks. Camera marks come with lens-preset pills (14/24/35/50/85/135mm) and a **live viewfinder overlay** that shows exactly what the selected lens would frame from the phone's current viewpoint — rule-of-thirds grid, lens+HFOV chip, dimmed exterior.
-
-![Author mode — camera mark selected, 35mm viewfinder overlay with rule-of-thirds grid](Screenshots/author-camera-viewfinder.png)
 
 Export as `.understudy` JSON (pretty-printed, hackable, identical to the wire format) via the share sheet. Import from the file picker. Autosave means edits survive relaunches.
 
@@ -219,7 +226,44 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] Migrate Monitoring code to AgileLensMultiplayer SPM dependency (currently copied in)
 - [ ] DMX on Android — v0.24 ships iOS sACN; port `DMXOutput.swift` + `DMXCueMapping.swift` to Kotlin (`java.net.DatagramSocket`/`MulticastSocket`). Hand-roll the same E1.31-2018 packet.
 - [ ] `scripts/ship-playstore.sh` — automate the `./gradlew bundleRelease` + Google Play Publisher roll-out. Guide in `HANDOFF_GOOGLE_PLAY.md`.
+- [ ] In-app script importer (drop a `.txt` or `.json` in via Files → it appears in the Script Browser).
+- [ ] Multiple reference walks per blocking, with picker. Today only the most recent walk is kept.
+- [ ] Custom audio import (drag a .wav from Files → bundled cue catalog). v0.31 ships 12 SFX + 5 music tracks but no in-app importer.
 - [ ] Long Day's Journey into Night (O'Neill) — copyright expires; check jurisdiction before adding. Beckett's expires 2059 in Europe.
+
+### v0.31 · The Demo Release — Guided Tour, showcases, Stage Map, sets, sounds, controllers
+
+Built for showing off — at FMX, in a London pub, on a producer's iPad. Lots in here.
+
+**1. 60-second on-rails Guided Tour.** Hand the iPhone to a stranger. Six stages: welcome → tap the floor to drop a mark (with cyan burst animation + knock SFX) → pick one of 3 sample Hamlet lines → pick a colour wash → tap "FIRE" to play the chain → reveal screen with paths into Author / Performer / Audience modes. Surfaced as a gradient headline button on the first-launch ModeSelector.
+
+**2. Three curated showcase blockings + an auto-runner.** *Theater · Hamlet's Ghost* (90s, 8 beats with thunder + blue/amber lighting + 4 characters), *Film · Coverage of a Monologue* (60s, one actor + four cameras at 24/50/85/135mm), *Gallery · Site-Specific Walk* (75s, 6-stop audio walk). DemoRunner walks every beat with theatrical per-cue timing. DemoRunnerOverlay shows opening/closing title cards + a live "DEMO · beat 3/8 · Francisco's Watch" banner that survives across views.
+
+**3. Stage Map view (2D top-down blocking diagram).** Auto-generated from the live blocking, exportable as PNG via ImageRenderer. Numbered actor discs, amber tripod-triangles + FOV wedges for cameras, prop footprints, dashed sequence path, 9-zone grid, AUDIENCE / UPSTAGE / STAGE LEFT/RIGHT labels. Surfaced from Director Panel and iPhone Author top bar.
+
+**4. Show Metrics dashboard.** Counts, runtime estimate (line chars / 14 cps + waits + dwells), per-character line counts, calibration health, and warnings (empty marks, sequence gaps, no-blackout-finale, missing camera specs, no reference walk). Director Panel → "Show Stats".
+
+**5. Bundled audio catalogue (12 SFX + 5 music tracks, 4.8 MB, all CC0).** New: door-slam, wind, crickets, drone-low, footsteps, glass-break, orchestral-hit, swell-strings, tense-drone, sad-cello, triumphant-brass, finale. CueFXEngine now uses AVAudioPlayer with bundled .wav priority; system-sound IDs are the fallback. Generation is reproducible via `scripts/generate-cue-audio.sh` (ffmpeg lavfi).
+
+**6. Set & Light Gel presets.** `SetPreset` enum: 6 prefab prop arrangements (Throne Room, Tavern, Forest, Modern Courtroom, Minimal Studio, Film Interior). `LightGelPreset` enum: 7 multi-cue gel chains (Warm Wash, Cool Moonlight, Sunset Fade, Stormy/Cool, Romantic Pink, Courtroom Day, Ghost Blue — the last is the full Hamlet's Ghost lighting cue in one tap). "Drop Set…" menu in Director Panel; "Apply Gel Preset…" menu in iPhone MarkEditorSheet.
+
+**7. PSVR2 Sense + MFi controller support (visionOS).** Hand tracking continues; controllers are additive. Trigger fires GO, grip toggles Stage, stick navigates the cue cursor, X runs a demo, O toggles Tabletop, Triangle toggles grid, Square edits the next mark. Gamepad status icon in the panel + a Controllers help sheet showing the full mapping.
+
+Android: versionCode → 34, no functional changes (this drop is Apple-platform-focused).
+
+### v0.30 · Overnight UX overhaul + user-facing wiki
+
+User feedback: visionOS shows just a "black floating window," many iOS buttons appear non-functional. Three batches of fixes plus a 13-page user-facing wiki targeted at theatre and film artists who don't read code.
+
+**1. visionOS — the immersive stage actually opens, and is actually visible.** Auto-opens the Stage immersive space on first appearance (gated on a new `@AppStorage("autoOpenStage")` toggle, default ON). When inside the stage, a **0.4 m red puddle** marks the origin and a **4×6 m translucent cyan rectangle** marks the playing area — you can SEE where the stage is even before dropping any marks. A floating welcome card reads *"Tap the floor to drop a mark"* until the first mark exists. Brighter mark discs (cyan @ 0.55 alpha + 0.95 rim) so they read against bright passthrough.
+
+**2. visionOS Director Panel: Quick Start strip + Preview Show.** A new prominent strip at the top with three buttons: **Open Stage / Close Stage**, **Teleprompter**, **Preview Show**. Preview Show is new — walks the GO cursor through every actor mark in sequence at 2.5 s per beat, firing the same cue path as a real walk-on. **Lets a director rehearse the cue stack with no performers in the room.** The legacy "Mixed Reality On/Off" toggle is renamed to "Auto-open stage" (since Quick Start now owns the open/close action).
+
+**3. iOS dead-button + dead-feedback fixes.** PerformerView's MarksOverview list rows are now buttons — tapping any mark fires its cues immediately via `fx.preview()`. Live recording indicator: a flashing red REC pill with elapsed seconds while recording, "Walk saved (X.Ys)" toast on stop. Accessibility labels on every icon-only button. AuthorView's "Tap the floor" hint card no longer disappears as soon as marks exist — adapts to a small capsule pill so the gesture is always discoverable. Audience progress bar is now scrubbable with beat ticks, fires the cues for the tapped beat. New "New Blocking…" action in Settings that replaces the bundled Hamlet demo title.
+
+**4. Onboarding copy fixed.** Author step 1 told users to "tap the ⊕ button" but the actual UI is tap-the-floor; rewrote to match. Audience flow was structured around joining a director's room as the primary path, but the lead use case is a single phone walking a recorded show; rewrote to lead with self-paced solo, mention live director room as the third step.
+
+**5. The wiki — `/wiki/` folder + GitHub Wiki tab mirror.** 13 pages: Home, Quick-Start, Director-Guide, Performer-Guide, Author-Guide, Audience-Mode, Camera-and-Film-Mode, Multiple-Devices, QLab-and-OSC, DMX-Lighting, Room-Scanning, Bundled-Plays, Troubleshooting, Glossary. Voice tuned for theatre and film artists (no jargon dumps). Each page ends with cross-links so a first-time reader can navigate by curiosity. See [`wiki/`](wiki/) or the GitHub Wiki tab once it's bootstrapped.
 
 ### v0.27 · First-run onboarding + teleprompter word-wrap fix
 

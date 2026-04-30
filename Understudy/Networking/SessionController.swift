@@ -178,7 +178,18 @@ public final class SessionController {
                 store.blocking.modifiedAt = Date()
                 BlockingAutosave.save(store.blocking)
             }
+        case .recordingAdded(let r):
+            if !store.blocking.recordings.contains(where: { $0.id == r.id }) {
+                store.blocking.recordings.append(r)
+                store.blocking.modifiedAt = Date()
+                BlockingAutosave.save(store.blocking)
+            }
         }
+    }
+
+    public func broadcastRecordingAdded(_ recording: NamedRecording) {
+        guard let me = store.localPerformer else { return }
+        transport.send(.recordingAdded(recording), from: me.id)
     }
 
     public func broadcastRoomScan(_ scan: RoomScan?) {

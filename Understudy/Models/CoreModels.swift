@@ -352,6 +352,10 @@ nonisolated public struct Performer: Codable, Hashable, Identifiable, Sendable {
     public var trackingQuality: Float
     /// Mark currently occupied, if any.
     public var currentMarkID: ID?
+    /// Visual representation chosen by the performer. Travels over the
+    /// wire so other peers see the chosen avatar style + colour. Nil =
+    /// fall back to the default magenta-orb rendering (legacy behaviour).
+    public var avatar: Avatar?
 
     public enum Role: String, Codable, Sendable {
         case director   // visionOS — authors the blocking
@@ -365,7 +369,8 @@ nonisolated public struct Performer: Codable, Hashable, Identifiable, Sendable {
         role: Role,
         pose: Pose = Pose(),
         trackingQuality: Float = 1.0,
-        currentMarkID: ID? = nil
+        currentMarkID: ID? = nil,
+        avatar: Avatar? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -373,6 +378,22 @@ nonisolated public struct Performer: Codable, Hashable, Identifiable, Sendable {
         self.pose = pose
         self.trackingQuality = trackingQuality
         self.currentMarkID = currentMarkID
+        self.avatar = avatar
+    }
+
+    // Custom decoder so older wire payloads (no `avatar` key) still load.
+    private enum CodingKeys: String, CodingKey {
+        case id, displayName, role, pose, trackingQuality, currentMarkID, avatar
+    }
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decode(ID.self, forKey: .id)
+        self.displayName = try c.decode(String.self, forKey: .displayName)
+        self.role = try c.decode(Role.self, forKey: .role)
+        self.pose = try c.decode(Pose.self, forKey: .pose)
+        self.trackingQuality = try c.decode(Float.self, forKey: .trackingQuality)
+        self.currentMarkID = try c.decodeIfPresent(ID.self, forKey: .currentMarkID)
+        self.avatar = try c.decodeIfPresent(Avatar.self, forKey: .avatar)
     }
 }
 
@@ -399,6 +420,12 @@ nonisolated public struct Blocking: Codable, Hashable, Identifiable, Sendable {
     /// drops to represent furniture, walls, or props before the real set exists.
     /// visionOS-only rendering; not broadcast over the wire in this version.
     public var props: [PropObject]
+    /// Multiple named recorded walks. Each one carries the recording
+    /// performer's name + chosen avatar, so an understudy can pick whose
+    /// blocking to rehearse against. The legacy `reference` field above
+    /// is kept for backward compat — when loading an old file, it gets
+    /// migrated into `recordings[0]`.
+    public var recordings: [NamedRecording]
 
     public init(
         id: ID = ID(),
@@ -406,7 +433,8 @@ nonisolated public struct Blocking: Codable, Hashable, Identifiable, Sendable {
         authorName: String = "",
         marks: [Mark] = [],
         origin: Pose = Pose(),
-        props: [PropObject] = []
+        props: [PropObject] = [],
+        recordings: [NamedRecording] = []
     ) {
         self.id = id
         self.title = title
@@ -418,12 +446,14 @@ nonisolated public struct Blocking: Codable, Hashable, Identifiable, Sendable {
         self.reference = nil
         self.roomScan = nil
         self.props = props
+        self.recordings = recordings
     }
 
     // Backward-compatible decoder — older .understudy files didn't have
-    // `roomScan` or `props`, so we let those keys be absent.
+    // `roomScan`, `props`, or `recordings`, so we let those keys be absent.
     private enum CodingKeys: String, CodingKey {
-        case id, title, authorName, createdAt, modifiedAt, marks, origin, reference, roomScan, props
+        case id, title, authorName, createdAt, modifiedAt, marks, origin,
+             reference, roomScan, props, recordings
     }
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -437,6 +467,13 @@ nonisolated public struct Blocking: Codable, Hashable, Identifiable, Sendable {
         self.reference = try c.decodeIfPresent(RecordedWalk.self, forKey: .reference)
         self.roomScan = try c.decodeIfPresent(RoomScan.self, forKey: .roomScan)
         self.props = try c.decodeIfPresent([PropObject].self, forKey: .props) ?? []
+        var recs = try c.decodeIfPresent([NamedRecording].self, forKey: .recordings) ?? []
+        // Migrate legacy single `reference` into the first recording so
+        // older files keep showing their walk as a selectable item.
+        if recs.isEmpty, let legacy = self.reference {
+            recs.append(NamedRecording(legacyWalk: legacy, blockingTitle: title))
+        }
+        self.recordings = recs
     }
 
     /// Return the mark a given pose is currently inside, if any.

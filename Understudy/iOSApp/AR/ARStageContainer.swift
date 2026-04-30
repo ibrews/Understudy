@@ -98,6 +98,7 @@ struct ARStageContainer: UIViewRepresentable {
             marks: store.blocking.marks,
             nextMarkID: store.nextMark(after: store.localPerformer?.currentMarkID)?.id,
             ghostPose: store.playbackT.flatMap { store.ghostPose(at: $0) },
+            ghostAvatar: store.ghostAvatar,
             savedScan: store.blocking.roomScan,
             session: uiView.session
         )
@@ -111,21 +112,48 @@ struct ARStageContainer: UIViewRepresentable {
     // MARK: - Scene building
 
     fileprivate static func makeGhostEntity() -> Entity {
+        // Default ghost orb — colour gets tinted at sync time from the
+        // active recording's avatar (see Coordinator.sync). The shape is
+        // intentionally minimal here; iOS AR renders the ghost as a
+        // colour-accented sphere + halo rather than a full-body avatar
+        // (those live in the visionOS DirectorImmersiveView). On a phone
+        // held at arm's length, a colour-coded orb reads better than a
+        // tiny human silhouette anyway.
         let root = Entity()
         root.name = "ghostOrb"
-        let mesh = MeshResource.generateSphere(radius: 0.18)
-        var mat = UnlitMaterial()
-        mat.color = .init(tint: UIColor.magenta.withAlphaComponent(0.55))
-        mat.blending = .transparent(opacity: .init(floatLiteral: 0.55))
-        let body = ModelEntity(mesh: mesh, materials: [mat])
+        let body = ModelEntity(
+            mesh: .generateSphere(radius: 0.18),
+            materials: [makeEmissiveMaterial(UIColor.magenta, alpha: 0.55)]
+        )
+        body.name = "ghostBody"
         root.addChild(body)
         let halo = ModelEntity(
             mesh: .generateSphere(radius: 0.28),
-            materials: [makeEmissiveMaterial(UIColor(red: 1.0, green: 0.35, blue: 1.0, alpha: 1.0),
-                                              alpha: 0.18)]
+            materials: [makeEmissiveMaterial(UIColor.magenta, alpha: 0.18)]
         )
+        halo.name = "ghostHalo"
         root.addChild(halo)
         return root
+    }
+
+    /// Re-tint the ghost's body + halo from an Avatar's primary colour.
+    /// Called whenever the active recording changes so an understudy
+    /// sees the lead's chosen colour as they chase the ghost.
+    @MainActor
+    fileprivate static func tintGhost(_ ghost: Entity, with avatar: Avatar?) {
+        let rgba = (avatar ?? .defaultPick).primaryRGBA
+        let color = UIColor(
+            red: CGFloat(rgba.x),
+            green: CGFloat(rgba.y),
+            blue: CGFloat(rgba.z),
+            alpha: 1
+        )
+        if let body = ghost.findEntity(named: "ghostBody") as? ModelEntity {
+            body.model?.materials = [makeEmissiveMaterial(color, alpha: 0.55)]
+        }
+        if let halo = ghost.findEntity(named: "ghostHalo") as? ModelEntity {
+            halo.model?.materials = [makeEmissiveMaterial(color, alpha: 0.18)]
+        }
     }
 
     fileprivate static func makeEmissiveMaterial(_ color: UIColor, alpha: CGFloat) -> RealityKit.Material {
@@ -152,6 +180,8 @@ struct ARStageContainer: UIViewRepresentable {
         private var nextMarkID: ID?
         /// Time since view creation, used for the pulse.
         private var elapsed: Double = 0
+        /// Last avatar we tinted the ghost with — avoids material rebuilds every frame.
+        private var lastGhostAvatar: Avatar?
         /// Live ARMeshAnchor visualizations. Keyed by anchor identifier.
         /// Values track the vertex+face counts we last built with, so we
         /// only rebuild entities when the underlying geometry changes.
@@ -177,7 +207,7 @@ struct ARStageContainer: UIViewRepresentable {
         }
 
         func sync(marks: [Mark], nextMarkID: ID?, ghostPose: Pose?,
-                  savedScan: RoomScan?, session: ARSession) {
+                  ghostAvatar: Avatar?, savedScan: RoomScan?, session: ARSession) {
             self.nextMarkID = nextMarkID
             guard let anchor = worldAnchor else { return }
 
@@ -226,7 +256,11 @@ struct ARStageContainer: UIViewRepresentable {
             // the scales we care about (<50 marks).
             rebuildTrail(marks: marks, anchor: anchor, calibration: calibration)
 
-            // Ghost orb.
+            // Ghost orb — tint only when avatar changes to avoid per-frame material rebuilds.
+            if ghostAvatar != lastGhostAvatar, let ghost {
+                ARStageContainer.tintGhost(ghost, with: ghostAvatar)
+                lastGhostAvatar = ghostAvatar
+            }
             if let ghost, let pose = ghostPose {
                 ghost.isEnabled = true
                 ghost.position = rawPosition(pose, y: 0.9)

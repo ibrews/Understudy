@@ -81,53 +81,53 @@ struct OnboardingSheet: View {
                 OnboardingStep(
                     icon: "scope",
                     title: "Find your mark",
-                    body: "A guidance ring shows how far you are from your next mark. Walk until the ring shrinks to zero."
+                    body: "A guidance ring shows how far you are from your next mark. Walk until the ring shrinks to zero — your phone pulses when you arrive."
                 ),
                 OnboardingStep(
-                    icon: "text.aligncenter",
+                    icon: "text.quote",
                     title: "Follow the script",
-                    body: "Tap the ≡ button to open the teleprompter. Your lines scroll automatically, or you can drag to follow along."
+                    body: "Tap the quote button at the top to open the teleprompter. Lines scroll automatically, or speak them and voice-mode follows your pace."
                 ),
                 OnboardingStep(
-                    icon: "camera.viewfinder",
-                    title: "Marks are on the floor",
-                    body: "With AR enabled, glowing discs appear on the stage floor — one per blocking position. Walk to each one in order."
+                    icon: "list.bullet",
+                    title: "See the whole show",
+                    body: "Tap the list button to see every mark in order. Tap any mark to fire its cues right now — perfect for a quick run-through without walking."
                 ),
             ]
         case .author:
             return [
                 OnboardingStep(
-                    icon: "mappin.and.ellipse",
-                    title: "Drop marks where you stand",
-                    body: "Walk to each blocking position and tap the ⊕ button to drop a mark at your feet."
+                    icon: "hand.tap",
+                    title: "Tap the floor to drop a mark",
+                    body: "Point your phone at the floor and tap anywhere to place a blocking mark there. The mark appears as a glowing disc you can walk back to later."
                 ),
                 OnboardingStep(
                     icon: "music.note.list",
                     title: "Add cues to each mark",
-                    body: "Tap any mark disc on the floor to open it. Add dialogue lines, sound effects, or lighting cues."
+                    body: "Tap any mark on the floor to open its editor. Add dialogue lines, sound effects, lighting cues — or pick a line straight from one of the ten bundled plays."
                 ),
                 OnboardingStep(
                     icon: "camera.aperture",
-                    title: "Set up camera framing",
-                    body: "Switch to Camera mode to choose a focal length and lock in the shot composition for each mark."
+                    title: "Camera marks for film",
+                    body: "Switch the Drop toggle from Actor to Camera. A live viewfinder overlay shows what each lens (14–135 mm) would frame from that spot — walk the room as a virtual scout."
                 ),
             ]
         case .audience:
             return [
                 OnboardingStep(
+                    icon: "figure.walk",
+                    title: "Walk the show yourself",
+                    body: "Audience mode turns a finished blocking into a self-paced AR tour. The phone guides you from mark to mark — your lines, sounds, and lights play as you arrive."
+                ),
+                OnboardingStep(
+                    icon: "hand.tap",
+                    title: "Or tap to scrub",
+                    body: "Tap any spot on the progress bar to jump to that beat — handy when you want to revisit a moment or experience the show from a different starting point."
+                ),
+                OnboardingStep(
                     icon: "person.2.wave.2",
-                    title: "Join the session",
-                    body: "Your director will share a room code. Enter it in Settings → Room to sync with the live blocking."
-                ),
-                OnboardingStep(
-                    icon: "mappin",
-                    title: "See where performers are",
-                    body: "Mark positions appear on your screen in real time as performers walk their blocking."
-                ),
-                OnboardingStep(
-                    icon: "bell",
-                    title: "Receive cue notifications",
-                    body: "Sound, lighting, and dialogue cues fire as performers hit their marks — you'll feel the show come alive."
+                    title: "Joining a live show",
+                    body: "Walking a director's live blocking? Open Settings → Room and enter the room code they share. You'll see performers on the same stage in real time."
                 ),
             ]
         }

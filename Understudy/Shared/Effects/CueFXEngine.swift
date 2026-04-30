@@ -15,6 +15,9 @@ import Observation
 #if canImport(AudioToolbox)
 import AudioToolbox
 #endif
+#if canImport(AVFoundation)
+import AVFoundation
+#endif
 
 @Observable
 @MainActor
@@ -61,6 +64,25 @@ public final class CueFXEngine {
 
     /// When a `.wait` cue fires, this counts down (in seconds) until it clears.
     public var currentHold: Double? = nil
+
+    /// Burst signal — set the moment any cue fires. The visionOS immersive
+    /// stage observes this to drive cue-fire animations (particle bursts on
+    /// the active mark, typewriter line callouts, spatial audio playback at
+    /// the mark's 3D position). The id changes on every fire so SwiftUI's
+    /// onChange triggers cleanly even when the same mark fires twice.
+    public struct CueFireEvent: Equatable {
+        public let id: UUID
+        public let markName: String
+        public let cue: Cue
+        public let firedAt: Date
+        public init(markName: String, cue: Cue) {
+            self.id = UUID()
+            self.markName = markName
+            self.cue = cue
+            self.firedAt = Date()
+        }
+    }
+    public var lastFire: CueFireEvent? = nil
 
     /// A rolling buffer of recent cues for the debug HUD.
     public var recentLog: [LogEntry] = []
@@ -337,15 +359,58 @@ public final class CueFXEngine {
 
     // MARK: - SFX
 
+    /// Held strong refs to the active AVAudioPlayers so they don't get
+    /// deallocated mid-playback. Keyed by cue name; replaced on retrigger.
+    #if canImport(AVFoundation)
+    private var activeAudioPlayers: [String: AVAudioPlayer] = [:]
+    #endif
+
     private func playSFX(named name: String) {
+        // First-priority: a bundled .wav from Resources/Audio/sfx/ or /music/.
+        // The bundled set covers far more theatrical territory than the
+        // system-sound fallback (orchestral hits, drones, music cues, etc.).
+        if playBundledAudio(named: name) { return }
+
+        // Fallback: iOS system sound IDs for the legacy 5 names.
         #if canImport(AudioToolbox)
         let id = Self.systemSoundID(for: name)
         AudioServicesPlaySystemSound(id)
         #endif
     }
 
-    /// Map well-known cue names to iOS system sound IDs. These are built-in
-    /// to every Apple platform so we don't have to ship audio assets.
+    /// Look the cue name up in the bundle's `Audio/sfx` and `Audio/music`
+    /// folders. Returns true if a matching .wav was found and started
+    /// playing; false to let the caller try the system-sound fallback.
+    @discardableResult
+    private func playBundledAudio(named name: String) -> Bool {
+        #if canImport(AVFoundation)
+        let key = name.lowercased()
+        // Look in sfx first, then music. URL(forResource:withExtension:subdirectory:)
+        // searches recursively through fileSystemSynchronizedGroups directories.
+        let sfxURL = Bundle.main.url(forResource: key, withExtension: "wav", subdirectory: "Audio/sfx")
+        let musicURL = Bundle.main.url(forResource: key, withExtension: "wav", subdirectory: "Audio/music")
+        // Also try without subdirectory in case the bundle flattens.
+        let flatURL = Bundle.main.url(forResource: key, withExtension: "wav")
+        guard let url = sfxURL ?? musicURL ?? flatURL else { return false }
+
+        do {
+            let player = try AVAudioPlayer(contentsOf: url)
+            player.prepareToPlay()
+            player.play()
+            activeAudioPlayers[key] = player
+            return true
+        } catch {
+            print("[CueFXEngine] Failed to play \(url.lastPathComponent): \(error)")
+            return false
+        }
+        #else
+        return false
+        #endif
+    }
+
+    /// Map legacy cue names to iOS system sound IDs as a fallback when no
+    /// bundled .wav is found. Bundled audio (Resources/Audio/...) takes
+    /// priority — see playBundledAudio.
     static func systemSoundID(for name: String) -> UInt32 {
         switch name.lowercased() {
         case "thunder":  return 1005
@@ -356,6 +421,23 @@ public final class CueFXEngine {
         default:         return 1007
         }
     }
+
+    /// All cue names available to the mark editor — bundled assets + legacy
+    /// fallbacks. Drives the cue picker so authors see the full catalog
+    /// instead of guessing names.
+    public static let availableSFXNames: [(category: String, names: [String])] = [
+        ("Theatrical FX", [
+            "bell", "chime", "knock", "applause",
+            "door-slam", "glass-break", "footsteps", "orchestral-hit",
+        ]),
+        ("Atmosphere", [
+            "thunder", "wind", "crickets", "drone-low",
+        ]),
+        ("Music", [
+            "swell-strings", "tense-drone", "sad-cello",
+            "triumphant-brass", "finale",
+        ]),
+    ]
 
     // MARK: - Lighting flash
 

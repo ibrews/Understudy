@@ -12,8 +12,21 @@ struct UnderstudyApp: App {
     @State private var store: BlockingStore
     @State private var sessionController: SessionController
     @State private var fx: CueFXEngine
+    @State private var demoRunner: DemoRunner
+    #if os(visionOS)
+    @State private var controllerInput: ControllerInput
+    #endif
     @AppStorage("displayName") private var displayName: String = ""
     @AppStorage("roomCode") private var roomCode: String = "rehearsal"
+    /// When true, the immersive stage opens automatically on launch (visionOS).
+    /// Director can disable this from the control panel if they want the
+    /// floating window to stay solo.
+    @AppStorage("autoOpenStage") private var autoOpenStage: Bool = true
+    /// Avatar persistence — restored on launch + applied to the local
+    /// performer so they show up to peers with their chosen look.
+    @AppStorage("avatarStyle") private var avatarStyleRaw: String = Avatar.Style.performer.rawValue
+    @AppStorage("avatarPrimary") private var avatarPrimary: String = Avatar.defaultPick.primaryHex
+    @AppStorage("avatarSecondary") private var avatarSecondary: String = Avatar.defaultPick.secondaryHex
     @State private var hasOnboarded = false
 
     init() {
@@ -33,9 +46,15 @@ struct UnderstudyApp: App {
         let t = MultipeerTransport()
         let sc = SessionController(transport: t, kind: .multipeer, store: s, roomCode: "rehearsal")
         let engine = CueFXEngine()
+        let runner = DemoRunner()
         _store = State(wrappedValue: s)
         _sessionController = State(wrappedValue: sc)
         _fx = State(wrappedValue: engine)
+        _demoRunner = State(wrappedValue: runner)
+        #if os(visionOS)
+        let ci = ControllerInput()
+        _controllerInput = State(wrappedValue: ci)
+        #endif
     }
 
     var body: some Scene {
@@ -44,11 +63,27 @@ struct UnderstudyApp: App {
                 .environment(store)
                 .environment(sessionController)
                 .environment(fx)
+                .environment(demoRunner)
+                #if os(visionOS)
+                .environment(controllerInput)
+                #endif
+                .overlay(DemoRunnerOverlay().environment(demoRunner))
                 .onAppear {
                     if !hasOnboarded {
                         // Seed default display name from device name if user hasn't set one.
                         if displayName.isEmpty {
                             displayName = store.localPerformer?.displayName ?? "Performer"
+                        }
+                        // Hydrate the local performer's avatar from saved
+                        // preferences so the chosen look survives relaunches.
+                        if var me = store.localPerformer {
+                            let style = Avatar.Style(rawValue: avatarStyleRaw) ?? .performer
+                            me.avatar = Avatar(
+                                style: style,
+                                primaryHex: avatarPrimary,
+                                secondaryHex: avatarSecondary
+                            )
+                            store.upsertPerformer(me)
                         }
                         sessionController.roomCode = roomCode
                         sessionController.start()
@@ -87,6 +122,8 @@ struct UnderstudyApp: App {
                 .environment(store)
                 .environment(sessionController)
                 .environment(fx)
+                .environment(demoRunner)
+                .environment(controllerInput)
         }
         .immersionStyle(selection: .constant(.mixed), in: .mixed)
 

@@ -47,6 +47,44 @@ enum class Role {
     director, performer, observer
 }
 
+/**
+ * Avatar style — mirrors Swift's `Avatar.Style` (iOS v0.32).
+ * Serializes as a lowercase string: "performer" | "dancer" | "ghost" | "minimal" | "villain" | "hero".
+ */
+@Serializable
+enum class AvatarStyle {
+    performer, dancer, ghost, minimal, villain, hero
+}
+
+/**
+ * Performer avatar — mirrors Swift's `Avatar` (iOS v0.32).
+ * Travels over the wire so every peer sees the chosen look.
+ * Absent on older wire payloads; decoded as null.
+ */
+@Serializable
+data class Avatar(
+    val style: AvatarStyle = AvatarStyle.performer,
+    val primaryHex: String = "FF3366",
+    val secondaryHex: String = "FFFFFF"
+)
+
+/**
+ * One named recorded walk — mirrors Swift's `NamedRecording` (iOS v0.32).
+ * Blocking.recordings holds a list. The legacy single `reference` field
+ * migrates into recordings[0] on iOS load; Android just round-trips the list.
+ */
+@Serializable
+data class NamedRecording(
+    val id: Id,
+    val name: String,
+    val performerName: String,
+    val avatar: Avatar? = null,
+    val samples: List<RecordedWalkSample>,
+    val duration: Double,
+    val createdAt: String,   // ISO-8601
+    val blockingTitle: String
+)
+
 @Serializable
 data class Performer(
     val id: Id,
@@ -54,7 +92,9 @@ data class Performer(
     val role: Role = Role.performer,
     val pose: Pose = Pose(),
     val trackingQuality: Float = 1.0f,
-    val currentMarkID: Id? = null
+    val currentMarkID: Id? = null,
+    /** Visual representation chosen by this performer. Null = legacy magenta-orb fallback. */
+    val avatar: Avatar? = null
 )
 
 /**
@@ -145,7 +185,10 @@ data class Blocking(
     /** LiDAR scan from a peer iPhone Pro. Defaulted to null so pre-v0.9
      *  `.understudy` files still load unchanged. Preserved through decode
      *  + encode so Android can re-broadcast without data loss. */
-    val roomScan: RoomScan? = null
+    val roomScan: RoomScan? = null,
+    /** Named recorded walks (iOS v0.32). Android round-trips; doesn't yet
+     *  render ghost playback, but preserves recordings in mixed sessions. */
+    val recordings: List<NamedRecording> = emptyList()
 ) {
     /** Mark containing the given pose — closest-by-center wins on overlap. */
     fun markContaining(pose: Pose): Mark? =
