@@ -679,8 +679,9 @@ struct MarkEditorSheet: View {
     @State private var waitSeconds: Double = 1.0
     @State private var confirmDelete = false
     @State private var showingScriptBrowser = false
-
-    private let sfxNames = ["bell", "thunder", "chime", "knock", "applause"]
+    @State private var showingAudioImporter = false
+    @State private var audioImportError: String?
+    @State private var sfxCatalog: [(category: String, names: [String])] = CueFXEngine.allAvailableSFXNames()
 
     var body: some View {
         NavigationStack {
@@ -803,10 +804,23 @@ struct MarkEditorSheet: View {
 
                 Section("Sound") {
                     Picker("Effect", selection: $selectedSFX) {
-                        ForEach(sfxNames, id: \.self) { Text($0.capitalized) }
+                        ForEach(sfxCatalog, id: \.category) { group in
+                            Section(group.category) {
+                                ForEach(group.names, id: \.self) { name in
+                                    Text(name.replacingOccurrences(of: "-", with: " ").capitalized)
+                                        .tag(name)
+                                }
+                            }
+                        }
                     }
                     Button("Add Sound Cue") {
                         mark.cues.append(.sfx(id: ID(), name: selectedSFX))
+                    }
+                    Button {
+                        showingAudioImporter = true
+                    } label: {
+                        Label("Import Audio…", systemImage: "square.and.arrow.down")
+                            .font(.subheadline)
                     }
                 }
 
@@ -925,6 +939,40 @@ struct MarkEditorSheet: View {
             }
             .sheet(isPresented: $showingScriptBrowser) {
                 ScriptBrowser(mark: $mark)
+            }
+            .fileImporter(
+                isPresented: $showingAudioImporter,
+                allowedContentTypes: [.wav],
+                allowsMultipleSelection: false
+            ) { result in
+                if case .success(let urls) = result, let url = urls.first {
+                    handleAudioImport(from: url)
+                }
+            }
+            .alert("Import Failed", isPresented: Binding(
+                get: { audioImportError != nil },
+                set: { if !$0 { audioImportError = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(audioImportError ?? "")
+            }
+        }
+    }
+
+    private func handleAudioImport(from url: URL) {
+        Task.detached(priority: .userInitiated) {
+            do {
+                let name = try AudioImporter.import(from: url)
+                let updated = CueFXEngine.allAvailableSFXNames()
+                await MainActor.run {
+                    sfxCatalog = updated
+                    selectedSFX = name
+                }
+            } catch {
+                await MainActor.run {
+                    audioImportError = error.localizedDescription
+                }
             }
         }
     }

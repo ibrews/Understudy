@@ -227,9 +227,15 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] Next-mark auto-advance — right now voice auto-fire handles sub-mark cues; the performer still has to physically walk to advance marks. Optional toggle: when the last line on a mark finishes via voice AND the performer is within N seconds of walking, pre-advance the cue cursor.
 - [ ] Migrate Monitoring code to AgileLensMultiplayer SPM dependency (currently copied in)
 - [ ] DMX on Android — v0.24 ships iOS sACN; port `DMXOutput.swift` + `DMXCueMapping.swift` to Kotlin (`java.net.DatagramSocket`/`MulticastSocket`). Hand-roll the same E1.31-2018 packet.
-- [ ] Multiple reference walks per blocking, with picker. Today only the most recent walk is kept.
-- [ ] Custom audio import (drag a .wav from Files → bundled cue catalog). v0.31 ships 12 SFX + 5 music tracks but no in-app importer.
 - [ ] Long Day's Journey into Night (O'Neill) — copyright expires; check jurisdiction before adding. Beckett's expires 2059 in Europe.
+
+### v0.34 · Custom audio import + multiple-recording picker (already shipped)
+
+**1. Custom audio import.** In the mark editor's Sound section, tap "Import Audio…" → pick any `.wav` from the Files app. The file is copied to `<Documents>/ImportedAudio/` and appears immediately as a new "Custom" section in the SFX cue picker. The cue name is derived from the filename. Imported audio takes priority over bundled sounds with the same name, so you can override defaults. `AudioImporter.delete(name:)` removes the file; the Custom section disappears from the picker once all imports are gone.
+
+**2. SFX picker upgraded to grouped catalog.** The mark editor's Sound picker now shows all 17 bundled cues in three labeled sections (Theatrical FX, Atmosphere, Music) instead of the old 5-item flat list. Cue names use the engine's `allAvailableSFXNames()` which merges bundled + imported on demand.
+
+**3. Multiple reference walks — already complete.** The "multiple reference walks" Next-up item was already fully implemented in v0.32 (`recordings: [NamedRecording]`, `RecordingsPickerView`, long-press ghost button → picker). Removed from Next up.
 
 ### v0.33 · In-app script importer + Android wire-compat
 

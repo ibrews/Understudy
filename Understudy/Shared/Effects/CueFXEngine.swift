@@ -366,9 +366,10 @@ public final class CueFXEngine {
     #endif
 
     private func playSFX(named name: String) {
-        // First-priority: a bundled .wav from Resources/Audio/sfx/ or /music/.
-        // The bundled set covers far more theatrical territory than the
-        // system-sound fallback (orchestral hits, drones, music cues, etc.).
+        // First-priority: user-imported .wav from Documents/ImportedAudio/.
+        if playAudioAt(AudioImporter.url(for: name), key: name) { return }
+
+        // Second: bundled .wav from Resources/Audio/sfx/ or /music/.
         if playBundledAudio(named: name) { return }
 
         // Fallback: iOS system sound IDs for the legacy 5 names.
@@ -378,26 +379,16 @@ public final class CueFXEngine {
         #endif
     }
 
-    /// Look the cue name up in the bundle's `Audio/sfx` and `Audio/music`
-    /// folders. Returns true if a matching .wav was found and started
-    /// playing; false to let the caller try the system-sound fallback.
+    /// Play audio at an arbitrary URL. Returns true if playback started.
     @discardableResult
-    private func playBundledAudio(named name: String) -> Bool {
+    private func playAudioAt(_ url: URL?, key: String) -> Bool {
+        guard let url else { return false }
         #if canImport(AVFoundation)
-        let key = name.lowercased()
-        // Look in sfx first, then music. URL(forResource:withExtension:subdirectory:)
-        // searches recursively through fileSystemSynchronizedGroups directories.
-        let sfxURL = Bundle.main.url(forResource: key, withExtension: "wav", subdirectory: "Audio/sfx")
-        let musicURL = Bundle.main.url(forResource: key, withExtension: "wav", subdirectory: "Audio/music")
-        // Also try without subdirectory in case the bundle flattens.
-        let flatURL = Bundle.main.url(forResource: key, withExtension: "wav")
-        guard let url = sfxURL ?? musicURL ?? flatURL else { return false }
-
         do {
             let player = try AVAudioPlayer(contentsOf: url)
             player.prepareToPlay()
             player.play()
-            activeAudioPlayers[key] = player
+            activeAudioPlayers[key.lowercased()] = player
             return true
         } catch {
             print("[CueFXEngine] Failed to play \(url.lastPathComponent): \(error)")
@@ -406,6 +397,18 @@ public final class CueFXEngine {
         #else
         return false
         #endif
+    }
+
+    /// Look the cue name up in the bundle's `Audio/sfx` and `Audio/music`
+    /// folders. Returns true if a matching .wav was found and started
+    /// playing; false to let the caller try the system-sound fallback.
+    @discardableResult
+    private func playBundledAudio(named name: String) -> Bool {
+        let key = name.lowercased()
+        let sfxURL = Bundle.main.url(forResource: key, withExtension: "wav", subdirectory: "Audio/sfx")
+        let musicURL = Bundle.main.url(forResource: key, withExtension: "wav", subdirectory: "Audio/music")
+        let flatURL = Bundle.main.url(forResource: key, withExtension: "wav")
+        return playAudioAt(sfxURL ?? musicURL ?? flatURL, key: key)
     }
 
     /// Map legacy cue names to iOS system sound IDs as a fallback when no
@@ -422,9 +425,7 @@ public final class CueFXEngine {
         }
     }
 
-    /// All cue names available to the mark editor — bundled assets + legacy
-    /// fallbacks. Drives the cue picker so authors see the full catalog
-    /// instead of guessing names.
+    /// Bundled cue names by category, for the mark editor picker.
     public static let availableSFXNames: [(category: String, names: [String])] = [
         ("Theatrical FX", [
             "bell", "chime", "knock", "applause",
@@ -438,6 +439,17 @@ public final class CueFXEngine {
             "triumphant-brass", "finale",
         ]),
     ]
+
+    /// Bundled + user-imported cue names. Call from the UI to get the full
+    /// picker list; the "Custom" section is omitted when there are no imports.
+    public static func allAvailableSFXNames() -> [(category: String, names: [String])] {
+        var result = availableSFXNames
+        let imported = AudioImporter.loadAll()
+        if !imported.isEmpty {
+            result.append(("Custom", imported))
+        }
+        return result
+    }
 
     // MARK: - Lighting flash
 
