@@ -12,7 +12,7 @@ And because ten classic plays are bundled in the app — Shakespeare, Chekhov, I
 
 As of v0.8, the same model serves **film directors, DPs, and location scouts**: drop virtual camera marks with real lens specs (14/24/35/50/85/135mm), see FOV wedges in the room, and use the phone as a literal viewfinder that shows what each lens would frame from each spot.
 
-![Understudy app icon](Understudy/Assets.xcassets/AppIcon.appiconset/Icon-1024.png)
+<a href="Understudy/Assets.xcassets/AppIcon.appiconset/Icon-1024.png"><img src="Understudy/Assets.xcassets/AppIcon.appiconset/Icon-1024.png" width="120" alt="Understudy app icon"></a>
 
 > *"Figma for stage direction."*
 
@@ -65,22 +65,32 @@ On visionOS, you're always the **Director**. On iPhone / Android, a first-launch
 ### Perform
 Walk the blocking. A full-screen AR camera feed behind a dark curtain gradient shows where the marks are as glowing discs on the floor; a guidance ring shrinks as you approach the next one. Haptic pulse on entry. The next line materialises in serif type over the camera feed. System-sound SFX cues fire; screen flashes for light cues.
 
-![Perform mode — AR guidance ring shrinking as the performer approaches Francisco's Post](Screenshots/perform-ar-guidance.png)
+<a href="Screenshots/perform-ar-guidance.png"><img src="Screenshots/perform-ar-guidance.png" width="280" alt="Perform mode — AR guidance ring"></a>
+
+*Perform mode — AR guidance ring shrinks as you approach Francisco's Post*
 
 The flowing teleprompter scrolls the full script — voice recognition drives the cursor so your hands stay free.
 
-![Perform mode — flowing teleprompter with mark headers and dialogue](Screenshots/perform-teleprompter.png)
+<a href="Screenshots/perform-teleprompter.png"><img src="Screenshots/perform-teleprompter.png" width="280" alt="Perform mode — teleprompter"></a>
+
+*Perform mode — flowing teleprompter with mark headers, karaoke scroll, and voice mode*
 
 ### Author (iPhone + Android)
 Tap the floor to drop a mark at the raycast point. Tap an existing mark to open the inline editor — name, radius, lines (with character labels), sounds, lights, holds, director notes. A **"Pick from script…"** button opens the full play library (ten plays) with search, scene filter, and already-used indicators. **"Drop whole scene"** auto-lays out a zig-zag path of marks in front of you with every line pre-populated.
 
-![Author mode — blocking with all marks listed, cue counts visible](Screenshots/author-marks-list.png)
+<a href="Screenshots/author-marks-list.png"><img src="Screenshots/author-marks-list.png" width="280" alt="Author mode — marks list"></a>
 
-![Author mode — Script Browser open on Hamlet Act I Scene I](Screenshots/author-script-browser.png)
+*Author mode — blocking with all marks listed and cue counts visible*
+
+<a href="Screenshots/author-script-browser.png"><img src="Screenshots/author-script-browser.png" width="280" alt="Author mode — Script Browser"></a>
+
+*Author mode — Script Browser open on Hamlet Act I Scene I*
 
 In Author mode on iPhone, a segmented picker at the top switches between actor and **camera** marks. Camera marks come with lens-preset pills (14/24/35/50/85/135mm) and a **live viewfinder overlay** that shows exactly what the selected lens would frame from the phone's current viewpoint — rule-of-thirds grid, lens+HFOV chip, dimmed exterior.
 
-![Author mode — camera mark selected, 35mm viewfinder overlay with rule-of-thirds grid](Screenshots/author-camera-viewfinder.png)
+<a href="Screenshots/author-camera-viewfinder.png"><img src="Screenshots/author-camera-viewfinder.png" width="280" alt="Author mode — camera viewfinder"></a>
+
+*Author mode — 35mm lens selected; viewfinder overlay with rule-of-thirds grid and HFOV chip*
 
 Export as `.understudy` JSON (pretty-printed, hackable, identical to the wire format) via the share sheet. Import from the file picker. Autosave means edits survive relaunches.
 
