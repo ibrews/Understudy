@@ -774,6 +774,31 @@ struct SettingsSheet: View {
                 }
 
                 Section {
+                    Toggle("Auto-advance to next mark", isOn: Binding(
+                        get: { fx.nextMarkAutoAdvanceEnabled },
+                        set: { fx.nextMarkAutoAdvanceEnabled = $0 }
+                    ))
+                    if fx.nextMarkAutoAdvanceEnabled {
+                        HStack {
+                            Text("Walk window")
+                            Slider(
+                                value: Binding(
+                                    get: { fx.nextMarkWindowSeconds },
+                                    set: { fx.nextMarkWindowSeconds = $0 }
+                                ),
+                                in: 2...15, step: 0.5
+                            )
+                            Text(String(format: "%.1fs", fx.nextMarkWindowSeconds))
+                                .font(.caption.monospacedDigit())
+                                .frame(width: 44, alignment: .trailing)
+                        }
+                    }
+                } header: { Text("Voice auto-advance") } footer: {
+                    Text("When the last line on a mark finishes via voice mode AND the performer is within the walk window of the next mark, cues fire automatically without physically stepping onto it.")
+                        .font(.caption)
+                }
+
+                Section {
                     Button {
                         showingQRTarget = true
                     } label: {

@@ -154,6 +154,9 @@ class MainActivity : ComponentActivity() {
         val prefsState = remember { mutableStateOf<PrefsSnapshot?>(null) }
         LaunchedEffect(Unit) {
             app.ready.await()
+            val dmxEnabledPref = app.prefs.dmxEnabled.first()
+            val dmxUniversePref = app.prefs.dmxUniverse.first()
+            val dmxDestIpPref = app.prefs.dmxDestIp.first()
             prefsState.value = PrefsSnapshot(
                 displayName = app.prefs.displayName.first(),
                 roomCode = app.prefs.roomCode.first(),
@@ -163,6 +166,14 @@ class MainActivity : ComponentActivity() {
                 showDepthOverlay = app.prefs.showDepthOverlay.first(),
                 showFloatingScript = app.prefs.showFloatingScript.first(),
                 autoAdvanceOnLastLine = app.prefs.autoAdvanceOnLastLine.first(),
+                dmxEnabled = dmxEnabledPref,
+                dmxUniverse = dmxUniversePref,
+                dmxDestIp = dmxDestIpPref,
+            )
+            app.fx.dmx.configure(
+                universe = dmxUniversePref,
+                destinationIp = dmxDestIpPref.takeIf { it.isNotBlank() },
+                enabled = dmxEnabledPref,
             )
         }
 
@@ -219,6 +230,9 @@ class MainActivity : ComponentActivity() {
                     showDepthOverlay = snap.showDepthOverlay,
                     showFloatingScript = snap.showFloatingScript,
                     autoAdvanceOnLastLine = snap.autoAdvanceOnLastLine,
+                    dmxEnabled = snap.dmxEnabled,
+                    dmxUniverse = snap.dmxUniverse,
+                    dmxDestIp = snap.dmxDestIp,
                 ),
                 onSave = { saved ->
                     scope.launch {
@@ -230,7 +244,15 @@ class MainActivity : ComponentActivity() {
                         app.prefs.setShowDepthOverlay(saved.showDepthOverlay)
                         app.prefs.setShowFloatingScript(saved.showFloatingScript)
                         app.prefs.setAutoAdvanceOnLastLine(saved.autoAdvanceOnLastLine)
+                        app.prefs.setDmxEnabled(saved.dmxEnabled)
+                        app.prefs.setDmxUniverse(saved.dmxUniverse)
+                        app.prefs.setDmxDestIp(saved.dmxDestIp)
                         app.store.updateLocalDisplayName(saved.displayName)
+                        app.fx.dmx.configure(
+                            universe = saved.dmxUniverse,
+                            destinationIp = saved.dmxDestIp.takeIf { it.isNotBlank() },
+                            enabled = saved.dmxEnabled,
+                        )
                         prefsState.value = snap.copy(
                             displayName = saved.displayName,
                             roomCode = saved.roomCode,
@@ -240,6 +262,9 @@ class MainActivity : ComponentActivity() {
                             showDepthOverlay = saved.showDepthOverlay,
                             showFloatingScript = saved.showFloatingScript,
                             autoAdvanceOnLastLine = saved.autoAdvanceOnLastLine,
+                            dmxEnabled = saved.dmxEnabled,
+                            dmxUniverse = saved.dmxUniverse,
+                            dmxDestIp = saved.dmxDestIp,
                         )
                         // Reconnect with new settings
                         app.transport.stop()
@@ -451,6 +476,10 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     is NetMessage.PlaybackState -> { /* reserved */ }
+                    is NetMessage.RecordingAdded -> {
+                        app.store.recordingAdded(m.recording)
+                    }
+                    is NetMessage.Unknown -> { /* ignore */ }
                 }
             }
             .launchIn(lifecycleScope)
@@ -485,4 +514,7 @@ private data class PrefsSnapshot(
     val showDepthOverlay: Boolean,
     val showFloatingScript: Boolean,
     val autoAdvanceOnLastLine: Boolean,
+    val dmxEnabled: Boolean = false,
+    val dmxUniverse: Int = 1,
+    val dmxDestIp: String = "",
 )

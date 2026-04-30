@@ -89,6 +89,7 @@ object NetMessageSerializer : KSerializer<NetMessage> {
                 is NetMessage.RecordingAdded -> put("recordingAdded", buildJsonObject {
                     put("_0", json.encodeToJsonElement(NamedRecording.serializer(), value.recording))
                 })
+                is NetMessage.Unknown -> { /* no-op: unknown messages are not re-serialized */ }
             }
         }
         encoder.encodeJsonElement(outer)

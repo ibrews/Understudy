@@ -89,6 +89,12 @@ class BlockingStore(
         b.copy(marks = b.marks.filter { it.id != id })
     }
 
+    /** Idempotent append — mirrors iOS BlockingStore.appendRecording. */
+    fun recordingAdded(r: agilelens.understudy.model.NamedRecording) = _blocking.update { b ->
+        if (b.recordings.any { it.id == r.id }) b
+        else b.copy(recordings = b.recordings + r)
+    }
+
     // --- performer updates ---
 
     fun upsertPerformer(p: Performer) = _performers.update { it + (p.id to p) }

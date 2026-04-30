@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 import kotlin.math.max
 import kotlin.math.min
@@ -100,6 +101,12 @@ class CueFXEngine(
     private var drainJob: Job? = null
     private var flashClearJob: Job? = null
     private var holdJob: Job? = null
+
+    /** sACN (E1.31) output — parallel to the iOS build's CueFXEngine.dmx. */
+    val dmx = DMXOutput()
+
+    /** Fixture-to-cue mapping. Swap out at runtime for custom rigs. */
+    var dmxMapping = DMXCueMapping()
 
     /** Prevent a voice-fired cue from re-firing when scroll progress bounces. */
     private val voiceFiredCueIDs: MutableSet<Id> = mutableSetOf()
@@ -230,6 +237,15 @@ class CueFXEngine(
             fadeDurationMs = 500L,
         )
         _flashState.value = state
+
+        // Mirror the cue to real DMX fixtures if the output is configured.
+        if (dmx.enabled) {
+            scope.launch(Dispatchers.IO) {
+                val frame = dmxMapping.frame(color, intensity)
+                dmx.send(frame)
+            }
+        }
+
         flashClearJob?.cancel()
         flashClearJob = scope.launch {
             delay(state.holdDurationMs + state.fadeDurationMs)

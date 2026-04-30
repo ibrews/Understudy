@@ -243,10 +243,31 @@ public final class CueFXEngine {
 
     // MARK: - Voice-driven cue firing
 
+    // MARK: - Settings (UserDefaults-backed, readable without a SwiftUI context)
+
+    /// When true, voice mode auto-advances to the next mark when the last
+    /// line on the current mark finishes AND the performer is close enough.
+    public var nextMarkAutoAdvanceEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: "nextMarkAutoAdvance") }
+        set { UserDefaults.standard.set(newValue, forKey: "nextMarkAutoAdvance") }
+    }
+
+    /// How many seconds of walking away the performer can be and still
+    /// trigger the auto-advance. Default 5 s ≈ 6.5 m at a brisk stage walk.
+    public var nextMarkWindowSeconds: Double {
+        get {
+            let v = UserDefaults.standard.double(forKey: "nextMarkWindowSeconds")
+            return v > 0 ? v : 5.0
+        }
+        set { UserDefaults.standard.set(newValue, forKey: "nextMarkWindowSeconds") }
+    }
+
     /// Called by the teleprompter when voice mode detects the performer
     /// just finished speaking a line. Fires all subsequent non-line cues
     /// on the same mark, up to the next line (or end of mark). Already-
-    /// fired cues are skipped.
+    /// fired cues are skipped. If this was the last line cue on the mark
+    /// and auto-advance is enabled and the performer is close enough to
+    /// the next mark, pre-advances the cue cursor.
     ///
     /// Returns the number of cues fired, so the UI can show feedback.
     @discardableResult
@@ -263,9 +284,9 @@ public final class CueFXEngine {
 
         let performer = store.localPerformer?.id ?? ID("voice")
         var fired = 0
+        var hasMoreLines = false
         for cue in mark.cues.dropFirst(lineIdx + 1) {
-            // Stop at the next line — that's a future voice trigger.
-            if case .line = cue { break }
+            if case .line = cue { hasMoreLines = true; break }
             if voiceFiredCueIDs.contains(cue.id) { continue }
             voiceFiredCueIDs.insert(cue.id)
             store.cueQueue.append(BlockingStore.FiredCue(
@@ -273,7 +294,27 @@ public final class CueFXEngine {
             ))
             fired += 1
         }
+
+        // Auto-advance to the next mark when the last line on this mark finishes.
+        if !hasMoreLines && nextMarkAutoAdvanceEnabled {
+            maybeAdvanceToNextMark(after: markID, store: store)
+        }
+
         return fired
+    }
+
+    private func maybeAdvanceToNextMark(after markID: ID, store: BlockingStore) {
+        guard let nextMark = store.nextMark(after: markID) else { return }
+        guard let performerPose = store.localPerformer?.pose else { return }
+
+        // ~1.3 m/s — deliberate stage walk pace.
+        let walkSpeed: Float = 1.3
+        let threshold = Float(nextMarkWindowSeconds) * walkSpeed
+        let distance = performerPose.distance(to: nextMark.pose)
+        guard distance <= threshold else { return }
+
+        store.fireMarkByVoiceAdvance(markID: nextMark.id)
+        voiceFiredCueIDs = []  // reset so the new mark's voice cues track fresh
     }
 
     /// Clear voice-fired memory. Called when the teleprompter resets to

@@ -107,6 +107,9 @@ class PrefsRepo(private val context: Context) {
     private val KEY_SHOW_DEPTH_OVERLAY = stringPreferencesKey("show_depth_overlay")
     private val KEY_SHOW_FLOATING_SCRIPT = stringPreferencesKey("show_floating_script")
     private val KEY_AUTO_ADVANCE_ON_LAST_LINE = stringPreferencesKey("auto_advance_on_last_line")
+    private val KEY_DMX_ENABLED = stringPreferencesKey("dmx_enabled")
+    private val KEY_DMX_UNIVERSE = stringPreferencesKey("dmx_universe")
+    private val KEY_DMX_DEST_IP = stringPreferencesKey("dmx_dest_ip")
 
     val displayName: kotlinx.coroutines.flow.Flow<String> =
         context.dataStore.data.map { it[KEY_DISPLAY_NAME] ?: defaultDisplayName() }
@@ -184,6 +187,25 @@ class PrefsRepo(private val context: Context) {
     }
     suspend fun setAutoAdvanceOnLastLine(v: Boolean) {
         context.dataStore.edit { it[KEY_AUTO_ADVANCE_ON_LAST_LINE] = if (v) "true" else "false" }
+    }
+
+    val dmxEnabled: kotlinx.coroutines.flow.Flow<Boolean> =
+        context.dataStore.data.map { (it[KEY_DMX_ENABLED] ?: "false") == "true" }
+
+    val dmxUniverse: kotlinx.coroutines.flow.Flow<Int> =
+        context.dataStore.data.map { (it[KEY_DMX_UNIVERSE] ?: "1").toIntOrNull()?.coerceIn(1, 63999) ?: 1 }
+
+    val dmxDestIp: kotlinx.coroutines.flow.Flow<String> =
+        context.dataStore.data.map { it[KEY_DMX_DEST_IP] ?: "" }
+
+    suspend fun setDmxEnabled(v: Boolean) {
+        context.dataStore.edit { it[KEY_DMX_ENABLED] = if (v) "true" else "false" }
+    }
+    suspend fun setDmxUniverse(v: Int) {
+        context.dataStore.edit { it[KEY_DMX_UNIVERSE] = v.toString() }
+    }
+    suspend fun setDmxDestIp(v: String) {
+        context.dataStore.edit { it[KEY_DMX_DEST_IP] = v }
     }
 
     private fun defaultDisplayName(): String = android.os.Build.MODEL ?: "Android"

@@ -59,6 +59,9 @@ data class SettingsState(
     val showDepthOverlay: Boolean = false,
     val showFloatingScript: Boolean = false,
     val autoAdvanceOnLastLine: Boolean = false,
+    val dmxEnabled: Boolean = false,
+    val dmxUniverse: Int = 1,
+    val dmxDestIp: String = "",
 )
 
 @Composable
@@ -75,6 +78,9 @@ fun SettingsScreen(
     var showDepth by remember { mutableStateOf(initial.showDepthOverlay) }
     var showFloatingScript by remember { mutableStateOf(initial.showFloatingScript) }
     var autoAdvance by remember { mutableStateOf(initial.autoAdvanceOnLastLine) }
+    var dmxEnabled by remember { mutableStateOf(initial.dmxEnabled) }
+    var dmxUniverse by remember { mutableStateOf(initial.dmxUniverse.toString()) }
+    var dmxDestIp by remember { mutableStateOf(initial.dmxDestIp) }
 
     Box(
         Modifier
@@ -91,14 +97,17 @@ fun SettingsScreen(
                 IconButton(onClick = {
                     onSave(
                         SettingsState(
-                            displayName.trim(),
-                            roomCode.trim(),
-                            relayUrl.trim(),
-                            mode,
-                            showAR,
-                            showDepth,
-                            showFloatingScript,
-                            autoAdvance,
+                            displayName = displayName.trim(),
+                            roomCode = roomCode.trim(),
+                            relayUrl = relayUrl.trim(),
+                            appMode = mode,
+                            showARStage = showAR,
+                            showDepthOverlay = showDepth,
+                            showFloatingScript = showFloatingScript,
+                            autoAdvanceOnLastLine = autoAdvance,
+                            dmxEnabled = dmxEnabled,
+                            dmxUniverse = dmxUniverse.toIntOrNull()?.coerceIn(1, 63999) ?: 1,
+                            dmxDestIp = dmxDestIp.trim(),
                         )
                     )
                     onBack()
@@ -231,6 +240,61 @@ fun SettingsScreen(
                         uncheckedThumbColor = WhiteDim,
                         uncheckedTrackColor = Color.White.copy(alpha = 0.08f)
                     )
+                )
+            }
+
+            Spacer(Modifier.height(24.dp))
+            SectionTitle("DMX Output (sACN)")
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Send DMX to lighting rig", color = WhiteText, fontSize = 14.sp)
+                    Text(
+                        "Fires real DMX channels when .light cues trigger. Point a sACN console (QLC+, ETC Nomad, Enttec) at universe $dmxUniverse.",
+                        color = WhiteDim, fontSize = 11.sp,
+                    )
+                }
+                Switch(
+                    checked = dmxEnabled,
+                    onCheckedChange = { dmxEnabled = it },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = WhiteText, checkedTrackColor = StageRed,
+                        uncheckedThumbColor = WhiteDim, uncheckedTrackColor = Color.White.copy(alpha = 0.08f)
+                    )
+                )
+            }
+            if (dmxEnabled) {
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = dmxUniverse,
+                    onValueChange = { dmxUniverse = it.filter { c -> c.isDigit() } },
+                    label = { Text("Universe (1–63999)", color = WhiteDim) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    colors = TextFieldDefaults.colors(
+                        focusedTextColor = WhiteText, unfocusedTextColor = WhiteText,
+                        focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(4.dp))
+                OutlinedTextField(
+                    value = dmxDestIp,
+                    onValueChange = { dmxDestIp = it },
+                    label = { Text("Unicast IP (blank = multicast 239.255.x.y)", color = WhiteDim) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Uri,
+                        capitalization = KeyboardCapitalization.None,
+                    ),
+                    colors = TextFieldDefaults.colors(
+                        focusedTextColor = WhiteText, unfocusedTextColor = WhiteText,
+                        focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    "Default: 4 × RGBW+dim pars at addresses 1, 6, 11, 16. Mirrors iOS sACN output.",
+                    color = WhiteDim, fontSize = 10.sp,
                 )
             }
 

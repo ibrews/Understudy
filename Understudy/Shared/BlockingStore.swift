@@ -50,6 +50,11 @@ public final class BlockingStore {
     private var recordStart: Date?
     private var currentRecording: [RecordedWalk.Sample] = []
 
+    /// Marks pre-advanced by voice auto-advance. When the performer physically
+    /// walks onto one of these marks, cues are skipped (already fired).
+    /// Cleared when the performer progresses past that mark in sequence.
+    public var voiceAdvancedMarkIDs: Set<ID> = []
+
     public init(blocking: Blocking = Blocking(), localPerformer: Performer) {
         self.blocking = blocking
         self.localPerformerID = localPerformer.id
@@ -86,7 +91,12 @@ public final class BlockingStore {
         // Fire cues only on *entry* — not every frame we're inside the zone.
         if let newID = me.currentMarkID, newID != previousMark,
            let mark = blocking.marks.first(where: { $0.id == newID }) {
-            fireCues(for: mark, triggeredBy: me.id)
+            if voiceAdvancedMarkIDs.contains(newID) {
+                // Already fired by voice auto-advance — skip re-fire.
+                voiceAdvancedMarkIDs.remove(newID)
+            } else {
+                fireCues(for: mark, triggeredBy: me.id)
+            }
         }
 
         if isRecording, let start = recordStart {
@@ -141,6 +151,20 @@ public final class BlockingStore {
         for cue in mark.cues {
             cueQueue.append(FiredCue(cue: cue, markName: mark.name, performerID: performerID))
         }
+    }
+
+    /// Fire a mark's cues from outside (e.g. voice auto-advance) without requiring
+    /// the performer to physically walk onto it. Marks the ID in `voiceAdvancedMarkIDs`
+    /// so the next physical entry skips double-firing.
+    public func fireMarkByVoiceAdvance(markID: ID) {
+        guard let mark = blocking.marks.first(where: { $0.id == markID }),
+              let me = localPerformer else { return }
+        voiceAdvancedMarkIDs.insert(markID)
+        if var performer = localPerformer {
+            performer.currentMarkID = markID
+            upsertPerformer(performer)
+        }
+        fireCues(for: mark, triggeredBy: me.id)
     }
 
     public func drainCue(_ id: UUID) {

@@ -224,10 +224,14 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 *(Latest first. Every version shipped is a real commit + push; the "Next up" list is intentional future work.)*
 
 ### Next up
-- [ ] Next-mark auto-advance — right now voice auto-fire handles sub-mark cues; the performer still has to physically walk to advance marks. Optional toggle: when the last line on a mark finishes via voice AND the performer is within N seconds of walking, pre-advance the cue cursor.
 - [ ] Migrate Monitoring code to AgileLensMultiplayer SPM dependency (currently copied in)
-- [ ] DMX on Android — v0.24 ships iOS sACN; port `DMXOutput.swift` + `DMXCueMapping.swift` to Kotlin (`java.net.DatagramSocket`/`MulticastSocket`). Hand-roll the same E1.31-2018 packet.
 - [ ] Long Day's Journey into Night (O'Neill) — copyright expires; check jurisdiction before adding. Beckett's expires 2059 in Europe.
+
+### v0.35 · Voice next-mark auto-advance (iOS) + DMX on Android
+
+**1. Voice next-mark auto-advance (iOS).** When voice mode finishes the last line on a mark, the engine checks if the performer is within a configurable "walk window" (default 5 s ≈ 6.5 m) of the next mark. If so, the next mark's cues fire immediately — the teleprompter advances without waiting for the performer to physically step across the zone boundary. Toggle + slider in Settings → "Voice auto-advance". `BlockingStore.voiceAdvancedMarkIDs` tracks pre-fired marks so the subsequent physical entry doesn't double-fire.
+
+**2. DMX on Android.** `DMXOutput.kt` hand-rolls the same E1.31-2018 packet as the iOS build using `java.net.DatagramSocket` — no third-party deps, no `MulticastSocket` needed for send-only. `DMXCueMapping.kt` ships the same 4-fixture RGBW+dim default (addresses 1/6/11/16). Settings screen gains a "DMX Output (sACN)" section with enable toggle, universe field, and unicast IP (blank = multicast 239.255.x.y). Persisted via DataStore and applied at save + app launch. Also fixed two pre-existing `when`-exhaustive errors left by the v0.32 wire-compat (RecordingAdded + Unknown branches in MainActivity and Envelope serializer).
 
 ### v0.34 · Custom audio import + multiple-recording picker (already shipped)
 
