@@ -227,11 +227,25 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] Next-mark auto-advance — right now voice auto-fire handles sub-mark cues; the performer still has to physically walk to advance marks. Optional toggle: when the last line on a mark finishes via voice AND the performer is within N seconds of walking, pre-advance the cue cursor.
 - [ ] Migrate Monitoring code to AgileLensMultiplayer SPM dependency (currently copied in)
 - [ ] DMX on Android — v0.24 ships iOS sACN; port `DMXOutput.swift` + `DMXCueMapping.swift` to Kotlin (`java.net.DatagramSocket`/`MulticastSocket`). Hand-roll the same E1.31-2018 packet.
-- [ ] `scripts/ship-playstore.sh` — automate the `./gradlew bundleRelease` + Google Play Publisher roll-out. Guide in `HANDOFF_GOOGLE_PLAY.md`.
-- [ ] In-app script importer (drop a `.txt` or `.json` in via Files → it appears in the Script Browser).
 - [ ] Multiple reference walks per blocking, with picker. Today only the most recent walk is kept.
 - [ ] Custom audio import (drag a .wav from Files → bundled cue catalog). v0.31 ships 12 SFX + 5 music tracks but no in-app importer.
 - [ ] Long Day's Journey into Night (O'Neill) — copyright expires; check jurisdiction before adding. Beckett's expires 2059 in Europe.
+
+### v0.33 · In-app script importer + Android wire-compat
+
+**1. In-app script importer.** Tap the books icon in the Script Browser → "Import Script…" → pick any `.txt` or `.json` from the Files app. `.json` must match the `PlayScript` schema. `.txt` supports `CHARACTER: line` format with optional `ACT I` / `SCENE I. Location` headers and `[stage direction]` brackets — the same style as Project Gutenberg modern-format plays. Imported scripts are saved to `<Documents>/ImportedScripts/` and appear under an "Imported" section in the script picker alongside bundled plays. Long-press an imported script → Delete to remove it.
+
+**2. `scripts/ship-playstore.sh` complete.** Gradle-based `.aab` build + Google Play Developer API upload via service-account JSON. Mirrors `ship-testflight.sh` for iOS. Reads `PLAY_SERVICE_ACCOUNT_JSON`, `UNDERSTUDY_KEYSTORE_PATH`, `PLAY_TRACK` (default `internal`). Prereqs and gotchas in `HANDOFF_GOOGLE_PLAY.md`.
+
+**3. Android wire-compat for v0.32 model changes.** `Performer.avatar`, `Blocking.recordings`, and `NetMessage.recordingAdded` now mirrored in Kotlin — Android peers receive ghost-avatar tint and named-recording state from iOS/visionOS directors.
+
+### v0.32 · Avatar tinting + named recordings + visionOS cue effects
+
+**1. Named recordings.** Record a performer walk, name it, and share it across all devices. `NetMessage.recordingAdded(NamedRecording)` broadcasts on save; peers append idempotently. iOS ghost-playback scrub bar + loop-mode toggle in `PerformerView`.
+
+**2. Avatar tinting.** `store.ghostAvatar` tint colour wired into `ARStageContainer.sync` — each performer's ghost orb takes on their chosen colour in real time.
+
+**3. visionOS cue-fire effects.** Mark pulse (`syncCueFire()` in `DirectorImmersiveView`) fires on every cue. `.light` cues trigger a full perimeter wash on the immersive stage.
 
 ### v0.31 · The Demo Release — Guided Tour, showcases, Stage Map, sets, sounds, controllers
 

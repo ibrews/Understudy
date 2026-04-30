@@ -18,6 +18,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ScriptBrowser: View {
     @Environment(\.dismiss) private var dismiss
@@ -36,6 +37,8 @@ struct ScriptBrowser: View {
     @State private var sceneFilter: SceneFilter = .all
     @FocusState private var searchFocused: Bool
     @State private var droppingScene: PlayScript.Scene?
+    @State private var showingImporter = false
+    @State private var importError: String?
 
     enum SceneFilter: Hashable, Identifiable {
         case all
@@ -65,18 +68,26 @@ struct ScriptBrowser: View {
                 ToolbarItem(placement: .cancellationAction) {
                     HStack(spacing: 12) {
                         Menu {
-                            ForEach(allScripts, id: \.title) { s in
-                                Button {
-                                    script = s
-                                    sceneFilter = .all
-                                } label: {
-                                    HStack {
-                                        Text(s.title)
-                                        if s.title == script.title {
-                                            Image(systemName: "checkmark")
-                                        }
+                            Section("Bundled") {
+                                ForEach(Scripts.all, id: \.title) { s in
+                                    scriptMenuButton(s)
+                                }
+                            }
+                            let imported = allScripts.filter { s in
+                                !Scripts.all.contains { $0.title == s.title }
+                            }
+                            if !imported.isEmpty {
+                                Section("Imported") {
+                                    ForEach(imported, id: \.title) { s in
+                                        scriptMenuButton(s, imported: true)
                                     }
                                 }
+                            }
+                            Divider()
+                            Button {
+                                showingImporter = true
+                            } label: {
+                                Label("Import Script…", systemImage: "square.and.arrow.down")
                             }
                         } label: {
                             Image(systemName: "books.vertical")
@@ -102,9 +113,26 @@ struct ScriptBrowser: View {
             .preferredColorScheme(.dark)
             .task {
                 let loaded = await Task.detached(priority: .userInitiated) {
-                    Scripts.all
+                    Scripts.allWithImported()
                 }.value
                 allScripts = loaded
+            }
+            .fileImporter(
+                isPresented: $showingImporter,
+                allowedContentTypes: [.plainText, .json],
+                allowsMultipleSelection: false
+            ) { result in
+                if case .success(let urls) = result, let url = urls.first {
+                    handleImport(from: url)
+                }
+            }
+            .alert("Import Failed", isPresented: Binding(
+                get: { importError != nil },
+                set: { if !$0 { importError = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(importError ?? "")
             }
             .alert(
                 "Drop whole scene?",
@@ -120,6 +148,67 @@ struct ScriptBrowser: View {
                 Button("Cancel", role: .cancel) {}
             } message: { scene in
                 Text("Adds marks in front of your current pose arranged in a zig-zag path, pre-populated with the lines from \"\(scene.location)\".")
+            }
+        }
+    }
+
+    // MARK: - Script picker helpers
+
+    @ViewBuilder
+    private func scriptMenuButton(_ s: PlayScript, imported: Bool = false) -> some View {
+        if imported {
+            Menu {
+                Button {
+                    script = s
+                    sceneFilter = .all
+                } label: {
+                    Label("Open", systemImage: "book")
+                }
+                Button(role: .destructive) {
+                    ScriptImporter.delete(s)
+                    if script.title == s.title { script = Scripts.hamlet }
+                    allScripts = Scripts.allWithImported()
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            } label: {
+                HStack {
+                    Text(s.title)
+                    if s.title == script.title {
+                        Image(systemName: "checkmark")
+                    }
+                }
+            }
+        } else {
+            Button {
+                script = s
+                sceneFilter = .all
+            } label: {
+                HStack {
+                    Text(s.title)
+                    if s.title == script.title {
+                        Image(systemName: "checkmark")
+                    }
+                }
+            }
+        }
+    }
+
+    private func handleImport(from url: URL) {
+        Task.detached(priority: .userInitiated) {
+            do {
+                let imported = try ScriptImporter.import(from: url)
+                try ScriptImporter.save(imported)
+                let updated = Scripts.allWithImported()
+                await MainActor.run {
+                    allScripts = updated
+                    script = imported
+                    sceneFilter = .all
+                }
+            } catch {
+                await MainActor.run {
+                    importError = error.localizedDescription
+                }
             }
         }
     }

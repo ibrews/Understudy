@@ -162,6 +162,11 @@ public enum Scripts {
         earnest, salome,
         ghosts,
     ]
+
+    /// Bundled scripts + any user-imported ones from the Documents directory.
+    public static func allWithImported() -> [PlayScript] {
+        all + ScriptImporter.loadAll()
+    }
 }
 
 // MARK: - Helpers
