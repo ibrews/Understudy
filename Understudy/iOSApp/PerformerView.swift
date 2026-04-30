@@ -35,6 +35,11 @@ struct PerformerView: View {
     @State private var recordingStartedAt: Date?
     /// "Walk saved (Xs)" toast that appears for ~2s after stopRecording.
     @State private var savedWalkToast: (durationLabel: String, shownAt: Date)?
+    /// Naming prompt after recording stops.
+    @State private var pendingRecordingName: String = ""
+    @State private var showingNameRecordingAlert: Bool = false
+    @State private var pendingRecordingDuration: TimeInterval = 0
+    @State private var showingRecordingsPicker: Bool = false
 
     /// Opacity for the curtain gradient — dialed back when AR background is visible
     /// so the camera reads through but the theatrical vibe stays.
@@ -131,6 +136,40 @@ struct PerformerView: View {
                 hasSeenOnboarding = true
                 showingOnboarding = false
             }
+        }
+        .alert("Name this walk", isPresented: $showingNameRecordingAlert) {
+            TextField("e.g. Hamlet's path", text: $pendingRecordingName)
+            Button("Cancel", role: .cancel) {
+                // Discard — call stop without naming.
+                _ = store.stopRecording(
+                    saveAsReference: false,
+                    performerName: store.localPerformer?.displayName ?? "me"
+                )
+            }
+            Button("Save") {
+                let name = pendingRecordingName.trimmingCharacters(in: .whitespacesAndNewlines)
+                let avatar = store.localPerformer?.avatar
+                let recording = store.stopRecordingNamed(
+                    name: name.isEmpty ? "Walk" : name,
+                    performerName: store.localPerformer?.displayName ?? "me",
+                    avatar: avatar
+                )
+                if recording != nil {
+                    let s = pendingRecordingDuration
+                    savedWalkToast = (
+                        durationLabel: s >= 60
+                            ? String(format: "%dm %02ds", Int(s) / 60, Int(s) % 60)
+                            : String(format: "%.1fs", s),
+                        shownAt: Date()
+                    )
+                }
+            }
+        } message: {
+            Text("Recorded \(String(format: "%.1f", pendingRecordingDuration))s. Other devices in the room will see this walk in their Recordings list.")
+        }
+        .sheet(isPresented: $showingRecordingsPicker) {
+            RecordingsPickerView()
+                .environment(store)
         }
     }
 
@@ -289,7 +328,7 @@ struct PerformerView: View {
             }
 
             Spacer()
-            // Ghost playback toggle — only meaningful if we have a reference walk.
+            // Ghost playback toggle — only meaningful if we have at least one recording.
             Button {
                 toggleGhostPlayback()
             } label: {
@@ -299,23 +338,26 @@ struct PerformerView: View {
                     .padding(8)
                     .background(.white.opacity(0.06), in: Circle())
             }
-            .disabled(store.blocking.reference == nil)
+            .disabled(store.activeRecording == nil)
             .accessibilityLabel(isPlayingGhost ? "Stop ghost playback" : "Play ghost walkthrough")
+            // Long-press the ghost button to pick which recording plays.
+            .simultaneousGesture(
+                LongPressGesture(minimumDuration: 0.4)
+                    .onEnded { _ in showingRecordingsPicker = true }
+            )
 
             Button {
                 if store.isRecording {
-                    if let walk = store.stopRecording(
-                        saveAsReference: true,
-                        performerName: store.localPerformer?.displayName ?? "me"
-                    ) {
-                        let secs = walk.duration
-                        savedWalkToast = (
-                            durationLabel: secs >= 60
-                                ? String(format: "%dm %02ds", Int(secs) / 60, Int(secs) % 60)
-                                : String(format: "%.1fs", secs),
-                            shownAt: Date()
-                        )
-                    }
+                    // Calculate elapsed duration THEN stop, since stop()
+                    // resets recordStart. Show the naming prompt with a
+                    // sensible default ("Walk 1", "Walk 2", …).
+                    let elapsed = recordingStartedAt.map { Date().timeIntervalSince($0) } ?? 0
+                    pendingRecordingDuration = elapsed
+                    let next = store.blocking.recordings.count + 1
+                    pendingRecordingName = "Walk \(next)"
+                    // Stop now — the recorded samples are in the store
+                    // queue and will be picked up by the named-save below.
+                    showingNameRecordingAlert = true
                     recordingStartedAt = nil
                 } else {
                     store.startRecording()
@@ -340,18 +382,18 @@ struct PerformerView: View {
     }
 
     private var ghostReadyColor: Color {
-        if store.blocking.reference == nil { return .white.opacity(0.25) }
+        if store.activeRecording == nil { return .white.opacity(0.25) }
         return isPlayingGhost ? Color(red: 1.0, green: 0.4, blue: 0.9) : .white
     }
 
     // MARK: - Ghost playback
 
     private func toggleGhostPlayback() {
-        guard let walk = store.blocking.reference, walk.duration > 0 else { return }
+        guard let recording = store.activeRecording, recording.duration > 0 else { return }
         if isPlayingGhost {
             stopGhostPlayback()
         } else {
-            startGhostPlayback(duration: walk.duration)
+            startGhostPlayback(duration: recording.duration)
         }
     }
 
@@ -491,6 +533,10 @@ struct SettingsSheet: View {
     @State private var newBlockingTitle: String = ""
     @State private var showingNewBlockingAlert: Bool = false
     @State private var confirmReplaceBlocking: Bool = false
+    @State private var showingAvatarPicker: Bool = false
+    @AppStorage("avatarStyle") private var avatarStyleRaw: String = Avatar.Style.performer.rawValue
+    @AppStorage("avatarPrimary") private var avatarPrimary: String = Avatar.defaultPick.primaryHex
+    @AppStorage("avatarSecondary") private var avatarSecondary: String = Avatar.defaultPick.secondaryHex
 
     private var appMode: AppMode {
         get { AppMode(rawValue: appModeRaw) ?? .perform }
@@ -519,6 +565,26 @@ struct SettingsSheet: View {
                 Section("Identity") {
                     TextField("Display name", text: $displayName)
                         .onSubmit { applyName() }
+                    Button {
+                        showingAvatarPicker = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            AvatarPreview(avatar: currentAvatar)
+                                .frame(width: 56, height: 56)
+                                .background(Color.black, in: RoundedRectangle(cornerRadius: 10))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Avatar — \(currentAvatar.style.displayName)")
+                                    .font(.body.bold())
+                                Text("Tap to change style + colours")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
                 }
                 Section("Display") {
                     Toggle("AR Stage background", isOn: $showARStage)
@@ -665,6 +731,11 @@ struct SettingsSheet: View {
             .sheet(isPresented: $showingQRTarget) {
                 QRCalibrationView()
             }
+            .sheet(isPresented: $showingAvatarPicker) {
+                AvatarPickerView()
+                    .environment(store)
+                    .environment(session)
+            }
             .alert("Cannot Open OSC Port", isPresented: $showOSCBindError) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -730,6 +801,16 @@ struct SettingsSheet: View {
         guard !displayName.isEmpty, var me = store.localPerformer else { return }
         me.displayName = displayName
         store.upsertPerformer(me)
+    }
+
+    /// Live avatar derived from @AppStorage so the row preview re-renders
+    /// the moment the picker sheet is dismissed.
+    private var currentAvatar: Avatar {
+        Avatar(
+            style: Avatar.Style(rawValue: avatarStyleRaw) ?? .performer,
+            primaryHex: avatarPrimary,
+            secondaryHex: avatarSecondary
+        )
     }
 }
 

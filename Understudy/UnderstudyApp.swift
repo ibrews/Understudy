@@ -22,6 +22,11 @@ struct UnderstudyApp: App {
     /// Director can disable this from the control panel if they want the
     /// floating window to stay solo.
     @AppStorage("autoOpenStage") private var autoOpenStage: Bool = true
+    /// Avatar persistence — restored on launch + applied to the local
+    /// performer so they show up to peers with their chosen look.
+    @AppStorage("avatarStyle") private var avatarStyleRaw: String = Avatar.Style.performer.rawValue
+    @AppStorage("avatarPrimary") private var avatarPrimary: String = Avatar.defaultPick.primaryHex
+    @AppStorage("avatarSecondary") private var avatarSecondary: String = Avatar.defaultPick.secondaryHex
     @State private var hasOnboarded = false
 
     init() {
@@ -68,6 +73,17 @@ struct UnderstudyApp: App {
                         // Seed default display name from device name if user hasn't set one.
                         if displayName.isEmpty {
                             displayName = store.localPerformer?.displayName ?? "Performer"
+                        }
+                        // Hydrate the local performer's avatar from saved
+                        // preferences so the chosen look survives relaunches.
+                        if var me = store.localPerformer {
+                            let style = Avatar.Style(rawValue: avatarStyleRaw) ?? .performer
+                            me.avatar = Avatar(
+                                style: style,
+                                primaryHex: avatarPrimary,
+                                secondaryHex: avatarSecondary
+                            )
+                            store.upsertPerformer(me)
                         }
                         sessionController.roomCode = roomCode
                         sessionController.start()

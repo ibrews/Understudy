@@ -65,6 +65,25 @@ public final class CueFXEngine {
     /// When a `.wait` cue fires, this counts down (in seconds) until it clears.
     public var currentHold: Double? = nil
 
+    /// Burst signal — set the moment any cue fires. The visionOS immersive
+    /// stage observes this to drive cue-fire animations (particle bursts on
+    /// the active mark, typewriter line callouts, spatial audio playback at
+    /// the mark's 3D position). The id changes on every fire so SwiftUI's
+    /// onChange triggers cleanly even when the same mark fires twice.
+    public struct CueFireEvent: Equatable {
+        public let id: UUID
+        public let markName: String
+        public let cue: Cue
+        public let firedAt: Date
+        public init(markName: String, cue: Cue) {
+            self.id = UUID()
+            self.markName = markName
+            self.cue = cue
+            self.firedAt = Date()
+        }
+    }
+    public var lastFire: CueFireEvent? = nil
+
     /// A rolling buffer of recent cues for the debug HUD.
     public var recentLog: [LogEntry] = []
     public let maxLog: Int = 24

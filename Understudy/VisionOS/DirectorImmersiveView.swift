@@ -122,18 +122,12 @@ struct DirectorImmersiveView: View {
             stageRoot.addChild(light)
             stageLight = light
 
+            // Recording-playback ghost. The actual avatar is rebuilt in
+            // syncGhost() based on store.ghostAvatar, so this is just a
+            // bare placeholder root that becomes alive (visible) when a
+            // recording starts playing back.
             let ghost = Entity()
             ghost.name = "ghost"
-            let body = ModelEntity(
-                mesh: .generateSphere(radius: 0.25),
-                materials: [UnlitMaterial(color: .magenta.withAlphaComponent(0.55))]
-            )
-            ghost.addChild(body)
-            let halo = ModelEntity(
-                mesh: .generateSphere(radius: 0.38),
-                materials: [UnlitMaterial(color: .magenta.withAlphaComponent(0.18))]
-            )
-            ghost.addChild(halo)
             ghost.isEnabled = false
             stageRoot.addChild(ghost)
             ghostEntity = ghost
@@ -656,29 +650,32 @@ struct DirectorImmersiveView: View {
     private func buildPerformerEntity(_ perf: Performer) -> Entity {
         let root = Entity()
         root.name = "perf-\(perf.id.raw)"
-        root.position = [perf.pose.x, 0.9, perf.pose.z]
-
-        let body = ModelEntity(
-            mesh: .generateSphere(radius: 0.25),
-            materials: [UnlitMaterial(color: .magenta.withAlphaComponent(0.5))]
+        root.position = [perf.pose.x, 0.0, perf.pose.z]
+        // Build the avatar parts. Anchored to ground; the entity-internal
+        // origin sits on the floor so different styles can have different
+        // heights without the ghost floating off.
+        AvatarEntityBuilder.attach(
+            avatar: perf.avatar ?? .defaultPick,
+            to: root
         )
-        root.addChild(body)
-
-        let nose = ModelEntity(
-            mesh: .generateCone(height: 0.3, radius: 0.05),
-            materials: [UnlitMaterial(color: .magenta)]
-        )
-        nose.orientation = simd_quatf(angle: -.pi / 2, axis: [1, 0, 0])
-        nose.position = [0, 0, -0.25]
-        root.addChild(nose)
 
         let tag = ModelEntity(
             mesh: .generateText(perf.displayName, extrusionDepth: 0.001,
                                 font: .systemFont(ofSize: 0.08), alignment: .center),
             materials: [UnlitMaterial(color: .white)]
         )
-        tag.position = [-0.15, 0.4, 0]
+        tag.position = [-0.15, 1.95, 0]
         root.addChild(tag)
+
+        // Forward-pointing nose so observers can read body orientation
+        // — common to all avatar styles.
+        let nose = ModelEntity(
+            mesh: .generateCone(height: 0.18, radius: 0.04),
+            materials: [UnlitMaterial(color: UIColor(white: 1, alpha: 0.85))]
+        )
+        nose.orientation = simd_quatf(angle: -.pi / 2, axis: [1, 0, 0])
+        nose.position = [0, 1.5, -0.18]
+        root.addChild(nose)
 
         return root
     }
@@ -706,14 +703,44 @@ struct DirectorImmersiveView: View {
         }
     }
 
+    /// Avatar currently rendered on the playback ghost. Tracked so we
+    /// only rebuild the entity when the active recording (and therefore
+    /// its avatar) changes, not every frame.
+    @State private var renderedGhostAvatar: Avatar?
+
     private func syncGhost() {
         guard let t = store.playbackT, let pose = store.ghostPose(at: t) else {
             ghostEntity.isEnabled = false
             return
         }
         ghostEntity.isEnabled = true
-        ghostEntity.position = [pose.x, 0.9, pose.z]
+        // Rebuild avatar geometry if the active recording's avatar changed.
+        // Use a slightly translucent variant for the ghost so it reads as
+        // playback, not a live performer.
+        let avatar = ghostAvatarFromActiveRecording()
+        if avatar != renderedGhostAvatar {
+            ghostEntity.children.removeAll()
+            AvatarEntityBuilder.attach(avatar: avatar, to: ghostEntity)
+            renderedGhostAvatar = avatar
+        }
+        ghostEntity.position = [pose.x, 0.0, pose.z]
         ghostEntity.orientation = simd_quatf(angle: pose.yaw, axis: [0, 1, 0])
+    }
+
+    /// Pull the avatar bound to the active recording, falling back to a
+    /// translucent ghost-style avatar so the playback always reads as
+    /// "this is a recording" even when no avatar was captured.
+    private func ghostAvatarFromActiveRecording() -> Avatar {
+        if let captured = store.ghostAvatar {
+            // Force the captured avatar into translucent ghost form for
+            // the playback puppet — same colours, ghost silhouette.
+            return Avatar(
+                style: .ghost,
+                primaryHex: captured.primaryHex,
+                secondaryHex: captured.secondaryHex
+            )
+        }
+        return Avatar(style: .ghost, primaryHex: "FF3366", secondaryHex: "FFFFFF")
     }
 
     private func syncFlash() {
