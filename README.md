@@ -221,7 +221,28 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 - [ ] `scripts/ship-playstore.sh` — automate the `./gradlew bundleRelease` + Google Play Publisher roll-out. Guide in `HANDOFF_GOOGLE_PLAY.md`.
 - [ ] In-app script importer (drop a `.txt` or `.json` in via Files → it appears in the Script Browser).
 - [ ] Multiple reference walks per blocking, with picker. Today only the most recent walk is kept.
+- [ ] Custom audio import (drag a .wav from Files → bundled cue catalog). v0.31 ships 12 SFX + 5 music tracks but no in-app importer.
 - [ ] Long Day's Journey into Night (O'Neill) — copyright expires; check jurisdiction before adding. Beckett's expires 2059 in Europe.
+
+### v0.31 · The Demo Release — Guided Tour, showcases, Stage Map, sets, sounds, controllers
+
+Built for showing off — at FMX, in a London pub, on a producer's iPad. Lots in here.
+
+**1. 60-second on-rails Guided Tour.** Hand the iPhone to a stranger. Six stages: welcome → tap the floor to drop a mark (with cyan burst animation + knock SFX) → pick one of 3 sample Hamlet lines → pick a colour wash → tap "FIRE" to play the chain → reveal screen with paths into Author / Performer / Audience modes. Surfaced as a gradient headline button on the first-launch ModeSelector.
+
+**2. Three curated showcase blockings + an auto-runner.** *Theater · Hamlet's Ghost* (90s, 8 beats with thunder + blue/amber lighting + 4 characters), *Film · Coverage of a Monologue* (60s, one actor + four cameras at 24/50/85/135mm), *Gallery · Site-Specific Walk* (75s, 6-stop audio walk). DemoRunner walks every beat with theatrical per-cue timing. DemoRunnerOverlay shows opening/closing title cards + a live "DEMO · beat 3/8 · Francisco's Watch" banner that survives across views.
+
+**3. Stage Map view (2D top-down blocking diagram).** Auto-generated from the live blocking, exportable as PNG via ImageRenderer. Numbered actor discs, amber tripod-triangles + FOV wedges for cameras, prop footprints, dashed sequence path, 9-zone grid, AUDIENCE / UPSTAGE / STAGE LEFT/RIGHT labels. Surfaced from Director Panel and iPhone Author top bar.
+
+**4. Show Metrics dashboard.** Counts, runtime estimate (line chars / 14 cps + waits + dwells), per-character line counts, calibration health, and warnings (empty marks, sequence gaps, no-blackout-finale, missing camera specs, no reference walk). Director Panel → "Show Stats".
+
+**5. Bundled audio catalogue (12 SFX + 5 music tracks, 4.8 MB, all CC0).** New: door-slam, wind, crickets, drone-low, footsteps, glass-break, orchestral-hit, swell-strings, tense-drone, sad-cello, triumphant-brass, finale. CueFXEngine now uses AVAudioPlayer with bundled .wav priority; system-sound IDs are the fallback. Generation is reproducible via `scripts/generate-cue-audio.sh` (ffmpeg lavfi).
+
+**6. Set & Light Gel presets.** `SetPreset` enum: 6 prefab prop arrangements (Throne Room, Tavern, Forest, Modern Courtroom, Minimal Studio, Film Interior). `LightGelPreset` enum: 7 multi-cue gel chains (Warm Wash, Cool Moonlight, Sunset Fade, Stormy/Cool, Romantic Pink, Courtroom Day, Ghost Blue — the last is the full Hamlet's Ghost lighting cue in one tap). "Drop Set…" menu in Director Panel; "Apply Gel Preset…" menu in iPhone MarkEditorSheet.
+
+**7. PSVR2 Sense + MFi controller support (visionOS).** Hand tracking continues; controllers are additive. Trigger fires GO, grip toggles Stage, stick navigates the cue cursor, X runs a demo, O toggles Tabletop, Triangle toggles grid, Square edits the next mark. Gamepad status icon in the panel + a Controllers help sheet showing the full mapping.
+
+Android: versionCode → 34, no functional changes (this drop is Apple-platform-focused).
 
 ### v0.30 · Overnight UX overhaul + user-facing wiki
 

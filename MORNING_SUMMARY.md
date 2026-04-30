@@ -1,3 +1,43 @@
+# Overnight Review — Morning Summary (2026-04-29 → 30)
+
+## v0.31 · The Demo Release (added overnight 2026-04-30)
+
+The user came back ~3 hours into the session with new asks: a **slick demo for FMX and London**, **nice sample cues** (sounds + sets + music + lights), **PSVR2 controller support**, and a "**hand-it-to-a-newbie on-rails experience**." All shipped on the same `overnight-review` branch:
+
+- **60-second Guided Tour** — `Understudy/iOSApp/GuidedTourView.swift`. Six interactive stages, designed to be handed to a stranger at a conference booth. Surfaced as a gradient headline button on the first-launch ModeSelector and as a top card in DemoLauncherView.
+- **Three curated showcases** — Hamlet's Ghost (90s theater), Coverage of a Monologue (60s film), Gallery Walk (75s site-specific). Auto-played by `DemoRunner`. `DemoLauncherView` is the picker.
+- **Stage Map view** — `StageMapView.swift`, top-down 2D blocking diagram exportable as PNG. Reachable from Director Panel and iPhone Author top bar.
+- **Show Metrics dashboard** — `ShowMetricsView.swift`. Glance overview with runtime estimate, character workload, warnings.
+- **12 new SFX + 5 music tracks** — bundled at `Understudy/Resources/Audio/{sfx,music}/`. Generated reproducibly by `scripts/generate-cue-audio.sh` (ffmpeg lavfi). CueFXEngine plays via AVAudioPlayer with bundled-WAV priority.
+- **Set Presets + Gel Presets** — `SetPresets.swift`. "Drop Set…" menu in Director Panel (Throne Room, Tavern, Forest, Courtroom, Studio, Film Interior). "Apply Gel Preset…" menu in iPhone MarkEditorSheet (Warm Wash, Cool Moonlight, Sunset Fade, Stormy, Romantic Pink, Courtroom Day, Ghost Blue).
+- **PSVR2 / MFi controllers** — `Understudy/VisionOS/ControllerInput.swift`. Hand tracking still works; trigger/grip/stick/buttons add a parallel input path. `ControllerHelpView` sheet shows the full mapping.
+- **Bumped to v0.31 (34)** — version visible on every top bar via `AppVersion.formatted`.
+
+**To install on iPhone in the morning:** the Xcode dev disk image wasn't mounted on your iPhone 15 Pro tonight (it was earlier — must have unplugged or rebooted between the v0.30 and v0.31 attempts). Connect and unlock the phone, then run:
+
+```bash
+cd /Users/Shared/Documents/xcodeproj/Understudy
+xcodebuild -project Understudy.xcodeproj -scheme Understudy \
+  -destination 'platform=iOS,id=E2669A13-39A2-520A-A202-D1642A6FD850' \
+  -configuration Debug -derivedDataPath build/iphone-v031 \
+  -allowProvisioningUpdates build
+xcrun devicectl device install app --device E2669A13-39A2-520A-A202-D1642A6FD850 \
+  build/iphone-v031/Build/Products/Debug-iphoneos/Understudy.app
+```
+
+(v0.30 (33) is still on your phone from last session — the Guided Tour and showcases are *not* on it; only iPhone build of v0.31 has them.)
+
+**For FMX / London, the suggested demo flow:**
+1. Open Understudy → don't pick a mode.
+2. Tap "Try the 60-second tour" gradient button.
+3. Walk through the six stages: drop a mark → pick a line → pick a colour → fire the cue → see the reveal.
+4. Hand the phone back: "That was one beat. A real show is twenty of those, in your real room."
+5. If they want more: tap "Browse showcase demos" → "Run" Hamlet's Ghost → 90 seconds of full theatre.
+
+For visionOS demos on the headset itself, open the Director Panel → tap the new "Run Demo" button → pick a showcase. The `DemoRunnerOverlay` floats a banner on top of everything as the demo plays so the audience watching on a TV mirror sees the beat names + callouts.
+
+---
+
 # Overnight Review — Morning Summary (2026-04-29)
 
 Branch: `overnight-review` ([compare → main on GitHub](https://github.com/ibrews/Understudy/compare/main...overnight-review))
