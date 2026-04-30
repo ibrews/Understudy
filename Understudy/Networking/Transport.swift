@@ -27,6 +27,9 @@ nonisolated public enum NetMessage: Codable, Sendable {
     /// Just the overlay transform — used by the director to align the scouted
     /// location to their actual rehearsal room without re-transmitting the mesh.
     case roomScanOverlay(Pose)
+    /// A new named recording saved by a performer; peers append it if they don't
+    /// already have it (idempotent on re-delivery).
+    case recordingAdded(NamedRecording)
 }
 
 nonisolated public struct Envelope: Codable, Sendable {

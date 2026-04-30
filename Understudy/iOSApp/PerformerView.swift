@@ -154,7 +154,8 @@ struct PerformerView: View {
                     performerName: store.localPerformer?.displayName ?? "me",
                     avatar: avatar
                 )
-                if recording != nil {
+                if let recording {
+                    session.broadcastRecordingAdded(recording)
                     let s = pendingRecordingDuration
                     savedWalkToast = (
                         durationLabel: s >= 60
