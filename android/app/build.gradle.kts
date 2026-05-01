@@ -13,14 +13,14 @@ android {
         applicationId = "agilelens.understudy"
         minSdk = 26
         targetSdk = 36
-        versionCode = 38
-        versionName = "0.35"
+        versionCode = 39
+        versionName = "0.36"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
 
-        buildConfigField("String", "APP_VERSION", "\"0.35\"")
-        buildConfigField("int", "APP_BUILD", "38")
+        buildConfigField("String", "APP_VERSION", "\"0.36\"")
+        buildConfigField("int", "APP_BUILD", "39")
     }
 
     // Release signing — read keystore path + passwords from env so secrets

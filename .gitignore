@@ -14,10 +14,11 @@ Understudy.xcodeproj/project.xcworkspace/xcshareddata
 
 # Swift Package Manager
 .build/
-Packages/
 Package.pins
 Package.resolved
 *.xcodeproj/project.xcworkspace/xcshareddata/swiftpm
+# Local SPM packages in Packages/ are committed source — don't ignore that dir.
+# Downloaded resolved sources go to DerivedData, not Packages/.
 
 # CocoaPods / Carthage
 Pods/

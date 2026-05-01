@@ -7,10 +7,9 @@
 //  (`_agilelens-mon._tcp`) and streams length-prefixed JSON events to
 //  any observer (Mission Control app) that connects.
 //
-//  Today we copy the Monitoring types directly from the AgileLensMultiplayer
-//  Swift Package (see /Users/Shared/Documents/xcodeproj/AVP_Apps/WhoAmI/
-//  Packages/AgileLensMultiplayer). Migrating to a proper SPM dependency is
-//  a v1.0 cleanup — once Understudy's project file gains other SPM deps.
+//  Monitoring types come from the AgileLensMultiplayer SPM package at
+//  Packages/AgileLensMultiplayer/ (a Monitoring-only slice of the upstream
+//  package; iOS 17 / visionOS 1 compatible, no GroupActivities dependency).
 //
 //  What we forward:
 //    - playerJoined / playerLeft on hello / goodbye
@@ -27,6 +26,7 @@
 import UIKit
 #endif
 import Foundation
+import AgileLensMultiplayer
 
 @MainActor
 public final class MonitoringIntegration {

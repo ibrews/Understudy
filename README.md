@@ -224,8 +224,17 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 *(Latest first. Every version shipped is a real commit + push; the "Next up" list is intentional future work.)*
 
 ### Next up
-- [ ] Migrate Monitoring code to AgileLensMultiplayer SPM dependency (currently copied in)
-- [ ] Long Day's Journey into Night (O'Neill) — copyright expires; check jurisdiction before adding. Beckett's expires 2059 in Europe.
+
+No open items — everything shipped or resolved. Future candidates:
+- More plays: O'Neill's works expire in EU/UK in 2024 but US publication-date copyright runs until 2052+; US App Store distribution means most 20th-century plays stay off the table. Beckett's expire in EU 2059.
+- Monitoring → fleet dashboard: `MonitoringIntegration` already broadcasts; build a macOS Mission Control receiver.
+- Custom DMX fixture patching: today the 4-par default is hardcoded; a JSON fixture editor would let directors swap in their own rig.
+
+### v0.36 · Monitoring → AgileLensMultiplayer SPM + Long Day's copyright resolved
+
+**1. Monitoring code migrated to local SPM package.** `MonitoringMessage.swift` and `MonitoringBroadcaster.swift` are removed from `Understudy/Shared/Monitoring/` and now live in `Packages/AgileLensMultiplayer/Sources/AgileLensMultiplayer/Monitoring/`. `MonitoringIntegration.swift` gains `import AgileLensMultiplayer`. The local package targets iOS 17 / visionOS 1 (relaxed from the upstream's iOS 18+ requirement, since the Monitoring subset only needs Network.framework). Package resolves via `xcodebuild -resolvePackageDependencies`; upstream lives at `AVP_Apps/WhoAmI/Packages/AgileLensMultiplayer`.
+
+**2. Long Day's Journey — closed as won't-add.** US copyright on the 1956 posthumous publication runs 95 years from publication date, expiring January 1, 2052. Since Understudy ships on the US App Store, the text cannot be included. EU/UK public domain since January 1, 2024, but that doesn't help a US-distributed app.
 
 ### v0.35 · Voice next-mark auto-advance (iOS) + DMX on Android
 
