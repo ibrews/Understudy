@@ -39,10 +39,13 @@ struct DirectorControlPanel: View {
     @State private var showingStageMap = false
     @State private var showingMetrics = false
     @State private var showingControllerHelp = false
+    @State private var showingDirectorIntro = false
     @AppStorage("oscEnabled") private var oscEnabled: Bool = false
     @AppStorage("oscHost") private var oscHost: String = ""
     @AppStorage("oscPort") private var oscPortStr: String = "53000"
     @AppStorage("autoOpenStage") private var autoOpenStage: Bool = true
+    /// First-run director onboarding seen flag (per-device UX state).
+    @AppStorage("hasSeenDirectorIntro") private var hasSeenDirectorIntro: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -89,9 +92,18 @@ struct DirectorControlPanel: View {
                     .environment(fx)
                     .frame(minWidth: 420, minHeight: 360)
             }
+            .sheet(isPresented: $showingDirectorIntro) {
+                DirectorOnboardingView()
+                    .environment(store)
+                    .environment(session)
+            }
             .onAppear {
                 applyOSC()
                 wireControllerInput()
+                // First-run: teach the spatial model before the director is
+                // left alone with the stage. Re-reachable via the Tutorial
+                // button in the footer.
+                if !hasSeenDirectorIntro { showingDirectorIntro = true }
             }
             // Auto-open the stage on first appearance, serialized through the
             // coordinator (its `guard phase == .closed` blocks the double-open
@@ -931,6 +943,11 @@ struct DirectorControlPanel: View {
             }
 
             Spacer()
+            Button { showingDirectorIntro = true } label: {
+                Label("Tutorial", systemImage: "questionmark.circle")
+            }
+            .buttonStyle(.bordered)
+            .help("Replay the director walkthrough")
             Button(role: .destructive) {
                 for m in store.blocking.marks {
                     session.broadcastMarkRemoved(m.id)
