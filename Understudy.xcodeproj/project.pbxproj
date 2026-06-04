@@ -6,8 +6,19 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		UDYTST0000000000000CIP01 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = UDY0000000000000000PRJ01 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = UDY0000000000000000TGT01;
+			remoteInfo = Understudy;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		UDY0000000000000000APP01 /* Understudy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Understudy.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		UDYTST0000000000000XCT01 /* UnderstudyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UnderstudyTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -44,10 +55,22 @@
 			path = Understudy;
 			sourceTree = "<group>";
 		};
+		UDYTST0000000000000GRP01 /* UnderstudyTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = UnderstudyTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		UDY0000000000000000FRM01 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		UDYTST0000000000000FRM01 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -61,6 +84,7 @@
 			isa = PBXGroup;
 			children = (
 				UDY0000000000000000APP01 /* Understudy.app */,
+				UDYTST0000000000000XCT01 /* UnderstudyTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -69,6 +93,7 @@
 			isa = PBXGroup;
 			children = (
 				UDY0000000000000000GRP01 /* Understudy */,
+				UDYTST0000000000000GRP01 /* UnderstudyTests */,
 				UDY0000000000000000PRD01 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -99,6 +124,28 @@
 			productReference = UDY0000000000000000APP01 /* Understudy.app */;
 			productType = "com.apple.product-type.application";
 		};
+		UDYTST0000000000000TGT01 /* UnderstudyTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = UDYTST0000000000000CFL01 /* Build configuration list for PBXNativeTarget "UnderstudyTests" */;
+			buildPhases = (
+				UDYTST0000000000000SRC01 /* Sources */,
+				UDYTST0000000000000FRM01 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				UDYTST0000000000000DEP01 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				UDYTST0000000000000GRP01 /* UnderstudyTests */,
+			);
+			name = UnderstudyTests;
+			packageProductDependencies = (
+			);
+			productName = UnderstudyTests;
+			productReference = UDYTST0000000000000XCT01 /* UnderstudyTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -111,6 +158,10 @@
 				TargetAttributes = {
 					UDY0000000000000000TGT01 = {
 						CreatedOnToolsVersion = 26.1.1;
+					};
+					UDYTST0000000000000TGT01 = {
+						CreatedOnToolsVersion = 26.1.1;
+						TestTargetID = UDY0000000000000000TGT01;
 					};
 				};
 			};
@@ -132,6 +183,7 @@
 			projectRoot = "";
 			targets = (
 				UDY0000000000000000TGT01 /* Understudy */,
+				UDYTST0000000000000TGT01 /* UnderstudyTests */,
 			);
 		};
 /* End PBXProject section */
@@ -154,7 +206,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		UDYTST0000000000000SRC01 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		UDYTST0000000000000DEP01 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = UDY0000000000000000TGT01 /* Understudy */;
+			targetProxy = UDYTST0000000000000CIP01 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		UDY0000000000000000BCD01 /* Debug */ = {
@@ -360,6 +427,52 @@
 			};
 			name = Release;
 		};
+		UDYTST0000000000000BCD01 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 40;
+				DEVELOPMENT_TEAM = C624J4S2F8;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.37;
+				PRODUCT_BUNDLE_IDENTIFIER = agilelens.UnderstudyTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Understudy.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Understudy";
+				XROS_DEPLOYMENT_TARGET = 1.0;
+			};
+			name = Debug;
+		};
+		UDYTST0000000000000BCD02 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 40;
+				DEVELOPMENT_TEAM = C624J4S2F8;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.37;
+				PRODUCT_BUNDLE_IDENTIFIER = agilelens.UnderstudyTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Understudy.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Understudy";
+				XROS_DEPLOYMENT_TARGET = 1.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -377,6 +490,15 @@
 			buildConfigurations = (
 				UDY0000000000000000BCD01 /* Debug */,
 				UDY0000000000000000BCD02 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		UDYTST0000000000000CFL01 /* Build configuration list for PBXNativeTarget "UnderstudyTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				UDYTST0000000000000BCD01 /* Debug */,
+				UDYTST0000000000000BCD02 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
