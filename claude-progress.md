@@ -17,10 +17,13 @@
 - [x] Both platforms BUILD SUCCEEDED; merged `vision-pro-overhaul` → main (`68171bc`), pushed origin/main + origin/vision-pro-overhaul.
 - [x] **Polish pass (`4d8644c`):** PerformerView tap-to-restart-tracking (+ `PerformerARHost.restartTracking()`), ScriptBrowser loading indicator, removed irrelevant audience calibration button. iOS build clean; relaunch-verified (no crash).
 
-## Deferred / backlog (noted, not done — out of scope or lower ROI)
-- AuthorView dead `showingDemoLauncher`/`showingMetrics` state vars (pre-existing; left per "don't delete unasked" — flag to Alex: wire or remove).
-- A5 device refinement: floor-plane AnchorEntity (deferred — unreliable in Simulator); IBL from a bundled .skybox/.exr (current skybox is a generated gradient).
-- No test target exists (app-only project) — coordinator/A4 tests would need new test infra; not added unilaterally.
+## Backlog pass (2026-06-04)
+- [x] **AuthorView dead state wired (`9373c7a`):** `showingDemoLauncher`/`showingMetrics` now drive a top-bar overflow menu (Stage Map / Show Stats / Run Demo) — iOS Author gets the planning tools the Director panel has. Dead code resolved by using it.
+- [x] **First test target (`0fc93e9`):** UnderstudyTests (Swift Testing, hosted via TEST_HOST) + shared Understudy scheme. 6 tests guard ImmersiveSceneCoordinator (incl. the A1 systemDidDismiss regression). All pass: `xcodebuild test -scheme Understudy -destination 'platform=visionOS Simulator,id=A540B3B5…'`.
+
+### Still genuinely deferred (need device / asset, not code)
+- **A5 auto floor-plane anchoring** — `AnchorEntity(.plane(.floor))` doesn't resolve in the visionOS Simulator (would hide the stage there). Core A5 (underground) already fixed. A manual "recenter" needs an ARKitSession/WorldTrackingProvider + a world-sensing entitlement (device-only) — a real change, not polish.
+- **IBL** — needs an `EnvironmentResource` from a bundled HDR/.exr asset; no reliable API to synth one from the generated gradient. Current full-immersion skybox is a generated vertical gradient (works, just not HDR-lit).
 
 ## Note — shared simulator
 iPhone 17 sim (`974E8854…`) is shared with a concurrent megasession running `com.ibrews.crystalcaper` (a SpriteKit game). It can grab the sim foreground, so a one-off screenshot may capture the wrong app — re-`simctl launch agilelens.Understudy` to re-foreground. Both apps coexist fine; not an Understudy issue.
