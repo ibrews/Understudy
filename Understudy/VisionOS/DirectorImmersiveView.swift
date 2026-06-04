@@ -17,6 +17,7 @@
 #if os(visionOS)
 import SwiftUI
 import RealityKit
+import ImageIO
 
 struct DirectorImmersiveView: View {
     @Environment(BlockingStore.self) private var store
@@ -156,10 +157,16 @@ struct DirectorImmersiveView: View {
             // Full-immersion environment: an inward-facing skybox sphere shown
             // only when the director switches to Full immersion (in Mixed it
             // stays hidden so passthrough shows the real room). Starts as a
-            // solid "black box" theatrical color; a soft vertical gradient
-            // texture is applied asynchronously if it can be generated.
-            // Added to `content` (world), not stageRoot, so it surrounds the
-            // wearer regardless of the stage's transform/tabletop scale.
+            // solid "black box" theatrical color; then asynchronously upgrades
+            // to the bundled CC0 Poly Haven studio HDRI (a real photographic
+            // dark-studio backdrop), falling back to a generated gradient if
+            // the HDRI can't be decoded. Added to `content` (world), not
+            // stageRoot, so it surrounds the wearer regardless of the stage's
+            // transform/tabletop scale.
+            //
+            // Note: this is a *visible backdrop*, not image-based lighting —
+            // all stage/avatar content uses UnlitMaterial by design (flat
+            // theatrical look), so IBL would have no visible effect.
             let sky = ModelEntity(
                 mesh: .generateSphere(radius: 60),
                 materials: [UnlitMaterial(color: Self.skyboxFallbackColor)]
@@ -170,7 +177,9 @@ struct DirectorImmersiveView: View {
             content.add(sky)
             skyboxEntity = sky
             Task { @MainActor in
-                if let tex = await Self.makeSkyGradientTexture() {
+                var tex = await Self.loadHDRISkyboxTexture()
+                if tex == nil { tex = await Self.makeSkyGradientTexture() }
+                if let tex {
                     var m = UnlitMaterial()
                     m.color = .init(texture: .init(tex))
                     sky.model?.materials = [m]
@@ -382,6 +391,20 @@ struct DirectorImmersiveView: View {
         let orb = ModelEntity(mesh: .generateSphere(radius: 0.035), materials: [m])
         orb.name = "virtualHandOrb"
         return orb
+    }
+
+    /// Load the bundled equirectangular studio HDRI (CC0, Poly Haven
+    /// "studio_small_07") as the full-immersion skybox texture. Decoded via
+    /// ImageIO, which handles OpenEXR. Returns nil if the asset is missing or
+    /// can't be decoded, so the caller falls back to the generated gradient.
+    fileprivate static func loadHDRISkyboxTexture() async -> TextureResource? {
+        guard let url = Bundle.main.url(forResource: "studio_small_07_1k", withExtension: "exr"),
+              let src = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let cg = CGImageSourceCreateImageAtIndex(src, 0, nil) else { return nil }
+        if #available(visionOS 2.0, *) {
+            return try? await TextureResource(image: cg, options: .init(semantic: .color))
+        }
+        return nil
     }
 
     /// Generate a soft vertical floor→horizon→sky gradient texture for the

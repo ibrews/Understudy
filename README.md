@@ -582,3 +582,5 @@ Parsers: `scripts/parse_hamlet.py` (Shakespeare — SCENE-numbered format) and `
 ## Credits
 
 Designed and built by [Alex Coulombe](https://alexcoulombe.com) and Claude — iterated in ambitious afternoon sessions.
+
+The Vision Pro full-immersion studio backdrop uses [studio_small_07](https://polyhaven.com/a/studio_small_07) from [Poly Haven](https://polyhaven.com) (CC0 — public domain, no attribution required; credited here anyway).
