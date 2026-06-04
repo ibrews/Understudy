@@ -453,6 +453,18 @@ struct DirectorControlPanel: View {
             .tint(coordinator.showVirtualHands ? .cyan : nil)
             .help("Show glowing markers on your tracked hands (visible on device).")
 
+            Divider().frame(height: 20)
+
+            Toggle(isOn: Binding(
+                get: { coordinator.iblEnabled },
+                set: { coordinator.iblEnabled = $0 }
+            )) {
+                Label("IBL", systemImage: "lightbulb.max")
+            }
+            .toggleStyle(.button)
+            .tint(coordinator.iblEnabled ? .yellow : nil)
+            .help("Image-based lighting from the studio HDRI, with a lit-material test rig. Pairs with Full immersion.")
+
             Spacer()
         }
         .padding(.horizontal, 12).padding(.vertical, 8)

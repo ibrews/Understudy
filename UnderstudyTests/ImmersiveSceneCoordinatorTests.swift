@@ -57,6 +57,8 @@ struct ImmersiveSceneCoordinatorTests {
         let c = ImmersiveSceneCoordinator()
         #expect(c.showRealHands == true)
         #expect(c.showVirtualHands == false)
+        // IBL is an opt-in demo/lighting toggle — off by default.
+        #expect(c.iblEnabled == false)
     }
 
     @Test func stageIDIsStable() {

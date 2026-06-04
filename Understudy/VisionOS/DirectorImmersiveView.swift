@@ -69,6 +69,13 @@ struct DirectorImmersiveView: View {
     /// from real-hands passthrough (`.upperLimbVisibility`) — toggled
     /// independently via `coordinator.showVirtualHands`.
     @State private var virtualHandEntities: [Entity] = []
+    /// Image-based lighting: an (invisible) light entity carrying the
+    /// environment, a rig of PBR "material probe" spheres so the IBL is
+    /// actually visible (the rest of the app is UnlitMaterial), and the loaded
+    /// environment resource.
+    @State private var iblEntity = Entity()
+    @State private var materialProbes = Entity()
+    @State private var environmentResource: EnvironmentResource?
 
     var body: some View {
         RealityView { content, attachments in
@@ -176,6 +183,18 @@ struct DirectorImmersiveView: View {
             sky.isEnabled = false
             content.add(sky)
             skyboxEntity = sky
+
+            // Image-based lighting: an invisible light entity that carries the
+            // environment, plus a PBR "material probe" rig so there's lit
+            // geometry to actually show the IBL on (everything else is
+            // UnlitMaterial). Both stay off until the director toggles IBL.
+            iblEntity.name = "iblLight"
+            content.add(iblEntity)
+            buildMaterialProbes()
+            materialProbes.name = "materialProbes"
+            materialProbes.isEnabled = false
+            stageRoot.addChild(materialProbes)
+
             Task { @MainActor in
                 var tex = await Self.loadHDRISkyboxTexture()
                 if tex == nil { tex = await Self.makeSkyGradientTexture() }
@@ -183,6 +202,12 @@ struct DirectorImmersiveView: View {
                     var m = UnlitMaterial()
                     m.color = .init(texture: .init(tex))
                     sky.model?.materials = [m]
+                }
+                // Build the IBL environment from the same HDRI, then apply if
+                // the toggle is already on.
+                if #available(visionOS 2.0, *) {
+                    environmentResource = await Self.loadHDRIEnvironment()
+                    syncIBL()
                 }
             }
 
@@ -227,6 +252,7 @@ struct DirectorImmersiveView: View {
             syncEmptyHint()
             syncImmersionEnvironment()
             syncVirtualHands()
+            syncIBL()
         } attachments: {
             // Empty-state floating card. Visible only when the stage has zero
             // marks — guides first-time directors to the tap gesture.
@@ -374,6 +400,75 @@ struct DirectorImmersiveView: View {
     /// Show/hide the virtual-hand markers. Orthogonal to real-hands passthrough.
     private func syncVirtualHands() {
         for hand in virtualHandEntities { hand.isEnabled = coordinator.showVirtualHands }
+    }
+
+    /// Toggle real image-based lighting + the lit-material probe rig. Adding
+    /// the ImageBasedLightComponent to iblEntity lights every entity that
+    /// carries an ImageBasedLightReceiverComponent referencing it (the probe
+    /// spheres). Reading coordinator.iblEnabled + environmentResource here
+    /// registers them as update: dependencies, so the toggle takes effect live.
+    private func syncIBL() {
+        let on = coordinator.iblEnabled
+        materialProbes.isEnabled = on
+        if on, let env = environmentResource {
+            iblEntity.components.set(
+                ImageBasedLightComponent(source: .single(env), intensityExponent: 3.0)
+            )
+        } else {
+            iblEntity.components.remove(ImageBasedLightComponent.self)
+        }
+    }
+
+    /// A row of PBR spheres from chrome → brushed gold → glossy → matte, so the
+    /// image-based lighting is actually visible (the rest of the app is
+    /// UnlitMaterial). Each receives IBL from iblEntity.
+    private func buildMaterialProbes() {
+        materialProbes.children.removeAll()
+        let specs: [(metallic: Float, roughness: Float, tint: UIColor)] = [
+            (1.0, 0.0,  .white),
+            (1.0, 0.35, UIColor(red: 1.0, green: 0.82, blue: 0.40, alpha: 1)),
+            (0.0, 0.12, UIColor(red: 0.90, green: 0.20, blue: 0.25, alpha: 1)),
+            (0.0, 0.70, UIColor(red: 0.30, green: 0.55, blue: 1.00, alpha: 1)),
+            (1.0, 0.60, UIColor(white: 0.72, alpha: 1)),
+        ]
+        let spacing: Float = 0.32
+        let startX = -Float(specs.count - 1) / 2.0 * spacing
+        for (i, s) in specs.enumerated() {
+            let sphere = ModelEntity(
+                mesh: .generateSphere(radius: 0.12),
+                materials: [Self.pbrMaterial(metallic: s.metallic, roughness: s.roughness, tint: s.tint)]
+            )
+            sphere.position = [startX + Float(i) * spacing, 1.0, -0.9]
+            sphere.components.set(ImageBasedLightReceiverComponent(imageBasedLight: iblEntity))
+            materialProbes.addChild(sphere)
+        }
+        let label = ModelEntity(
+            mesh: .generateText("Lit material test (IBL)", extrusionDepth: 0.001,
+                                font: .systemFont(ofSize: 0.06), alignment: .center),
+            materials: [UnlitMaterial(color: .white)]
+        )
+        label.position = [-0.42, 1.28, -0.9]
+        materialProbes.addChild(label)
+    }
+
+    fileprivate static func pbrMaterial(metallic: Float, roughness: Float, tint: UIColor) -> RealityKit.Material {
+        var m = PhysicallyBasedMaterial()
+        m.baseColor = .init(tint: tint)
+        m.metallic = .init(floatLiteral: metallic)
+        m.roughness = .init(floatLiteral: roughness)
+        return m
+    }
+
+    /// Build an IBL EnvironmentResource from the bundled studio HDRI (decoded
+    /// via ImageIO). visionOS 2.0+; nil otherwise (toggle then no-ops).
+    fileprivate static func loadHDRIEnvironment() async -> EnvironmentResource? {
+        guard let url = Bundle.main.url(forResource: "studio_small_07_1k", withExtension: "exr"),
+              let src = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let cg = CGImageSourceCreateImageAtIndex(src, 0, nil) else { return nil }
+        if #available(visionOS 2.0, *) {
+            return try? await EnvironmentResource(equirectangular: cg)
+        }
+        return nil
     }
 
     /// Deep theatrical "black box" base color shown before the gradient texture

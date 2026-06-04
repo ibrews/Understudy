@@ -74,6 +74,11 @@ final class ImmersiveSceneCoordinator {
     /// independent of the passthrough layer above). Off by default.
     var showVirtualHands: Bool = false
 
+    /// Image-based lighting from the studio HDRI, with a PBR material-probe
+    /// rig to show it (the rest of the app is UnlitMaterial). Off by default;
+    /// pairs naturally with Full immersion + the studio backdrop.
+    var iblEnabled: Bool = false
+
     // MARK: Derived
 
     var isOpen: Bool { phase == .open }
