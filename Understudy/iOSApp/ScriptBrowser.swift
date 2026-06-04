@@ -39,6 +39,9 @@ struct ScriptBrowser: View {
     @State private var droppingScene: PlayScript.Scene?
     @State private var showingImporter = false
     @State private var importError: String?
+    /// True while the imported-scripts list loads off the main thread, so the
+    /// books menu doesn't silently appear to hold only the bundled scripts.
+    @State private var isLoadingScripts = true
 
     enum SceneFilter: Hashable, Identifiable {
         case all
@@ -59,6 +62,16 @@ struct ScriptBrowser: View {
                 content
             }
             .background(Color.black)
+            .overlay(alignment: .top) {
+                if isLoadingScripts {
+                    Label("Loading scripts…", systemImage: "book")
+                        .font(.caption)
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(.ultraThinMaterial, in: Capsule())
+                        .padding(.top, 8)
+                        .transition(.opacity)
+                }
+            }
             .navigationTitle(script.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -116,6 +129,7 @@ struct ScriptBrowser: View {
                     Scripts.allWithImported()
                 }.value
                 allScripts = loaded
+                withAnimation(.easeInOut(duration: 0.2)) { isLoadingScripts = false }
             }
             .fileImporter(
                 isPresented: $showingImporter,

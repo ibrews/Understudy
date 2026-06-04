@@ -421,6 +421,14 @@ struct PerformerView: View {
                   systemImage: quality > 0.6 ? "location.fill" : "location.slash")
                 .foregroundStyle(quality > 0.6 ? .green : .orange)
                 .font(.caption)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    // Poor tracking → let the performer actively restart the AR
+                    // session instead of having to leave and re-enter the view.
+                    if quality <= 0.4 { PerformerARHost.shared.restartTracking() }
+                }
+                .accessibilityLabel(quality > 0.6 ? "Tracking good" : "Tracking limited — tap to restart")
+                .accessibilityAddTraits(.isButton)
 
             // Live recording indicator — flashing red REC + elapsed time.
             // Without this, hitting "record" gave no visible confirmation
@@ -1089,6 +1097,20 @@ final class PerformerARHost {
     func stop() {
         provider?.stop()
         provider = nil
+    }
+
+    /// Re-run world tracking to recover from a degraded/lost session. Works
+    /// whether the ARView owns the session (AR Stage background on) or the
+    /// provider runs its own session standalone (AR background off).
+    func restartTracking() {
+        if let arSession = arView?.session {
+            let config = ARWorldTrackingConfiguration()
+            config.planeDetection = [.horizontal]
+            config.environmentTexturing = .none
+            arSession.run(config, options: [.resetTracking, .removeExistingAnchors])
+        } else {
+            provider?.start()
+        }
     }
 }
 

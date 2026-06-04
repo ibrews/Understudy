@@ -126,8 +126,10 @@ struct AudienceView: View {
                     .font(.caption2).foregroundStyle(.white.opacity(0.6))
             }
             Spacer()
-            CalibrationButton()
-                .environment(store)
+            // Calibration is irrelevant to the self-paced audience scrub
+            // experience — it only matters for live multi-device rehearsals
+            // (Perform/Author), so it's no longer shown here to avoid sending
+            // audiences into an irrelevant "stand at stage center" flow.
             Button { showingTeleprompter = true } label: {
                 Image(systemName: "text.quote")
                     .font(.title3)
