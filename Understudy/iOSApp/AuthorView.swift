@@ -125,6 +125,14 @@ struct AuthorView: View {
             StageMapView()
                 .environment(store)
         }
+        .sheet(isPresented: $showingMetrics) {
+            ShowMetricsView()
+                .environment(store)
+                .environment(session)
+        }
+        .sheet(isPresented: $showingDemoLauncher) {
+            DemoLauncherView()
+        }
         .sheet(isPresented: $showingOnboarding) {
             OnboardingSheet(mode: .author) {
                 hasSeenOnboarding = true
@@ -210,14 +218,24 @@ struct AuthorView: View {
                     .foregroundStyle(.white)
             }
             .accessibilityLabel("Open teleprompter")
-            Button { showingStageMap = true } label: {
-                Image(systemName: "map")
+            Menu {
+                Button { showingStageMap = true } label: {
+                    Label("Stage Map", systemImage: "map")
+                }
+                Button { showingMetrics = true } label: {
+                    Label("Show Stats", systemImage: "chart.bar.fill")
+                }
+                Button { showingDemoLauncher = true } label: {
+                    Label("Run Demo", systemImage: "sparkles.tv.fill")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
                     .font(.title3)
                     .padding(10)
                     .background(.white.opacity(0.08), in: Circle())
                     .foregroundStyle(.white)
             }
-            .accessibilityLabel("Stage map")
+            .accessibilityLabel("More — stage map, show stats, run demo")
             Button { showingSettings = true } label: {
                 Image(systemName: "gearshape")
                     .font(.title3)
