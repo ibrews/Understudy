@@ -39,9 +39,10 @@ Three big buttons at the top of the panel — the actions you'll reach for most 
 
 A strip below the room row gives you three **independent** controls:
 
-- **Mixed / Full** — *Mixed* keeps passthrough so the stage overlays your real room (the default for rehearsing in a physical space). *Full* replaces the room with a dim black-box stage environment — good for focus, or for previewing in a featureless space.
+- **Mixed / Full** — *Mixed* keeps passthrough so the stage overlays your real room (the default for rehearsing in a physical space). *Full* replaces the room with a photographic dark-studio environment (a CC0 HDRI) — good for focus, or for previewing in a featureless space.
 - **Real Hands** — show or hide your real hands (passthrough).
 - **Virtual Hands** — draw glowing markers on your tracked hands. These are a separate layer from your real hands, so you can show virtual hands while hiding your real ones, or any combination. (Visible on device; the Simulator has no hands to track.)
+- **IBL** — turn on image-based lighting from the studio environment. Because Understudy's marks and avatars use a flat (unlit) theatrical style, this also shows a small row of test spheres (chrome → gold → glossy → matte) so you can see the environment lighting and reflections. Pairs naturally with **Full**.
 
 ## First-run walkthrough
 

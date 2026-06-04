@@ -22,11 +22,11 @@
 - [x] **First test target (`0fc93e9`):** UnderstudyTests (Swift Testing, hosted via TEST_HOST) + shared Understudy scheme. 6 tests guard ImmersiveSceneCoordinator (incl. the A1 systemDidDismiss regression). All pass: `xcodebuild test -scheme Understudy -destination 'platform=visionOS Simulator,id=A540B3B5…'`.
 
 - [x] **Photographic studio HDRI skybox (`680315f`):** bundled CC0 Poly Haven `studio_small_07` (1K EXR, 1.4MB) as the full-immersion backdrop (ImageIO → TextureResource, gradient fallback). New SkyboxAssetTests verifies bundling + ImageIO EXR decode on visionOS (8 tests total now pass). Sim-verified the dark-studio backdrop renders in full immersion. CC0 credited in README.
-  - **Note:** scoped as a *visible backdrop*, NOT IBL — all content is UnlitMaterial by design, so true image-based lighting has no visible effect. `EnvironmentResource(equirectangular:)` is the verified path if content ever moves to PBR.
+- [x] **Real IBL toggle + PBR material rig (`c500445`):** Director-panel "IBL" toggle (`coordinator.iblEnabled`) → `EnvironmentResource(equirectangular:)` + `ImageBasedLightComponent` from the studio HDRI. Since the app is all-UnlitMaterial, the toggle also shows a PBR probe rig (chrome→gold→glossy→matte→steel, each with `ImageBasedLightReceiverComponent`) so the lighting is visible. Off by default. Sim-verified in full immersion (metallic spheres reflect the studio softboxes). All 7 tests pass.
 
-### Still genuinely deferred (need device, not code)
+### Still genuinely deferred (needs on-device, not code)
 - **A5 auto floor-plane anchoring** — `AnchorEntity(.plane(.floor))` doesn't resolve in the visionOS Simulator (would hide the stage there). Core A5 (underground) already fixed. A manual "recenter" needs an ARKitSession/WorldTrackingProvider + a world-sensing entitlement (device-only) — a real change, not polish.
-- **True IBL on lit content** — would require converting the avatars/stage from their intentional flat UnlitMaterial look to PBR (a visual-design change, not a bug). The HDRI is bundled and ready if that's ever wanted.
+- (Optional) converting the *existing* avatars/stage from UnlitMaterial to PBR so they too respond to the IBL — a deliberate visual-design change, not a bug. The IBL plumbing + probe rig are in place if that's ever wanted.
 
 ## Note — shared simulator
 iPhone 17 sim (`974E8854…`) is shared with a concurrent megasession running `com.ibrews.crystalcaper` (a SpriteKit game). It can grab the sim foreground, so a one-off screenshot may capture the wrong app — re-`simctl launch agilelens.Understudy` to re-foreground. Both apps coexist fine; not an Understudy issue.
