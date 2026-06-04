@@ -60,6 +60,9 @@ struct CalibrationButton: View {
                     }
             }
         }
+        .accessibilityLabel(calibrated
+            ? "Calibrated. Tap to recalibrate or clear the shared origin."
+            : "Not calibrated. Tap to set the shared stage origin.")
         .onReceive(pollTimer) { _ in tick = Date() }
         .alert("Clear calibration?", isPresented: $confirmClear) {
             Button("Cancel", role: .cancel) {}

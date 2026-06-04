@@ -35,13 +35,18 @@ struct PerformerView: View {
     @AppStorage("showARStage") private var showARStage: Bool = true
     /// Wall-clock start of the current recording, for the live "REC 12s" badge.
     @State private var recordingStartedAt: Date?
-    /// "Walk saved (Xs)" toast that appears for ~2s after stopRecording.
-    @State private var savedWalkToast: (durationLabel: String, shownAt: Date)?
+    /// Transient toast (~2s) after a recording stops — confirms a save OR a
+    /// discard, so an accidental Cancel is no longer silent.
+    @State private var savedWalkToast: (message: String, systemImage: String, tint: Color, shownAt: Date)?
     /// Naming prompt after recording stops.
     @State private var pendingRecordingName: String = ""
     @State private var showingNameRecordingAlert: Bool = false
     @State private var pendingRecordingDuration: TimeInterval = 0
     @State private var showingRecordingsPicker: Bool = false
+    /// Quick "join a room" prompt, reachable from the connection pill so a
+    /// performer is never stuck silently on the wrong room code.
+    @State private var showingJoinRoom = false
+    @State private var joinRoomCode = ""
 
     /// Opacity for the curtain gradient — dialed back when AR background is visible
     /// so the camera reads through but the theatrical vibe stays.
@@ -133,7 +138,7 @@ struct PerformerView: View {
                 .environment(store)
                 .environment(session)
         }
-        .sheet(isPresented: $showingOnboarding) {
+        .sheet(isPresented: $showingOnboarding, onDismiss: { hasSeenOnboarding = true }) {
             OnboardingSheet(mode: .perform) {
                 hasSeenOnboarding = true
                 showingOnboarding = false
@@ -142,11 +147,16 @@ struct PerformerView: View {
         .alert("Name this walk", isPresented: $showingNameRecordingAlert) {
             TextField("e.g. Hamlet's path", text: $pendingRecordingName)
             Button("Cancel", role: .cancel) {
-                // Discard — call stop without naming.
+                // Discard — call stop without naming, and confirm it so an
+                // accidental Cancel (e.g. to dismiss the keyboard) isn't silent.
                 _ = store.stopRecording(
                     saveAsReference: false,
                     performerName: store.localPerformer?.displayName ?? "me"
                 )
+                savedWalkToast = (message: "Recording discarded",
+                                  systemImage: "trash",
+                                  tint: .orange,
+                                  shownAt: Date())
             }
             Button("Save") {
                 let name = pendingRecordingName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -159,10 +169,13 @@ struct PerformerView: View {
                 if let recording {
                     session.broadcastRecordingAdded(recording)
                     let s = pendingRecordingDuration
+                    let durLabel = s >= 60
+                        ? String(format: "%dm %02ds", Int(s) / 60, Int(s) % 60)
+                        : String(format: "%.1fs", s)
                     savedWalkToast = (
-                        durationLabel: s >= 60
-                            ? String(format: "%dm %02ds", Int(s) / 60, Int(s) % 60)
-                            : String(format: "%.1fs", s),
+                        message: "Walk saved (\(durLabel))",
+                        systemImage: "checkmark.circle.fill",
+                        tint: .green,
                         shownAt: Date()
                     )
                 }
@@ -174,18 +187,57 @@ struct PerformerView: View {
             RecordingsPickerView()
                 .environment(store)
         }
+        .alert("Join a room", isPresented: $showingJoinRoom) {
+            TextField("Room code", text: $joinRoomCode)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            Button("Cancel", role: .cancel) {}
+            Button("Join") {
+                let code = joinRoomCode.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !code.isEmpty { session.roomCode = code }
+            }
+        } message: {
+            Text("Enter the room code your director shares. Everyone in the same room sees the same marks and cues.")
+        }
     }
 
     // MARK: - UI pieces
 
     private var topBar: some View {
         HStack(spacing: 14) {
-            VStack(alignment: .leading) {
-                Text(store.blocking.title)
-                    .font(.headline)
-                Text("Room: \(session.roomCode)  •  \(session.peerCount) peers  •  \(AppVersion.formatted)")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.6))
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(store.blocking.title)
+                        .font(.headline)
+                    Text(AppVersion.formatted)
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.35))
+                }
+                // Connection status pill — tappable to join/change room. Gives
+                // the performer a clear connected/not-connected state instead
+                // of a silent "0 peers", and a one-tap way to fix a wrong code.
+                Button {
+                    joinRoomCode = session.roomCode
+                    showingJoinRoom = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(session.peerCount > 0 ? Color.green : Color.orange)
+                            .frame(width: 7, height: 7)
+                        Text(session.peerCount > 0
+                             ? "Room \(session.roomCode) • \(session.peerCount) connected"
+                             : "Room \(session.roomCode) — tap to join")
+                            .font(.caption2)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 8, weight: .semibold))
+                            .opacity(0.5)
+                    }
+                    .foregroundStyle(.white.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(session.peerCount > 0
+                    ? "Connected to room \(session.roomCode), \(session.peerCount) peers. Tap to change room."
+                    : "Not connected to anyone. Tap to join a room.")
             }
             Spacer()
             CalibrationButton()
@@ -249,12 +301,30 @@ struct PerformerView: View {
                     RoundedRectangle(cornerRadius: 24)
                         .stroke(Color.red.opacity(0.35), lineWidth: 1)
                 )
+            } else if store.blocking.marks.isEmpty {
+                // Distinct empty state — a performer with no blocking at all
+                // used to just see "No blocking loaded" with no way forward.
+                VStack(spacing: 10) {
+                    Image(systemName: "mappin.slash")
+                        .font(.system(size: 34))
+                        .foregroundStyle(.white.opacity(0.5))
+                    Text("No blocking yet")
+                        .font(.title2).bold()
+                        .foregroundStyle(.white)
+                    Text("Join your director's room above to follow their show — or switch to Author mode in Settings to place your own marks and load a sample.")
+                        .font(.callout)
+                        .foregroundStyle(.white.opacity(0.6))
+                        .multilineTextAlignment(.center)
+                }
+                .padding(22)
+                .frame(maxWidth: .infinity)
+                .background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 24))
             } else {
                 VStack(spacing: 8) {
                     Text("Find your mark")
                         .font(.title2).bold()
                         .foregroundStyle(.white)
-                    Text(nextMark.map { "Next: \($0.name)" } ?? "No blocking loaded")
+                    Text(nextMark.map { "Next: \($0.name)" } ?? "Walk to your first mark")
                         .foregroundStyle(.white.opacity(0.6))
                 }
                 .padding(22)
@@ -372,11 +442,11 @@ struct PerformerView: View {
                 }
             } else if let toast = savedWalkToast,
                       Date().timeIntervalSince(toast.shownAt) < 2.5 {
-                Label("Walk saved (\(toast.durationLabel))", systemImage: "checkmark.circle.fill")
+                Label(toast.message, systemImage: toast.systemImage)
                     .font(.caption.bold())
-                    .foregroundStyle(.green)
+                    .foregroundStyle(toast.tint)
                     .padding(.horizontal, 10).padding(.vertical, 4)
-                    .background(.green.opacity(0.15), in: Capsule())
+                    .background(toast.tint.opacity(0.15), in: Capsule())
                     .transition(.opacity)
             }
 
@@ -398,6 +468,11 @@ struct PerformerView: View {
                 LongPressGesture(minimumDuration: 0.4)
                     .onEnded { _ in showingRecordingsPicker = true }
             )
+            // VoiceOver can't long-press — expose the recording picker as a
+            // rotor action so it's reachable without the gesture.
+            .accessibilityAction(named: "Choose recording") {
+                showingRecordingsPicker = true
+            }
 
             Button {
                 if store.isRecording {

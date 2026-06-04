@@ -100,7 +100,7 @@ The show comes to you. Site-specific theater as a finished product: a big "Begin
 
 ## Getting started — ninety seconds to Hamlet
 
-1. Open `Understudy.xcodeproj` in Xcode 15.4+.
+1. Open `Understudy.xcodeproj` in Xcode 26+.
 2. Pick any iOS simulator or device → **Run**.
 3. First launch → pick **Perform**.
 4. Allow camera permission. A five-mark Hamlet opening (Elsinore battlements) is pre-loaded: Francisco's post → Bernardo enters → center → Horatio arrives → the Ghost.
@@ -117,8 +117,8 @@ For the full multi-device flow (Apple + Android + relay), see **[QUICKSTART.md](
 1. **Launch on an iPhone simulator, pick Perform, and walk toward the first glowing disc** — your phone should pulse with haptics and "Francisco" speaks his opening line from Hamlet in serif type over the camera feed.
 2. **Switch to Author mode, tap the floor three times to drop marks, then tap a mark and hit "Pick from Hamlet…"** — the full Script Browser opens; search for "Bernardo" and tap a line to attach it to the mark instantly.
 3. **Tap "Drop Whole Scene" on any scene in the Script Browser** — Understudy auto-lays out a zig-zag path of marks with every line pre-populated; a 20-beat scene becomes walkable in under a second.
-4. **Run the visionOS scheme to a simulator alongside the iOS scheme on a real iPhone on the same Wi-Fi** — both devices find each other over Bonjour automatically; the AVP director sees the iPhone performer as a ghost avatar moving through the virtual stage.
-5. **Start the Python relay (`cd relay && python3 server.py`), switch both apps to WebSocket transport in Settings, and join from an Android device** — all three clients share the same marks and fire the same cues in sync across platforms.
+4. **Run the visionOS scheme** — a first-run walkthrough teaches the stage, then it opens automatically. Look at the floor and pinch to drop marks, fire cues with **GO**, and flip **Mixed ↔ Full** immersion to swap your real room for a black-box stage environment. Close the stage and reopen it with a single tap (it stays in sync now, even after a Digital Crown dismissal).
+5. **Run visionOS + a real iPhone on the same Wi-Fi** (or start the Python relay — `cd relay && python3 server.py` — and join from Android) — devices find each other over Bonjour automatically; the director sees each performer as a moving ghost avatar and every cue fires in sync across platforms.
 
 ---
 
@@ -581,4 +581,4 @@ Parsers: `scripts/parse_hamlet.py` (Shakespeare — SCENE-numbered format) and `
 
 ## Credits
 
-Designed and built by [Alex Coulombe](https://alexcoulombe.com) (Agile Lens) and Claude — iterated in ambitious afternoon sessions.
+Designed and built by [Alex Coulombe](https://alexcoulombe.com) and Claude — iterated in ambitious afternoon sessions.

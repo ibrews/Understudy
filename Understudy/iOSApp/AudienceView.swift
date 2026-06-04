@@ -156,21 +156,39 @@ struct AudienceView: View {
                 .font(.title.bold())
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
-            Text("Find \(store.blocking.marks.first?.name ?? "the first mark").\nWhen you're ready, begin.")
-                .font(.body)
-                .foregroundStyle(.white.opacity(0.75))
-                .multilineTextAlignment(.center)
-            Button {
-                started = true
-            } label: {
-                Label("Begin", systemImage: "play.fill")
-                    .font(.headline)
-                    .padding(.horizontal, 28)
-                    .padding(.vertical, 14)
-                    .background(Color.red.opacity(0.85), in: Capsule())
-                    .foregroundStyle(.white)
+            if store.blocking.marks.isEmpty {
+                // The Begin button used to sit here disabled with no
+                // explanation. Tell the audience why, and give them a way out.
+                Text("Waiting for a director to share the blocking.\nJoin their room, or switch to Author mode to build your own.")
+                    .font(.body)
+                    .foregroundStyle(.white.opacity(0.75))
+                    .multilineTextAlignment(.center)
+                Button {
+                    showingSettings = true
+                } label: {
+                    Label("Join a room", systemImage: "number")
+                        .font(.headline)
+                        .padding(.horizontal, 28)
+                        .padding(.vertical, 14)
+                        .background(Color.white.opacity(0.14), in: Capsule())
+                        .foregroundStyle(.white)
+                }
+            } else {
+                Text("Find \(store.blocking.marks.first?.name ?? "the first mark").\nWhen you're ready, begin.")
+                    .font(.body)
+                    .foregroundStyle(.white.opacity(0.75))
+                    .multilineTextAlignment(.center)
+                Button {
+                    started = true
+                } label: {
+                    Label("Begin", systemImage: "play.fill")
+                        .font(.headline)
+                        .padding(.horizontal, 28)
+                        .padding(.vertical, 14)
+                        .background(Color.red.opacity(0.85), in: Capsule())
+                        .foregroundStyle(.white)
+                }
             }
-            .disabled(store.blocking.marks.isEmpty)
         }
         .padding(28)
         .frame(maxWidth: .infinity)
@@ -218,13 +236,26 @@ struct AudienceView: View {
                 .frame(maxWidth: .infinity)
                 .background(.black.opacity(0.4), in: RoundedRectangle(cornerRadius: 20))
             } else {
-                VStack(spacing: 8) {
+                VStack(spacing: 12) {
                     Text("End of journey.")
                         .font(.title.bold())
                         .foregroundStyle(.white)
                     Text("Thank you for walking \(store.blocking.title).")
                         .font(.body)
                         .foregroundStyle(.white.opacity(0.7))
+                    // Was a dead end — no way to replay without leaving the view.
+                    Button {
+                        started = false
+                        lastFiredMarkID = nil
+                        scrubbedMarkID = nil
+                    } label: {
+                        Label("Start again", systemImage: "arrow.counterclockwise")
+                            .font(.headline)
+                            .padding(.horizontal, 22).padding(.vertical, 12)
+                            .background(Color.white.opacity(0.14), in: Capsule())
+                            .foregroundStyle(.white)
+                    }
+                    .padding(.top, 4)
                 }
                 .padding(22)
                 .frame(maxWidth: .infinity)

@@ -36,6 +36,9 @@ public struct TeleprompterView: View {
     @State private var autoScrollTimer: Timer?
     @State private var lastMarkID: ID?
     @State private var voiceAuthRequested = false
+    /// Set when speech/mic authorization is denied, so we can tell the user
+    /// instead of leaving the mic button silently inert.
+    @State private var voicePermissionDenied = false
     /// Last count of auto-fired cues, for the "🔥 3 cues fired" feedback flash.
     @State private var autoFireFlashCount: Int = 0
     @State private var autoFireFlashAt: Date?
@@ -236,6 +239,7 @@ public struct TeleprompterView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.white.opacity(0.15))
+                .accessibilityLabel("Reset to beginning")
 
                 Button {
                     state.isAutoScrollEnabled.toggle()
@@ -247,6 +251,7 @@ public struct TeleprompterView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(state.isAutoScrollEnabled ? .orange : .white.opacity(0.2))
+                .accessibilityLabel(state.isAutoScrollEnabled ? "Pause auto-scroll" : "Start auto-scroll")
 
                 VStack {
                     Text("Speed  \(Int(state.speed)) cps")
@@ -274,6 +279,7 @@ public struct TeleprompterView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(state.isVoiceModeEnabled ? .red : .white.opacity(0.2))
+                .accessibilityLabel(state.isVoiceModeEnabled ? "Stop voice mode" : "Start voice mode")
 
                 // Auto-fire toggle — only meaningful when voice mode is on.
                 // Orange flame = the show runs itself; grey = voice just
@@ -291,6 +297,7 @@ public struct TeleprompterView: View {
                 .help(state.isAutoFireEnabled
                       ? "Voice finishes a line → SFX/light/wait cues auto-fire"
                       : "Voice only scrolls the teleprompter; cues stay manual")
+                .accessibilityLabel(state.isAutoFireEnabled ? "Auto-fire cues on" : "Auto-fire cues off")
                 #endif
             }
             .padding(.horizontal, 14).padding(.vertical, 10)
@@ -299,6 +306,20 @@ public struct TeleprompterView: View {
                 RoundedRectangle(cornerRadius: 16)
                     .stroke(.white.opacity(0.15), lineWidth: 1)
             )
+            #if canImport(Speech)
+            .alert("Microphone Access Needed", isPresented: $voicePermissionDenied) {
+                #if canImport(UIKit)
+                Button("Open Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+                #endif
+                Button("Not now", role: .cancel) {}
+            } message: {
+                Text("Voice mode needs microphone and speech-recognition access. Enable both in Settings to let the teleprompter follow your voice.")
+            }
+            #endif
         }
     }
 
@@ -334,7 +355,14 @@ public struct TeleprompterView: View {
             if !voiceAuthRequested {
                 voiceAuthRequested = true
                 speech.requestAuthorization { granted in
-                    if granted { self.startVoiceMode() }
+                    if granted {
+                        self.startVoiceMode()
+                    } else {
+                        // Denied (or pre-denied): surface it instead of a
+                        // silent no-op so the performer knows why the mic
+                        // button does nothing.
+                        self.voicePermissionDenied = true
+                    }
                 }
             } else {
                 startVoiceMode()
