@@ -53,6 +53,7 @@ struct DirectorControlPanel: View {
                     quickStart
                     roomRow
                     stageToolbar
+                    immersionControls
                     rehearsalTimerStrip
                     marksList
                     propsList
@@ -390,6 +391,55 @@ struct DirectorControlPanel: View {
                 .pickerStyle(.segmented)
                 .frame(maxWidth: 220)
             }
+
+            Spacer()
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    // MARK: - Immersion + hands controls
+    //
+    // Three independent layers, deliberately not conflated:
+    //   • Mixed ↔ Full space (passthrough room vs. app's own environment)
+    //   • Real-hands passthrough visibility (.upperLimbVisibility)
+    //   • Virtual-hand markers (a separate RealityKit layer)
+
+    @ViewBuilder private var immersionControls: some View {
+        HStack(spacing: 10) {
+            Toggle(isOn: Binding(
+                get: { coordinator.isFullImmersion },
+                set: { coordinator.isFullImmersion = $0 }
+            )) {
+                Label(coordinator.isFullImmersion ? "Full Space" : "Mixed",
+                      systemImage: coordinator.isFullImmersion ? "cube.fill" : "cube.transparent")
+            }
+            .toggleStyle(.button)
+            .tint(coordinator.isFullImmersion ? .indigo : nil)
+            .help("Full replaces the room with a black-box stage environment; Mixed keeps passthrough.")
+
+            Divider().frame(height: 20)
+
+            Toggle(isOn: Binding(
+                get: { coordinator.showRealHands },
+                set: { coordinator.showRealHands = $0 }
+            )) {
+                Label("Real Hands",
+                      systemImage: coordinator.showRealHands ? "hand.raised.fill" : "hand.raised.slash.fill")
+            }
+            .toggleStyle(.button)
+            .tint(coordinator.showRealHands ? .green : nil)
+            .help("Show or hide your real hands (passthrough). Independent of virtual hands.")
+
+            Toggle(isOn: Binding(
+                get: { coordinator.showVirtualHands },
+                set: { coordinator.showVirtualHands = $0 }
+            )) {
+                Label("Virtual Hands", systemImage: "hand.point.up.left.fill")
+            }
+            .toggleStyle(.button)
+            .tint(coordinator.showVirtualHands ? .cyan : nil)
+            .help("Show glowing markers on your tracked hands (visible on device).")
 
             Spacer()
         }

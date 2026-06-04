@@ -22,6 +22,7 @@ struct DirectorImmersiveView: View {
     @Environment(BlockingStore.self) private var store
     @Environment(SessionController.self) private var session
     @Environment(CueFXEngine.self) private var fx
+    @Environment(ImmersiveSceneCoordinator.self) private var coordinator
 
     /// Outer scalable wrapper — scales down in tabletop mode.
     @State private var stageContainer = Entity()
@@ -60,6 +61,13 @@ struct DirectorImmersiveView: View {
     /// "Tap the floor to drop a mark" empty-state attachment, anchored
     /// over the stage center. Shown only when there are zero marks.
     @State private var emptyHintEntity: Entity = Entity()
+    /// Full-immersion environment (inward-facing skybox). Hidden in `.mixed`
+    /// where passthrough shows the real room; shown in `.full`.
+    @State private var skyboxEntity = Entity()
+    /// Virtual-hand markers anchored to the wearer's palms. A layer DISTINCT
+    /// from real-hands passthrough (`.upperLimbVisibility`) — toggled
+    /// independently via `coordinator.showVirtualHands`.
+    @State private var virtualHandEntities: [Entity] = []
 
     var body: some View {
         RealityView { content, attachments in
@@ -144,6 +152,45 @@ struct DirectorImmersiveView: View {
             ghost.isEnabled = false
             stageRoot.addChild(ghost)
             ghostEntity = ghost
+
+            // Full-immersion environment: an inward-facing skybox sphere shown
+            // only when the director switches to Full immersion (in Mixed it
+            // stays hidden so passthrough shows the real room). Starts as a
+            // solid "black box" theatrical color; a soft vertical gradient
+            // texture is applied asynchronously if it can be generated.
+            // Added to `content` (world), not stageRoot, so it surrounds the
+            // wearer regardless of the stage's transform/tabletop scale.
+            let sky = ModelEntity(
+                mesh: .generateSphere(radius: 60),
+                materials: [UnlitMaterial(color: Self.skyboxFallbackColor)]
+            )
+            sky.scale = [-1, 1, 1]          // flip normals → visible from inside
+            sky.name = "skybox"
+            sky.isEnabled = false
+            content.add(sky)
+            skyboxEntity = sky
+            Task { @MainActor in
+                if let tex = await Self.makeSkyGradientTexture() {
+                    var m = UnlitMaterial()
+                    m.color = .init(texture: .init(tex))
+                    sky.model?.materials = [m]
+                }
+            }
+
+            // Virtual hands: glowing orbs anchored to the wearer's palms. This
+            // is a separate RealityKit layer from real-hands passthrough, so a
+            // director can show virtual hands while hiding their real ones (or
+            // any combination). Anchoring to hands needs no authorization;
+            // only reading joint data would. On the Simulator there are no
+            // hands to track, so these only appear on device.
+            for chirality in [AnchoringComponent.Target.Chirality.left, .right] {
+                let hand = AnchorEntity(.hand(chirality, location: .palm))
+                hand.name = "virtualHand"
+                hand.isEnabled = false
+                hand.addChild(Self.makeVirtualHandMarker())
+                content.add(hand)
+                virtualHandEntities.append(hand)
+            }
         } update: { _, attachments in
             // Read observed state SYNCHRONOUSLY here. SwiftUI Observation only
             // records a dependency for a property touched within update:'s own
@@ -169,6 +216,8 @@ struct DirectorImmersiveView: View {
             syncMarkCards(attachments: attachments)
             syncRoomScan()
             syncEmptyHint()
+            syncImmersionEnvironment()
+            syncVirtualHands()
         } attachments: {
             // Empty-state floating card. Visible only when the stage has zero
             // marks — guides first-time directors to the tap gesture.
@@ -301,6 +350,68 @@ struct DirectorImmersiveView: View {
             stagePerimeter.components.set(OpacityComponent(opacity: 0.25))
         } else {
             stagePerimeter.components.set(OpacityComponent(opacity: 1.0))
+        }
+    }
+
+    // MARK: - Full-immersion environment + virtual hands
+
+    /// Show the skybox only in Full immersion. Reading `coordinator.isFullImmersion`
+    /// here (synchronously, post-A4-fix) registers it as an Observation
+    /// dependency, so flipping the toggle re-runs update: and swaps it live.
+    private func syncImmersionEnvironment() {
+        skyboxEntity.isEnabled = coordinator.isFullImmersion
+    }
+
+    /// Show/hide the virtual-hand markers. Orthogonal to real-hands passthrough.
+    private func syncVirtualHands() {
+        for hand in virtualHandEntities { hand.isEnabled = coordinator.showVirtualHands }
+    }
+
+    /// Deep theatrical "black box" base color shown before the gradient texture
+    /// loads, and as the fallback if texture generation is unavailable.
+    fileprivate static var skyboxFallbackColor: UIColor {
+        UIColor(red: 0.04, green: 0.05, blue: 0.09, alpha: 1.0)
+    }
+
+    /// A small glowing orb marking a tracked hand position.
+    fileprivate static func makeVirtualHandMarker() -> Entity {
+        var m = UnlitMaterial()
+        let c = UIColor(red: 0.4, green: 0.95, blue: 1.0, alpha: 0.9)
+        m.color = .init(tint: c)
+        m.blending = .transparent(opacity: .init(floatLiteral: 0.9))
+        let orb = ModelEntity(mesh: .generateSphere(radius: 0.035), materials: [m])
+        orb.name = "virtualHandOrb"
+        return orb
+    }
+
+    /// Generate a soft vertical floor→horizon→sky gradient texture for the
+    /// full-immersion skybox. Returns nil if image/texture creation is
+    /// unavailable, in which case the solid fallback color stays.
+    fileprivate static func makeSkyGradientTexture() async -> TextureResource? {
+        let w = 8, h = 512
+        let cs = CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
+            space: cs, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        let colors = [
+            UIColor(red: 0.02, green: 0.02, blue: 0.03, alpha: 1).cgColor, // floor
+            UIColor(red: 0.06, green: 0.07, blue: 0.12, alpha: 1).cgColor, // horizon
+            UIColor(red: 0.10, green: 0.13, blue: 0.22, alpha: 1).cgColor, // sky
+        ] as CFArray
+        guard let gradient = CGGradient(colorsSpace: cs, colors: colors,
+                                        locations: [0.0, 0.5, 1.0]) else { return nil }
+        ctx.drawLinearGradient(gradient,
+                               start: CGPoint(x: 0, y: 0),
+                               end: CGPoint(x: 0, y: CGFloat(h)),
+                               options: [])
+        guard let cg = ctx.makeImage() else { return nil }
+        // CGImage-based TextureResource init requires visionOS 2.0+. On older
+        // systems the skybox keeps its solid fallback color.
+        if #available(visionOS 2.0, *) {
+            return try? await TextureResource(image: cg, options: .init(semantic: .color))
+        } else {
+            return nil
         }
     }
 
