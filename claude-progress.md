@@ -1,6 +1,14 @@
 # Understudy — Vision Pro Overhaul + iOS Overhaul (2026-06-04) — COMPLETE
 
-**Session:** 5899ad5e · merged to `main` as `68171bc` · **v0.37 (40)**.
+**Session:** 5899ad5e · merged to `main` · **v0.38 (41)** · shipped to TestFlight (iOS).
+
+## TestFlight (v0.38 build 41)
+- ✅ **iOS uploaded to App Store Connect** via `scripts/ship-testflight.sh --skip-preflight`. Automatic signing + `-allowProvisioningUpdates` worked ("iOS Team Provisioning Profile: *"); ARCHIVE + upload succeeded; Dev Team testers ensured.
+  - **Gotcha:** ASC creds (`ASC_KEY_ID/ISSUER_ID/KEY_PATH`) live in **`~/.zprofile`**, NOT `~/.zshrc` (the non-interactive tool shell doesn't auto-source either). Source them: `eval "$(grep -E '^[[:space:]]*export ASC_' ~/.zprofile)"`.
+  - Post-step (manual, in ASC console): attach build to the external "Dev Team" group → triggers Apple Beta App Review (1–2 day delay on first build of a version).
+- ⏳ **visionOS NOT yet shipped** (deferred at session end). To do it next session:
+  `eval "$(grep -E '^[[:space:]]*export ASC_' ~/.zprofile)" && scripts/ship-testflight.sh --platform visionos --skip-preflight`
+  (First visionOS upload from this fleet — watch for new signing/processing issues; app record `6762416596` supports both platforms.)
 **Plan of record:** KB `projects/understudy/vp-overhaul-plan.md`.
 
 ## Device UDIDs (sim verification)

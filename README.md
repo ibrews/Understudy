@@ -225,10 +225,30 @@ Then in every app's Settings (gear icon) → Transport → WebSocket, enter `ws:
 
 ### Next up
 
-No open items — everything shipped or resolved. Future candidates:
+- **Device-only stage floor anchoring (A5).** Auto-anchoring the stage to a detected floor plane needs an on-device ARKit world-sensing session + entitlement; it can't be validated in the Simulator (plane anchors don't resolve there). The stage already sits at floor level; this is a self-correction refinement for seated vs. standing.
 - More plays: O'Neill's works expire in EU/UK in 2024 but US publication-date copyright runs until 2052+; US App Store distribution means most 20th-century plays stay off the table. Beckett's expire in EU 2059.
 - Monitoring → fleet dashboard: `MonitoringIntegration` already broadcasts; build a macOS Mission Control receiver.
 - Custom DMX fixture patching: today the 4-par default is hardcoded; a JSON fixture editor would let directors swap in their own rig.
+
+### v0.38 · Real image-based lighting toggle + studio HDRI skybox
+
+**1. Photographic full-immersion environment.** Full immersion now renders a CC0 Poly Haven studio HDRI (`studio_small_07`, 1K EXR, bundled at `Understudy/Resources/`) as the 360° backdrop instead of a flat gradient — decoded via ImageIO → `TextureResource` on an inward-facing sphere, with the gradient kept as a fallback so the space is never blank.
+
+**2. Real IBL toggle + lit-material test rig.** The Director panel's **IBL** toggle enables genuine image-based lighting from the same HDRI (`EnvironmentResource(equirectangular:)` + `ImageBasedLightComponent`). Because Understudy's marks and avatars are intentionally `UnlitMaterial` (flat theatrical look, which ignores lighting), the toggle also shows a row of PBR probe spheres — chrome → brushed gold → glossy → matte → rough steel, each with `ImageBasedLightReceiverComponent` — so the environment lighting and reflections are actually visible. Off by default; pairs with Full immersion.
+
+**3. Skybox-asset test.** `SkyboxAssetTests` verifies the HDRI ships in the bundle and that ImageIO decodes the OpenEXR on the visionOS target.
+
+### v0.37 · Vision Pro immersive overhaul + iOS performer UX overhaul
+
+**1. Immersive stage — reliable open/reopen + live content.** A new app-scoped `ImmersiveSceneCoordinator` (`@Observable @MainActor`) replaces the old per-view flag and is driven by the ImmersiveSpace's own `.onAppear`/`.onDisappear`: the stage now reopens on a single tap after a Digital Crown / backgrounding dismissal, all open paths are serialized (no double-open race), and failures surface a recoverable "Try Again" banner instead of a silent no-op. A `RealityView { update: }` closure that wrapped its state reads in a `Task {}` (silently defeating SwiftUI Observation) was made synchronous, so dropped marks, peer avatars, the playback ghost, and cue flashes now sync live instead of only on reopen. The stage also sits on the real floor (removed a stray −1 m offset).
+
+**2. Runtime immersion + hands controls.** A Mixed ↔ Full immersion toggle, plus independent **real-hands** (`.upperLimbVisibility`) and **virtual-hands** (palm-anchored markers) toggles — three orthogonal layers.
+
+**3. First-run director onboarding.** A 5-step spatial walkthrough (the stage, dropping marks, firing cues, bringing in the cast) shown on first launch and re-reachable anytime via a **Tutorial** button.
+
+**4. iOS performer overhaul.** Driven by a UX-flow audit: a tappable connection-status pill + join-room prompt (performers were silently stuck on the wrong room code), a real "No blocking yet" empty state, surfaced error states (voice-permission-denied, room-scan-needs-AR, discard-recording feedback), tap-to-restart AR tracking, an Author overflow menu (Stage Map / Show Stats / Run Demo), accessibility labels across the teleprompter / calibration / ghost-picker controls, and a fixed onboarding swipe-dismiss loop.
+
+**5. First test target.** `UnderstudyTests` (Swift Testing, app-hosted) covering the immersive coordinator's lifecycle invariants — the project's first automated tests.
 
 ### v0.36 · Monitoring → AgileLensMultiplayer SPM + Long Day's copyright resolved
 

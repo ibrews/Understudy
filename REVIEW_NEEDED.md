@@ -37,3 +37,13 @@ These are changes I made overnight that compiled and launched cleanly in sim, bu
 ## Android Play Console — not yet staged
 
 Mirror of the TestFlight handoff doesn't exist. Blocked on: release keystore generation + Play Console app-record click-through. File under `HANDOFF_GOOGLE_PLAY.md` when we get there. For now, Android distribution is "ADB install debug APK," which is fine for the 1-2 Android testers we have.
+
+---
+
+## 2026-06-04 — iOS TestFlight CONFIRMED working (v0.38 build 41)
+
+- **Item 7 (signing) RESOLVED for iOS:** automatic signing + `-allowProvisioningUpdates` archived and uploaded cleanly via `scripts/ship-testflight.sh --skip-preflight` (used "iOS Team Provisioning Profile: *"). No manual-profile fallback needed.
+- **ASC creds location:** `ASC_KEY_ID/ASC_ISSUER_ID/ASC_KEY_PATH` are exported in **`~/.zprofile`** (key `AuthKey_79HM47GZ7C.p8`). The first ship attempt failed because a non-interactive shell sourced neither `.zshrc` nor `.zprofile` automatically — source explicitly before shipping.
+- **visionOS still PENDING** — not attempted this session (deferred at user's request to end). Open questions 2–5 below remain until the first visionOS upload completes. Command:
+  `eval "$(grep -E '^[[:space:]]*export ASC_' ~/.zprofile)" && scripts/ship-testflight.sh --platform visionos --skip-preflight`
+- **Post-upload manual step:** attach the build to the external "Dev Team" group in ASC; first build of each marketing version triggers Apple Beta App Review (1–2 day delay).
