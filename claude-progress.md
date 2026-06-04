@@ -15,10 +15,15 @@
 - [x] **Step 3** — `177dd37` iOS overhaul (ux-flow-auditor: 3 critical + 6 high fixed): connection pill + join-room, error states (voice-denied, scan-needs-AR, discard toast), empty states, a11y labels, GuidedTour backfill; README Things-to-Try + Xcode ver + attribution(→Alex Coulombe). `14ff8fc` wiki (Director + Performer guides). Sim-verified: Perform view + connection pill + v0.37 visible, no crash.
 - [x] Version bumped 0.36→0.37 (39→40), visible in-app via AppVersion.
 - [x] Both platforms BUILD SUCCEEDED; merged `vision-pro-overhaul` → main (`68171bc`), pushed origin/main + origin/vision-pro-overhaul.
+- [x] **Polish pass (`4d8644c`):** PerformerView tap-to-restart-tracking (+ `PerformerARHost.restartTracking()`), ScriptBrowser loading indicator, removed irrelevant audience calibration button. iOS build clean; relaunch-verified (no crash).
 
 ## Deferred / backlog (noted, not done — out of scope or lower ROI)
-- ux-flow-auditor MEDIUM/backlog: AuthorView dead `showingDemoLauncher`/`showingMetrics` state vars (pre-existing; left per "don't delete unasked" — flag to Alex); ScriptBrowser loading indicator; AR "restart tracking" tap affordance; audience calibration-button hidden for audience (LOW).
+- AuthorView dead `showingDemoLauncher`/`showingMetrics` state vars (pre-existing; left per "don't delete unasked" — flag to Alex: wire or remove).
 - A5 device refinement: floor-plane AnchorEntity (deferred — unreliable in Simulator); IBL from a bundled .skybox/.exr (current skybox is a generated gradient).
+- No test target exists (app-only project) — coordinator/A4 tests would need new test infra; not added unilaterally.
+
+## Note — shared simulator
+iPhone 17 sim (`974E8854…`) is shared with a concurrent megasession running `com.ibrews.crystalcaper` (a SpriteKit game). It can grab the sim foreground, so a one-off screenshot may capture the wrong app — re-`simctl launch agilelens.Understudy` to re-foreground. Both apps coexist fine; not an Understudy issue.
 
 ## Failed Approaches (preserve)
 - Automatic signing for export fails (API key lacks Cloud cert perm) → manual signing.
