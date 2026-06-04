@@ -390,6 +390,13 @@ public struct GuidedTourView: View {
     }
 
     private func advance(to next: Stage) {
+        // If the user reaches the finale without an explicit pick (e.g. an
+        // auto-advance raced their tap), backfill defaults so the "wow"
+        // moment never plays with no line or no colour.
+        if next == .hear {
+            if pickedLine == nil { pickedLine = SampleLine.allCases.first }
+            if pickedColor == nil { pickedColor = SampleColor.allCases.first }
+        }
         withAnimation(.easeInOut(duration: 0.45)) { stage = next }
     }
 

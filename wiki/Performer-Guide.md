@@ -35,6 +35,19 @@ Behind everything: the live AR camera feed with marks rendered as glowing discs 
 
 ---
 
+## Joining a director's room
+
+At the top of the screen is a **room status pill**:
+
+- 🟢 **Room X • N connected** — you're in a room with other devices.
+- 🟠 **Room X — tap to join** — you're not connected to anyone yet.
+
+Tap the pill anytime to enter or change the **room code**. Everyone who shares the same code sees the same marks and fires the same cues — so the first thing to do when joining a director's session is tap the pill and type the code they share. (You can also change it in Settings → Room.)
+
+If no blocking has loaded yet, the cue card shows **"No blocking yet"** with a reminder to join a room or switch to Author mode, so an empty screen always tells you what to do next.
+
+---
+
 ## The basic flow
 
 1. **Stand at your starting position.** Look at the screen — the guidance ring shows you the distance to the next mark.

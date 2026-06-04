@@ -42,6 +42,9 @@ struct AuthorView: View {
     @State private var showingMetrics: Bool = false
     @AppStorage("hasSeenOnboarding_author") private var hasSeenOnboarding: Bool = false
     @State private var showingOnboarding = false
+    /// Set when room scan is attempted but the AR session is unavailable
+    /// (AR Stage background turned off) — surfaces guidance, not a silent no-op.
+    @State private var showARRequiredForScan = false
 
     private var gradientOpacity: Double { showARStage ? 0.30 : 1.0 }
 
@@ -152,6 +155,11 @@ struct AuthorView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(importErrorMessage ?? "Could not read blocking file.")
+        }
+        .alert("AR Stage Required", isPresented: $showARRequiredForScan) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Room scan needs the AR camera. Turn on \u{201C}AR Stage background\u{201D} in Settings, then try again.")
         }
         .alert("Clear all marks?", isPresented: $confirmClear) {
             Button("Cancel", role: .cancel) {}
@@ -452,6 +460,9 @@ struct AuthorView: View {
     private func beginScan() {
         guard let arSession = PerformerARHost.shared.arView?.session else {
             // Need the shared ARKit session to swap in scene-reconstruction.
+            // Surface this instead of returning silently — otherwise the scan
+            // button looks broken whenever AR Stage background is off.
+            showARRequiredForScan = true
             return
         }
         let capture = MeshCapture(session: arSession)

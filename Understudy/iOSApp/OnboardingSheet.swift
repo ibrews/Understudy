@@ -93,6 +93,11 @@ struct OnboardingSheet: View {
                     title: "See the whole show",
                     body: "Tap the list button to see every mark in order. Tap any mark to fire its cues right now — perfect for a quick run-through without walking."
                 ),
+                OnboardingStep(
+                    icon: "person.2.wave.2",
+                    title: "Joining a director's show?",
+                    body: "Tap the room status at the top of the screen and enter the code your director shares. You'll connect to their stage and follow their cues live."
+                ),
             ]
         case .author:
             return [

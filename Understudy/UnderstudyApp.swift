@@ -15,6 +15,10 @@ struct UnderstudyApp: App {
     @State private var demoRunner: DemoRunner
     #if os(visionOS)
     @State private var controllerInput: ControllerInput
+    /// App-scoped immersive-stage state. Replaces the old per-view
+    /// `immersiveActive` flag so the panel button stays in sync with the
+    /// system across Crown/background dismissals and view rebuilds.
+    @State private var immersiveCoordinator: ImmersiveSceneCoordinator
     #endif
     @AppStorage("displayName") private var displayName: String = ""
     @AppStorage("roomCode") private var roomCode: String = "rehearsal"
@@ -54,6 +58,7 @@ struct UnderstudyApp: App {
         #if os(visionOS)
         let ci = ControllerInput()
         _controllerInput = State(wrappedValue: ci)
+        _immersiveCoordinator = State(wrappedValue: ImmersiveSceneCoordinator())
         #endif
     }
 
@@ -66,6 +71,7 @@ struct UnderstudyApp: App {
                 .environment(demoRunner)
                 #if os(visionOS)
                 .environment(controllerInput)
+                .environment(immersiveCoordinator)
                 #endif
                 .overlay(DemoRunnerOverlay().environment(demoRunner))
                 .onAppear {
@@ -117,15 +123,34 @@ struct UnderstudyApp: App {
         #endif
 
         #if os(visionOS)
-        ImmersiveSpace(id: "Stage") {
+        ImmersiveSpace(id: ImmersiveSceneCoordinator.stageID) {
             DirectorImmersiveView()
                 .environment(store)
                 .environment(sessionController)
                 .environment(fx)
                 .environment(demoRunner)
                 .environment(controllerInput)
+                .environment(immersiveCoordinator)
+                // Real-hands passthrough is a layer independent of any virtual
+                // hand mesh — drive it straight off the coordinator toggle.
+                .upperLimbVisibility(immersiveCoordinator.showRealHands ? .visible : .hidden)
+                // The ImmersiveSpace's OWN appear/disappear is the only
+                // authoritative present/dismiss signal. .onDisappear fires on
+                // Digital Crown "close all", backgrounding, and headset removal
+                // — exactly the events the old view-local flag missed, which is
+                // why the stage "wouldn't reopen."
+                .onAppear { immersiveCoordinator.systemDidPresent() }
+                .onDisappear { immersiveCoordinator.systemDidDismiss() }
         }
-        .immersionStyle(selection: .constant(.mixed), in: .mixed)
+        // Allow a runtime Mixed↔Full toggle. Default (isFullImmersion=false)
+        // resolves to .mixed — identical to the previous .constant(.mixed).
+        .immersionStyle(
+            selection: Binding(
+                get: { immersiveCoordinator.immersionStyle },
+                set: { immersiveCoordinator.isFullImmersion = ($0 is FullImmersionStyle) }
+            ),
+            in: .mixed, .full
+        )
 
         // Teleprompter floats as its own window the director can position
         // anywhere in their space.

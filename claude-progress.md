@@ -1,69 +1,51 @@
-# Understudy — Overnight Review (2026-04-29)
+# Understudy — Vision Pro Overhaul + iOS Overhaul (2026-06-04)
 
-Branch: `overnight-review` from `main` at b0bfdf5 (v0.29).
+**Session:** 5899ad5e · **Branch:** `vision-pro-overhaul` (off main) · turn-guard raised to 8000.
+**Plan of record:** KB `projects/understudy/vp-overhaul-plan.md` (banked this session).
 
-## Goal
+> ⚠️ Survived a mid-session reboot. /tmp is wiped on reboot → re-apply turn-guard
+> override `echo 8000 > /tmp/tg-5899ad5e-418d-4550-bee1-d01754fb83f4.max` and
+> rebuild (derived data gone). All git commits + source edits persist on disk.
 
-User reports: visionOS shows just a "black floating window" — never enters immersive/MR mode. Many buttons appear non-functional. Wants: bug fixes + UX polish for non-technical theater/film artists, sim-tested user journeys, GitHub Wiki, TestFlight ship.
+## Device UDIDs (for sim verification)
+- **Apple Vision Pro** (visionOS 26.5): `A540B3B5-CB1D-477D-A3B9-A6D41598B704`
+- **iPhone 17** (iOS 26): `974E8854-BFD9-4A36-A653-ED2142709C79`
+- iPhone 17 Pro: `91FCB7A8-414C-47B9-A5D9-98BA261BBA62`
 
-## Master bug list (from full code audit)
+## Plan & Status
+- [x] **Step 0** — KB banked (`0c638f38a`); Monitoring deletion (`e14bfa7`); build-verify main visionOS+iOS; push main; prune 10 worktrees+branches.
+- [x] **Step 1** — AVP immersive fixes + beyond. Commits on branch:
+  - [x] `b5ae9e8` A4 (sync reads in update:), A1 ImmersiveSceneCoordinator, A2/A3 serialized opens + recoverable banner, A5 drop -1.0 Y. visionOS+iOS BUILD SUCCEEDED.
+  - [x] `4abc5c3` skybox (full-immersion env), Mixed↔Full toggle, real/virtual hands toggles. visionOS BUILD SUCCEEDED.
+  - [ ] runtime sim smoke-test (launch, auto-open, no crash) — in progress
+- [ ] **Step 2** — first-run onboarding (directorIntroStep @AppStorage + coach-cards; fix seed/empty contradiction at UnderstudyApp:41 ↔ DirectorImmersiveView empty-hint)
+- [ ] **Step 3** — iOS overhaul (ux-flow-auditor + axiom-swiftui), states, modernize, README + wiki
+- [ ] **Before merge to main:** bump version (project rule — v0.36→v0.37, show in UI via AppVersion.formatted), full build-verify both platforms, merge.
 
-### CRITICAL — visionOS "black floating window"
+## Key file references (current)
+- `Understudy/VisionOS/ImmersiveSceneCoordinator.swift` (NEW) — app-scoped @Observable @MainActor; Phase, open/close/toggle, systemDidPresent/Dismiss, isFullImmersion, showRealHands, showVirtualHands.
+- `UnderstudyApp.swift` — injects coordinator; ImmersiveSpace .onAppear/.onDisappear → systemDidPresent/Dismiss; .immersionStyle(selection: binding, in: .mixed, .full); .upperLimbVisibility.
+- `DirectorControlPanel.swift` — @Environment coordinator; button off coordinator.isOpen/.isBusy; .task auto-open; immersionControls strip; immersiveErrorBanner.
+- `DirectorImmersiveView.swift` — update: reads synchronous (A4); skybox + virtualHand anchors in make:; syncImmersionEnvironment/syncVirtualHands; stageRoot at [0,0,-0.5].
 
-1. **No auto-open of ImmersiveSpace.** `UnderstudyApp.swift:85` declares `ImmersiveSpace(id: "Stage")` but only a manual toggle in `DirectorControlPanel:352` opens it. v0.29 made the toggle more visible but it's still opt-in. New users open the app, see the dim DirectorControlPanel window, never tap MR, never see anything happen. → **Auto-open on first launch**.
-2. **Invisible floor plane.** `DirectorImmersiveView:64` plane is alpha 0.0001 (tap-detection only). When the user does enter MR, there's no visible ground reference. → **Add a visible translucent stage floor + center marker.**
-3. **Empty stage = empty space.** No empty-state guidance when MR is open with no marks. → **Floating hint card "Tap the floor to drop your first mark" when marks.isEmpty.**
-4. **"Mixed Reality" is jargon for theater artists.** → **"Open Stage" / "Close Stage".**
-5. **Even with marks, the stage is dim.** UnlitMaterial on cyan discs at 0.35 alpha is hard to see in mixed-reality bright passthrough. → **Brighter rim + slight pulse so they read as theatrical "spike marks".**
+## Failed Approaches (preserve — do not retry blind)
+- **Automatic signing for export** fails: App Manager API key lacks Cloud Managed App Distribution Certificate permission. Use manual signing.
+- **Duplicate provisioning profiles**: two "Understudy App Store" profiles shadowed each other; delete stale, rename new to UUID-canonical filename.
+- **`TextureResource(image:options:)`** requires `if #available(visionOS 2.0, *)` (deployment target is visionOS 1.0) — else "only available in visionOS 2.0 or newer".
+- **`Self.stageID` in a default arg** → "covariant 'Self' cannot be referenced from a default argument expression"; use the explicit type name.
+- **Naming a method param `open`/`dismiss`** shadows the same-named method → call resolves to the method, not the action. Use `action`/`openAction`.
 
-### HIGH — iOS dead/missing buttons + feedback
-
-6. **MarksOverview is read-only.** `PerformerView:734` — list is just text, no action. → **Tapping a mark previews its cues + flashes its disc**, useful in sim where you can't physically walk.
-7. **No recording confirmation.** `PerformerView:268` — record button toggles `store.isRecording` but no visible state change beyond the icon. → **Add "REC" badge with elapsed time while recording, "Reference walk saved (Xs)" toast on stop.**
-8. **Missing accessibility labels.** Settings, marks-list, record buttons in PerformerView/AuthorView/AudienceView. → **Add `accessibilityLabel`** to every icon-only button.
-9. **AuthorView hint card hidden by default Hamlet demo.** `AuthorView:263` `.opacity(store.blocking.marks.isEmpty ? 1 : 0)` — but the bundled demo has 5 marks, so new users never see the hint. → **Always show a thin contextual hint at the top, swap copy by mark count.**
-10. **AudienceView Begin button is purely a UI gate in sim.** Without AR pose, no way to walk through marks for testing. → **Add a subtle "Step" affordance to advance through marks for sim/no-AR walkthrough.**
-11. **No way to start a fresh blocking.** Title stays "Hamlet (Opening)" forever. Clear button only zeros marks. → **"New Blocking…" action in Settings + Director panel.**
-12. **Onboarding step 3 is wrong.** Author onboarding tells users to tap a "⊕ button" but the actual UI is tap-to-floor. → **Rewrite Author onboarding copy to match reality.**
-13. **Audience onboarding mentions "room code" as the way to join,** but the room code is an Apple-platform-only Multipeer rendezvous detail — for a single-device audience, irrelevant. → **Rewrite audience onboarding to match the actual self-paced UX.**
-
-### MEDIUM — UX clarity
-
-14. **DirectorControlPanel is dense and intimidating.** Eight strips stacked vertically, no hierarchy. Theater directors aren't going to know which knob to turn first. → **Add a "Quick Start" section at top with 3 obvious actions: Enter Stage / Drop Demo / Open Teleprompter.**
-15. **Settings transport switch immediately tears down + rebuilds.** Bad if user is mid-rehearsal and accidentally taps. → **Add confirmation when peers > 0.** (Lower priority — leave for follow-up)
-16. **Peer count opaque.** "X peers" doesn't say who/what platform. → **Tap to see peer list with names + platforms.**
-
-### LOW / DELIGHT
-
-17. **Add a "Simulate walk" button** to Director panel — runs through every mark in sequence with a 2s dwell, firing cues. Lets a director preview their show without performers.
-18. **Add audience scrubbing.** Tap any segment of the progress bar to jump to that mark — useful for revisiting a beat.
-19. **Add a soft theatrical ambient sound** when entering immersive (one-shot bell or curtain swell). Optional, can be disabled.
-20. **Add a "Save to Files…" prompt the first time a blocking diverges from the demo,** so the user's first session isn't lost on relaunch (autosave catches this, but a conscious save moment would help).
-
-## Plan
-
-Order of operations:
-1. Verify baseline iOS + visionOS build green (in progress)
-2. Fix CRITICAL bugs 1–5 (visionOS UX overhaul)
-3. Fix HIGH bugs 6–13 (iOS dead buttons + feedback)
-4. UX polish 14, 16
-5. Delight 17 (simulate walk) + 18 (audience scrub) — most impactful, smallest cost
-6. Bump to v0.30 with version visible on launch
-7. Click-test in iOS sim + visionOS sim
-8. Verify Mission Control still works
-9. Author the GitHub Wiki
-10. TestFlight ship + iPhone install
-11. Final commit + summary
-
-## Failed approaches
-
-**1. Automatic signing for export.** The KB pattern says use `signingStyle: automatic` + `-allowProvisioningUpdates`. Tried it; failed with "Cloud signing permission error" because our App Manager API key lacks the Cloud Managed App Distribution Certificate permission. Reverted to manual signing.
-
-**2. First profile regeneration with single cert.** Picked `S23TY572FR` (DISTRIBUTION, expires 2027-04-17) — this matched the keychain cert by SHA1. But export still failed because there were TWO profiles named "Understudy App Store" on disk (the old UUID-named one shadowing the new). Fixed by deleting stale profiles and renaming the new one to UUID-canonical filename.
-
-**3. Including all distribution certs in the profile.** Added both DISTRIBUTION certs (S23TY572FR and YABMP5PBH2) to the regenerated profile. Re-running ship now.
+## iOS bug audit (from 2026-04-29 overnight review — re-verify vs current source for Step 3)
+6 MarksOverview read-only (PerformerView) → tap to preview cues + flash disc.
+7 No recording confirmation (PerformerView) → REC badge + elapsed + saved toast.
+8 Missing accessibility labels on icon-only buttons (Performer/Author/Audience).
+9 AuthorView hint hidden when demo has marks → always show thin contextual hint.
+10 AudienceView Begin is sim UI gate w/o AR pose → "Step" affordance for no-AR walkthrough.
+11 No "New Blocking…" reset (title stuck "Hamlet (Opening)") → Settings + Director panel.
+12 Author onboarding step 3 says "⊕ button" but UI is tap-to-floor → rewrite copy.
+13 Audience onboarding mentions room-code join (irrelevant single-device) → rewrite.
+14 DirectorControlPanel dense → "Quick Start" (already has one; verify).
+16 Peer count opaque → tap to see peer names + platforms.
 
 ## Notes
-
-- visionOS TestFlight has never been pushed from this fleet per `REVIEW_NEEDED.md`. KB has UE5-context guidance at `~/knowledge/departments/engineering/ue5-ios-testflight-pipeline.md` but it's UE5-specific. Will use `scripts/ship-testflight.sh --platform visionos` and document any record-level rejection if it hits.
-- iPhone 17 sim (OS 26.2) on this machine; Apple Vision Pro sim 26.4.1.
+- Secondary megasession jobs (KB health-check wirptib8r, fleet eval wkzyfoucs, jobs 2/6/7/8) → SEPARATE session; do not drain this call budget.

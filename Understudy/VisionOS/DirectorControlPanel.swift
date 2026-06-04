@@ -19,8 +19,11 @@ struct DirectorControlPanel: View {
     @Environment(\.openImmersiveSpace) private var openImmersiveSpace
     @Environment(\.dismissImmersiveSpace) private var dismissImmersiveSpace
     @Environment(\.openWindow) private var openWindow
+    /// App-scoped immersive-stage state. Drives the Open/Close button and is
+    /// kept authoritative by the ImmersiveSpace's own onAppear/onDisappear, so
+    /// it no longer drifts out of sync after a Crown/background dismissal.
+    @Environment(ImmersiveSceneCoordinator.self) private var coordinator
 
-    @State private var immersiveActive = false
     @State private var editingMark: Mark?
     @State private var editingProp: PropObject?
     @State private var showingCSVImport = false
@@ -36,19 +39,24 @@ struct DirectorControlPanel: View {
     @State private var showingStageMap = false
     @State private var showingMetrics = false
     @State private var showingControllerHelp = false
+    @State private var showingDirectorIntro = false
     @AppStorage("oscEnabled") private var oscEnabled: Bool = false
     @AppStorage("oscHost") private var oscHost: String = ""
     @AppStorage("oscPort") private var oscPortStr: String = "53000"
     @AppStorage("autoOpenStage") private var autoOpenStage: Bool = true
+    /// First-run director onboarding seen flag (per-device UX state).
+    @AppStorage("hasSeenDirectorIntro") private var hasSeenDirectorIntro: Bool = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     header
+                    immersiveErrorBanner
                     quickStart
                     roomRow
                     stageToolbar
+                    immersionControls
                     rehearsalTimerStrip
                     marksList
                     propsList
@@ -84,20 +92,26 @@ struct DirectorControlPanel: View {
                     .environment(fx)
                     .frame(minWidth: 420, minHeight: 360)
             }
+            .sheet(isPresented: $showingDirectorIntro) {
+                DirectorOnboardingView()
+                    .environment(store)
+                    .environment(session)
+            }
             .onAppear {
                 applyOSC()
-                // Auto-open the immersive stage on first appearance so directors
-                // don't have to hunt for the toggle. Disabled on subsequent
-                // toggles by tracking immersiveActive separately.
-                if autoOpenStage && !immersiveActive {
-                    Task {
-                        let result = await openImmersiveSpace(id: "Stage")
-                        if case .opened = result {
-                            immersiveActive = true
-                        }
-                    }
-                }
                 wireControllerInput()
+                // First-run: teach the spatial model before the director is
+                // left alone with the stage. Re-reachable via the Tutorial
+                // button in the footer.
+                if !hasSeenDirectorIntro { showingDirectorIntro = true }
+            }
+            // Auto-open the stage on first appearance, serialized through the
+            // coordinator (its `guard phase == .closed` blocks the double-open
+            // race against the button/controller). `.task` ties this to the
+            // panel's lifetime and is cancelled on disappear, unlike the old
+            // unstructured `Task {}`.
+            .task {
+                if autoOpenStage { await coordinator.open(openImmersiveSpace) }
             }
             .onDisappear {
                 stopDirectorPlayback()
@@ -119,25 +133,18 @@ struct DirectorControlPanel: View {
             HStack(spacing: 12) {
                 // 1. Enter Stage — the headline action. Big, green, obvious.
                 Button {
-                    Task {
-                        if immersiveActive {
-                            await dismissImmersiveSpace()
-                            immersiveActive = false
-                        } else {
-                            let result = await openImmersiveSpace(id: "Stage")
-                            if case .opened = result { immersiveActive = true }
-                        }
-                    }
+                    Task { await coordinator.toggle(open: openImmersiveSpace, dismiss: dismissImmersiveSpace) }
                 } label: {
-                    Label(immersiveActive ? "Close Stage" : "Open Stage",
-                          systemImage: immersiveActive ? "rectangle.compress.vertical" : "theatermasks.fill")
+                    Label(coordinator.isOpen ? "Close Stage" : "Open Stage",
+                          systemImage: coordinator.isOpen ? "rectangle.compress.vertical" : "theatermasks.fill")
                         .font(.title3.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(immersiveActive ? .gray : .green)
+                .tint(coordinator.isOpen ? .gray : .green)
                 .controlSize(.large)
+                .disabled(coordinator.isBusy)
 
                 // 2. Open Teleprompter — directors love to see the script
                 // floating in space alongside the marks.
@@ -306,17 +313,10 @@ struct DirectorControlPanel: View {
 
         // Trigger — fire next cue (GO).
         controllerInput.onTrigger = { [self] in fx.goForward() }
-        // Grip / shoulder — toggle the stage.
+        // Grip / shoulder — toggle the stage (serialized via the coordinator,
+        // same funnel as the button and launch auto-open).
         controllerInput.onGrip = { [self] in
-            Task {
-                if immersiveActive {
-                    await dismissImmersiveSpace()
-                    immersiveActive = false
-                } else {
-                    let result = await openImmersiveSpace(id: "Stage")
-                    if case .opened = result { immersiveActive = true }
-                }
-            }
+            Task { await coordinator.toggle(open: openImmersiveSpace, dismiss: dismissImmersiveSpace) }
         }
         // Stick forward / back → GO next / back.
         controllerInput.onStickForward = { [self] in fx.goForward() }
@@ -403,6 +403,55 @@ struct DirectorControlPanel: View {
                 .pickerStyle(.segmented)
                 .frame(maxWidth: 220)
             }
+
+            Spacer()
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(.white.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    // MARK: - Immersion + hands controls
+    //
+    // Three independent layers, deliberately not conflated:
+    //   • Mixed ↔ Full space (passthrough room vs. app's own environment)
+    //   • Real-hands passthrough visibility (.upperLimbVisibility)
+    //   • Virtual-hand markers (a separate RealityKit layer)
+
+    @ViewBuilder private var immersionControls: some View {
+        HStack(spacing: 10) {
+            Toggle(isOn: Binding(
+                get: { coordinator.isFullImmersion },
+                set: { coordinator.isFullImmersion = $0 }
+            )) {
+                Label(coordinator.isFullImmersion ? "Full Space" : "Mixed",
+                      systemImage: coordinator.isFullImmersion ? "cube.fill" : "cube.transparent")
+            }
+            .toggleStyle(.button)
+            .tint(coordinator.isFullImmersion ? .indigo : nil)
+            .help("Full replaces the room with a black-box stage environment; Mixed keeps passthrough.")
+
+            Divider().frame(height: 20)
+
+            Toggle(isOn: Binding(
+                get: { coordinator.showRealHands },
+                set: { coordinator.showRealHands = $0 }
+            )) {
+                Label("Real Hands",
+                      systemImage: coordinator.showRealHands ? "hand.raised.fill" : "hand.raised.slash.fill")
+            }
+            .toggleStyle(.button)
+            .tint(coordinator.showRealHands ? .green : nil)
+            .help("Show or hide your real hands (passthrough). Independent of virtual hands.")
+
+            Toggle(isOn: Binding(
+                get: { coordinator.showVirtualHands },
+                set: { coordinator.showVirtualHands = $0 }
+            )) {
+                Label("Virtual Hands", systemImage: "hand.point.up.left.fill")
+            }
+            .toggleStyle(.button)
+            .tint(coordinator.showVirtualHands ? .cyan : nil)
+            .help("Show glowing markers on your tracked hands (visible on device).")
 
             Spacer()
         }
@@ -571,6 +620,37 @@ struct DirectorControlPanel: View {
         directorPlaybackStartedAt = nil
         directorPlaybackTimer?.invalidate()
         directorPlaybackTimer = nil
+    }
+
+    /// Recoverable banner shown when opening the immersive stage failed
+    /// (.error/.userCancelled). Replaces the old silent no-op that stranded
+    /// the director in the flat window with no feedback.
+    @ViewBuilder private var immersiveErrorBanner: some View {
+        if let error = coordinator.lastOpenError {
+            HStack(spacing: 12) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.yellow)
+                Text(error.message)
+                    .font(.callout)
+                Spacer()
+                Button("Try Again") {
+                    Task { await coordinator.open(openImmersiveSpace) }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(coordinator.isBusy)
+                Button {
+                    coordinator.lastOpenError = nil
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("Dismiss")
+            }
+            .padding(12)
+            .background(.yellow.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(.yellow.opacity(0.3), lineWidth: 1))
+            .transition(.opacity)
+        }
     }
 
     @ViewBuilder private var header: some View {
@@ -863,6 +943,11 @@ struct DirectorControlPanel: View {
             }
 
             Spacer()
+            Button { showingDirectorIntro = true } label: {
+                Label("Tutorial", systemImage: "questionmark.circle")
+            }
+            .buttonStyle(.bordered)
+            .help("Replay the director walkthrough")
             Button(role: .destructive) {
                 for m in store.blocking.marks {
                     session.broadcastMarkRemoved(m.id)
