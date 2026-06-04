@@ -19,8 +19,11 @@ struct DirectorControlPanel: View {
     @Environment(\.openImmersiveSpace) private var openImmersiveSpace
     @Environment(\.dismissImmersiveSpace) private var dismissImmersiveSpace
     @Environment(\.openWindow) private var openWindow
+    /// App-scoped immersive-stage state. Drives the Open/Close button and is
+    /// kept authoritative by the ImmersiveSpace's own onAppear/onDisappear, so
+    /// it no longer drifts out of sync after a Crown/background dismissal.
+    @Environment(ImmersiveSceneCoordinator.self) private var coordinator
 
-    @State private var immersiveActive = false
     @State private var editingMark: Mark?
     @State private var editingProp: PropObject?
     @State private var showingCSVImport = false
@@ -46,6 +49,7 @@ struct DirectorControlPanel: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     header
+                    immersiveErrorBanner
                     quickStart
                     roomRow
                     stageToolbar
@@ -86,18 +90,15 @@ struct DirectorControlPanel: View {
             }
             .onAppear {
                 applyOSC()
-                // Auto-open the immersive stage on first appearance so directors
-                // don't have to hunt for the toggle. Disabled on subsequent
-                // toggles by tracking immersiveActive separately.
-                if autoOpenStage && !immersiveActive {
-                    Task {
-                        let result = await openImmersiveSpace(id: "Stage")
-                        if case .opened = result {
-                            immersiveActive = true
-                        }
-                    }
-                }
                 wireControllerInput()
+            }
+            // Auto-open the stage on first appearance, serialized through the
+            // coordinator (its `guard phase == .closed` blocks the double-open
+            // race against the button/controller). `.task` ties this to the
+            // panel's lifetime and is cancelled on disappear, unlike the old
+            // unstructured `Task {}`.
+            .task {
+                if autoOpenStage { await coordinator.open(openImmersiveSpace) }
             }
             .onDisappear {
                 stopDirectorPlayback()
@@ -119,25 +120,18 @@ struct DirectorControlPanel: View {
             HStack(spacing: 12) {
                 // 1. Enter Stage — the headline action. Big, green, obvious.
                 Button {
-                    Task {
-                        if immersiveActive {
-                            await dismissImmersiveSpace()
-                            immersiveActive = false
-                        } else {
-                            let result = await openImmersiveSpace(id: "Stage")
-                            if case .opened = result { immersiveActive = true }
-                        }
-                    }
+                    Task { await coordinator.toggle(open: openImmersiveSpace, dismiss: dismissImmersiveSpace) }
                 } label: {
-                    Label(immersiveActive ? "Close Stage" : "Open Stage",
-                          systemImage: immersiveActive ? "rectangle.compress.vertical" : "theatermasks.fill")
+                    Label(coordinator.isOpen ? "Close Stage" : "Open Stage",
+                          systemImage: coordinator.isOpen ? "rectangle.compress.vertical" : "theatermasks.fill")
                         .font(.title3.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(immersiveActive ? .gray : .green)
+                .tint(coordinator.isOpen ? .gray : .green)
                 .controlSize(.large)
+                .disabled(coordinator.isBusy)
 
                 // 2. Open Teleprompter — directors love to see the script
                 // floating in space alongside the marks.
@@ -306,17 +300,10 @@ struct DirectorControlPanel: View {
 
         // Trigger — fire next cue (GO).
         controllerInput.onTrigger = { [self] in fx.goForward() }
-        // Grip / shoulder — toggle the stage.
+        // Grip / shoulder — toggle the stage (serialized via the coordinator,
+        // same funnel as the button and launch auto-open).
         controllerInput.onGrip = { [self] in
-            Task {
-                if immersiveActive {
-                    await dismissImmersiveSpace()
-                    immersiveActive = false
-                } else {
-                    let result = await openImmersiveSpace(id: "Stage")
-                    if case .opened = result { immersiveActive = true }
-                }
-            }
+            Task { await coordinator.toggle(open: openImmersiveSpace, dismiss: dismissImmersiveSpace) }
         }
         // Stick forward / back → GO next / back.
         controllerInput.onStickForward = { [self] in fx.goForward() }
@@ -571,6 +558,37 @@ struct DirectorControlPanel: View {
         directorPlaybackStartedAt = nil
         directorPlaybackTimer?.invalidate()
         directorPlaybackTimer = nil
+    }
+
+    /// Recoverable banner shown when opening the immersive stage failed
+    /// (.error/.userCancelled). Replaces the old silent no-op that stranded
+    /// the director in the flat window with no feedback.
+    @ViewBuilder private var immersiveErrorBanner: some View {
+        if let error = coordinator.lastOpenError {
+            HStack(spacing: 12) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.yellow)
+                Text(error.message)
+                    .font(.callout)
+                Spacer()
+                Button("Try Again") {
+                    Task { await coordinator.open(openImmersiveSpace) }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(coordinator.isBusy)
+                Button {
+                    coordinator.lastOpenError = nil
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("Dismiss")
+            }
+            .padding(12)
+            .background(.yellow.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(.yellow.opacity(0.3), lineWidth: 1))
+            .transition(.opacity)
+        }
     }
 
     @ViewBuilder private var header: some View {

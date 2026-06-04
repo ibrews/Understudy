@@ -68,7 +68,18 @@ struct DirectorImmersiveView: View {
             content.add(stageContainer)
             stageContainer.addChild(stageRoot)
 
-            stageRoot.position = [0, -1.0, -0.5]
+            // In a visionOS immersive space the world origin sits on the real
+            // floor beneath the wearer when the space opens, so y=0 IS the
+            // floor. The old -1.0 Y put the entire stage ~1 m underground —
+            // occluded by passthrough, reading as "the stage opened but it's
+            // empty." Keep a small -0.5 Z so the stage center sits just in
+            // front of the director rather than directly underfoot.
+            // (Device-only refinement tracked separately: anchor stageRoot to a
+            // detected floor plane via AnchorEntity(.plane(.horizontal,
+            // classification: .floor)) so height self-corrects for seated vs.
+            // standing — deferred because plane detection is unreliable in the
+            // Simulator and would hide the stage there.)
+            stageRoot.position = [0, 0, -0.5]
             stageRoot.addChild(sequenceRibbon)
 
             // Tap-detection plane — invisible, but covers a 20×20m floor area
@@ -134,20 +145,30 @@ struct DirectorImmersiveView: View {
             stageRoot.addChild(ghost)
             ghostEntity = ghost
         } update: { _, attachments in
-            Task { @MainActor in
-                syncTabletop()
-                syncStageGrid()
-                syncMarks()
-                syncProps()
-                syncPerformers()
-                syncRibbon()
-                syncGhost()
-                syncFlash()
-                syncCueFire()
-                syncMarkCards(attachments: attachments)
-                syncRoomScan()
-                syncEmptyHint()
-            }
+            // Read observed state SYNCHRONOUSLY here. SwiftUI Observation only
+            // records a dependency for a property touched within update:'s own
+            // synchronous scope, so it knows to re-run the closure when that
+            // property changes. The previous `Task { @MainActor in … }` wrapper
+            // deferred every store.*/fx.* read until *after* update: returned —
+            // so update: registered ZERO dependencies and never re-ran. That's
+            // why the stage opened but dynamic content (dropped marks, peer
+            // avatars, the playback ghost, cue flashes) never appeared or
+            // updated. update: already runs on @MainActor, so the Task bought
+            // nothing and cost all reactivity. Per-call animation work that is
+            // genuinely time-based (syncFlash/flashPerimeter/pulse) keeps its
+            // own Task internally, but the *reads* that drive them happen here.
+            syncTabletop()
+            syncStageGrid()
+            syncMarks()
+            syncProps()
+            syncPerformers()
+            syncRibbon()
+            syncGhost()
+            syncFlash()
+            syncCueFire()
+            syncMarkCards(attachments: attachments)
+            syncRoomScan()
+            syncEmptyHint()
         } attachments: {
             // Empty-state floating card. Visible only when the stage has zero
             // marks — guides first-time directors to the tap gesture.
