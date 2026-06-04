@@ -21,9 +21,12 @@
 - [x] **AuthorView dead state wired (`9373c7a`):** `showingDemoLauncher`/`showingMetrics` now drive a top-bar overflow menu (Stage Map / Show Stats / Run Demo) — iOS Author gets the planning tools the Director panel has. Dead code resolved by using it.
 - [x] **First test target (`0fc93e9`):** UnderstudyTests (Swift Testing, hosted via TEST_HOST) + shared Understudy scheme. 6 tests guard ImmersiveSceneCoordinator (incl. the A1 systemDidDismiss regression). All pass: `xcodebuild test -scheme Understudy -destination 'platform=visionOS Simulator,id=A540B3B5…'`.
 
-### Still genuinely deferred (need device / asset, not code)
+- [x] **Photographic studio HDRI skybox (`680315f`):** bundled CC0 Poly Haven `studio_small_07` (1K EXR, 1.4MB) as the full-immersion backdrop (ImageIO → TextureResource, gradient fallback). New SkyboxAssetTests verifies bundling + ImageIO EXR decode on visionOS (8 tests total now pass). Sim-verified the dark-studio backdrop renders in full immersion. CC0 credited in README.
+  - **Note:** scoped as a *visible backdrop*, NOT IBL — all content is UnlitMaterial by design, so true image-based lighting has no visible effect. `EnvironmentResource(equirectangular:)` is the verified path if content ever moves to PBR.
+
+### Still genuinely deferred (need device, not code)
 - **A5 auto floor-plane anchoring** — `AnchorEntity(.plane(.floor))` doesn't resolve in the visionOS Simulator (would hide the stage there). Core A5 (underground) already fixed. A manual "recenter" needs an ARKitSession/WorldTrackingProvider + a world-sensing entitlement (device-only) — a real change, not polish.
-- **IBL** — needs an `EnvironmentResource` from a bundled HDR/.exr asset; no reliable API to synth one from the generated gradient. Current full-immersion skybox is a generated vertical gradient (works, just not HDR-lit).
+- **True IBL on lit content** — would require converting the avatars/stage from their intentional flat UnlitMaterial look to PBR (a visual-design change, not a bug). The HDRI is bundled and ready if that's ever wanted.
 
 ## Note — shared simulator
 iPhone 17 sim (`974E8854…`) is shared with a concurrent megasession running `com.ibrews.crystalcaper` (a SpriteKit game). It can grab the sim foreground, so a one-off screenshot may capture the wrong app — re-`simctl launch agilelens.Understudy` to re-foreground. Both apps coexist fine; not an Understudy issue.
