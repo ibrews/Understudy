@@ -19,7 +19,7 @@ Open Understudy on visionOS. You'll see two things appear in your space at once:
 If the stage didn't open automatically, the Quick Start strip has a green **Open Stage** button — tap it. You can also turn off auto-open from the Auto-open Stage toggle in the room row.
 
 > **What if I see only the floating window and nothing on the floor?**
-> See [Troubleshooting → Black floating window](Troubleshooting#black-floating-window-on-visionos).
+> Tap **Open Stage** once — the panel button now stays in sync with the system, so a single tap always reopens the stage, even after you've dismissed it with the Digital Crown or backgrounded the app. If it's still empty, see [Troubleshooting → Black floating window](Troubleshooting#black-floating-window-on-visionos).
 
 ---
 
@@ -32,6 +32,20 @@ Three big buttons at the top of the panel — the actions you'll reach for most 
 | 🎭 **Open Stage / Close Stage** | Toggles the immersive space. When the stage is open, this becomes "Close Stage". |
 | 📜 **Teleprompter** | Opens the karaoke script as its own floating window. Position it anywhere in your space. Tap to open the bundled play library. |
 | ▶️ **Preview Show** | Walks the GO cursor through every actor mark in sequence at 2.5 s per beat. Cues fire as if a performer just walked on. **Use this to rehearse the cue stack with no performers in the room.** Press again to stop. |
+
+---
+
+## Immersion & hands
+
+A strip below the room row gives you three **independent** controls:
+
+- **Mixed / Full** — *Mixed* keeps passthrough so the stage overlays your real room (the default for rehearsing in a physical space). *Full* replaces the room with a dim black-box stage environment — good for focus, or for previewing in a featureless space.
+- **Real Hands** — show or hide your real hands (passthrough).
+- **Virtual Hands** — draw glowing markers on your tracked hands. These are a separate layer from your real hands, so you can show virtual hands while hiding your real ones, or any combination. (Visible on device; the Simulator has no hands to track.)
+
+## First-run walkthrough
+
+The first time you open the Director Panel, a short walkthrough explains the stage, dropping marks, firing cues, and bringing in your cast. Replay it anytime with the **Tutorial** button in the panel footer — handy when you hand the headset to someone new.
 
 ---
 
