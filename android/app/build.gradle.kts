@@ -51,7 +51,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -98,6 +99,9 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     debugImplementation("androidx.compose.ui:ui-tooling")
+
+    // Leak detection — debug builds only, so release carries zero LeakCanary code.
+    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.14")
 
     // Networking
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
