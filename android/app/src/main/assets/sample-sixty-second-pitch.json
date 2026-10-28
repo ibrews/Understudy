@@ -1,0 +1,54 @@
+{
+  "title": "Keep the Rehearsal Moving",
+  "author": "Agile Lens",
+  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
+  "acts": [
+    {
+      "number": 1,
+      "roman": "I",
+      "scenes": [
+        {
+          "number": 1,
+          "roman": "I",
+          "location": "60-second pitch at about 135 words per minute",
+          "entries": [
+            {
+              "kind": "stage",
+              "text": "Original rehearsal text. Pause and resume at your own pace."
+            },
+            {
+              "kind": "line",
+              "character": "PITCH",
+              "text": "A performer should not have to choose between remembering a line and looking at another person. Understudy explores a simple way to keep the next words nearby.",
+              "lineID": "1.1.1"
+            },
+            {
+              "kind": "line",
+              "character": "PITCH",
+              "text": "A director arranges marks and dialogue. A phone drives the reading position. A connected glasses display shows a short prompt or a flowing script.",
+              "lineID": "1.1.2"
+            },
+            {
+              "kind": "line",
+              "character": "PITCH",
+              "text": "The point is not to replace rehearsal. It is to remove a small interruption so people can spend more time working on the scene.",
+              "lineID": "1.1.3"
+            },
+            {
+              "kind": "line",
+              "character": "PITCH",
+              "text": "We can test that directly. Load a short script, read it with a partner, pause in the middle, and find the next line again.",
+              "lineID": "1.1.4"
+            },
+            {
+              "kind": "line",
+              "character": "PITCH",
+              "text": "Then tell us where the display helped and where it pulled your attention away. That answer is more useful than a polished claim. We want a tool that earns its place in the room.",
+              "lineID": "1.1.5"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

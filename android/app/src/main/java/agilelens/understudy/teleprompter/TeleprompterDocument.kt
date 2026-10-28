@@ -18,7 +18,14 @@ data class TeleprompterDocument(
     val lowercasedText: String,
     val markOffsets: List<MarkOffset>,
     val lineCueEnds: List<LineCueMarker>,
+    val spokenLines: List<SpokenLine> = emptyList(),
 ) {
+    data class SpokenLine(
+        val character: String?,
+        val text: String,
+        val startOffset: Int,
+        val endOffset: Int,
+    )
     data class MarkOffset(
         val markId: Id,
         val name: String,
@@ -69,6 +76,7 @@ data class TeleprompterDocument(
             val builder = StringBuilder()
             val markOffsets = mutableListOf<MarkOffset>()
             val lineCueEnds = mutableListOf<LineCueMarker>()
+            val spokenLines = mutableListOf<SpokenLine>()
 
             for ((i, mark) in ordered.withIndex()) {
                 val headerStart = builder.length
@@ -85,6 +93,9 @@ data class TeleprompterDocument(
                     val spokenStart = builder.length
                     builder.append(cue.text)
                     val spokenEnd = builder.length
+                    if (cue.text.isNotBlank()) {
+                        spokenLines.add(SpokenLine(cue.character, cue.text, spokenStart, spokenEnd))
+                    }
                     lineCueEnds.add(LineCueMarker(mark.id, cue.id, spokenEnd))
                     builder.append("\n")
                 }
@@ -105,6 +116,7 @@ data class TeleprompterDocument(
                 lowercasedText = text.lowercase(),
                 markOffsets = markOffsets,
                 lineCueEnds = lineCueEnds,
+                spokenLines = spokenLines,
             )
         }
     }

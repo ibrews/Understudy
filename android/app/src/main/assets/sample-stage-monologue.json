@@ -1,0 +1,72 @@
+{
+  "title": "The Last Work Light",
+  "author": "Agile Lens",
+  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
+  "acts": [
+    {
+      "number": 1,
+      "roman": "I",
+      "scenes": [
+        {
+          "number": 1,
+          "roman": "I",
+          "location": "Stage monologue",
+          "entries": [
+            {
+              "kind": "stage",
+              "text": "Original rehearsal text. Pause and resume at your own pace."
+            },
+            {
+              "kind": "line",
+              "character": "MARA",
+              "text": "Leave that light on for a minute. I know the room is empty. That is why I can finally hear it.",
+              "lineID": "1.1.1"
+            },
+            {
+              "kind": "line",
+              "character": "MARA",
+              "text": "Yesterday there were twelve people here telling me where to stand. Tonight the floor has stopped giving orders.",
+              "lineID": "1.1.2"
+            },
+            {
+              "kind": "line",
+              "character": "MARA",
+              "text": "This mark is where I said goodbye. Two feet to the left is where I meant it. That is a small distance until you have to cross it.",
+              "lineID": "1.1.3"
+            },
+            {
+              "kind": "line",
+              "character": "MARA",
+              "text": "My father built sets. He could make a painted door sound like oak, but he could never leave a real door without checking the latch.",
+              "lineID": "1.1.4"
+            },
+            {
+              "kind": "line",
+              "character": "MARA",
+              "text": "I used to think that was fear. Now I think it was care. Someone had to know the room would hold after everyone went home.",
+              "lineID": "1.1.5"
+            },
+            {
+              "kind": "line",
+              "character": "MARA",
+              "text": "Tomorrow I will walk out there and say the line. I will probably put the emphasis in the wrong place. People survive that.",
+              "lineID": "1.1.6"
+            },
+            {
+              "kind": "line",
+              "character": "MARA",
+              "text": "What I cannot do is wait until I am certain. Certainty has missed every rehearsal we invited it to.",
+              "lineID": "1.1.7"
+            },
+            {
+              "kind": "line",
+              "character": "MARA",
+              "text": "All right. Turn it off. I know where the door is now.",
+              "lineID": "1.1.8"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

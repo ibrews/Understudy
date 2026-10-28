@@ -1,0 +1,750 @@
+diff --git a/android/app/src/main/java/agilelens/understudy/glasses/GlassesTeleprompterRenderer.kt b/android/app/src/main/java/agilelens/understudy/glasses/GlassesTeleprompterRenderer.kt
+index f3161b0..daca343 100644
+--- a/android/app/src/main/java/agilelens/understudy/glasses/GlassesTeleprompterRenderer.kt
++++ b/android/app/src/main/java/agilelens/understudy/glasses/GlassesTeleprompterRenderer.kt
+@@ -1,36 +1,32 @@
+ package agilelens.understudy.glasses
+ 
+-import agilelens.understudy.model.Cue
+-import androidx.compose.foundation.background
++import agilelens.understudy.teleprompter.KaraokeText
++import agilelens.understudy.teleprompter.PromptPlayback
+ import androidx.compose.foundation.layout.Box
+ import androidx.compose.foundation.layout.Column
+ import androidx.compose.foundation.layout.Spacer
+ import androidx.compose.foundation.layout.fillMaxSize
+ import androidx.compose.foundation.layout.height
+ import androidx.compose.foundation.layout.padding
+-import androidx.compose.foundation.layout.size
++import androidx.compose.foundation.layout.sizeIn
++import androidx.compose.foundation.layout.BoxWithConstraints
++import androidx.compose.ui.platform.LocalDensity
+ import androidx.compose.material3.Surface
+ import androidx.compose.material3.Text
+ import androidx.compose.runtime.Composable
+-import androidx.compose.runtime.getValue
+ import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.graphics.Color
+-import androidx.compose.ui.text.AnnotatedString
+-import androidx.compose.ui.text.SpanStyle
+-import androidx.compose.ui.text.buildAnnotatedString
+ import androidx.compose.ui.text.font.FontFamily
+ import androidx.compose.ui.text.font.FontWeight
+ import androidx.compose.ui.text.style.TextAlign
+-import androidx.compose.ui.text.withStyle
+ import androidx.compose.ui.unit.dp
+ import androidx.compose.ui.unit.sp
+-import kotlin.math.min
+ 
+ /**
+  * The pixel-tight renderer that goes on the glasses display. Identical
+- * logic as the phone TeleprompterScreen's ScrollingText, but sized for a
+- * 480×480 canvas and with two modes (single-line prompt vs flowing script).
++ * cursor logic as the phone TeleprompterScreen. Fits the available projected
++ * viewport up to 480 dp, with paged single-line and measured flowing modes.
+  *
+  * Inputs come entirely from GlassesTeleprompterState — no store access here
+  * so this composable is cheap and can run inside the projected-display
+@@ -44,7 +40,7 @@ fun GlassesTeleprompterRenderer(
+     futureColor: Color = Color.White,
+ ) {
+     Surface(
+-        modifier = Modifier.size(canvasSize.dp),
++        modifier = Modifier.sizeIn(maxWidth = canvasSize.dp, maxHeight = canvasSize.dp).fillMaxSize(),
+         color = Color.Black
+     ) {
+         val mode = GlassesTeleprompterState.renderMode
+@@ -71,59 +67,40 @@ fun GlassesTeleprompterRenderer(
+ 
+ /**
+  * Big character label + line at screen center. Reads as a teleprompter.
+- * When there's no current mark (performer hasn't entered one yet), shows
+- * the next expected line as a pre-view in dimmer color.
++ * Uses the shared document cursor, so reading also works before entering a mark.
+  */
+ @Composable
+ private fun SingleLinePrompt(activeColor: Color) {
+-    val mark = GlassesTeleprompterState.currentMark
+-    if (mark == null) {
+-        Text(
+-            "Waiting…",
+-            color = Color.White.copy(alpha = 0.45f),
+-            fontSize = 28.sp,
+-            fontFamily = FontFamily.Serif
+-        )
+-        return
+-    }
+-    // Find the first unspoken line cue — currently defined as the first
+-    // Line on the mark. (Once Android has a CueFXEngine with firedCueIDs,
+-    // we'll track per-cue state here too.)
+-    val line = mark.cues.filterIsInstance<Cue.Line>().firstOrNull()
+-    if (line == null) {
+-        Text(
+-            mark.name,
+-            color = Color.White.copy(alpha = 0.7f),
+-            fontSize = 32.sp,
+-            fontFamily = FontFamily.Serif,
+-            fontWeight = FontWeight.SemiBold
+-        )
+-        return
+-    }
+-    Column(
+-        modifier = Modifier.padding(horizontal = 20.dp),
+-        horizontalAlignment = Alignment.CenterHorizontally
+-    ) {
+-        if (!line.character.isNullOrEmpty()) {
++    val doc = GlassesTeleprompterState.document
++    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
++        val fontScale = LocalDensity.current.fontScale
++        val pageSize = (((maxWidth.value - 40) / (28 * fontScale * 0.7f)).toInt() * 3)
++            .coerceIn(16, 100)
++        val prompt = PromptPlayback.prompt(doc, GlassesTeleprompterState.scrollProgress, pageSize)
++        if (prompt == null) {
+             Text(
+-                line.character.uppercase(),
+-                color = Color.Red.copy(alpha = 0.85f),
+-                fontSize = 14.sp,
+-                fontFamily = FontFamily.Monospace,
+-                fontWeight = FontWeight.Bold
++                if (doc.spokenLines.isEmpty()) "Open a script on your phone" else "End of script",
++                color = Color.White,
++                fontSize = 24.sp,
++                textAlign = TextAlign.Center,
++                modifier = Modifier.padding(20.dp),
+             )
+-            Spacer(modifier = Modifier.height(8.dp))
++        } else {
++            Column(Modifier.padding(horizontal = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
++                if (!prompt.character.isNullOrEmpty()) {
++                    Text(prompt.character.uppercase(), color = Color.White,
++                        fontSize = 18.sp, fontWeight = FontWeight.Bold)
++                    Spacer(Modifier.height(8.dp))
++                }
++                Text(prompt.text, color = activeColor, fontSize = 28.sp,
++                    fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold,
++                    textAlign = TextAlign.Center, lineHeight = 36.sp)
++                if (prompt.pages > 1) {
++                    Spacer(Modifier.height(8.dp))
++                    Text("${prompt.page} / ${prompt.pages}", color = Color.White, fontSize = 14.sp)
++                }
++            }
+         }
+-        Text(
+-            line.text,
+-            color = activeColor,
+-            fontSize = 28.sp,
+-            fontFamily = FontFamily.Serif,
+-            fontWeight = FontWeight.SemiBold,
+-            textAlign = TextAlign.Center,
+-            lineHeight = 36.sp,
+-            maxLines = 4
+-        )
+     }
+ }
+ 
+@@ -149,30 +126,5 @@ private fun FlowingScript(
+         )
+         return
+     }
+-    val totalLen = doc.text.length
+-    val cursor = (totalLen * progress).toInt().coerceIn(0, totalLen - 1)
+-    val activeEnd = min(cursor + 30, totalLen)
+-
+-    val annotated: AnnotatedString = buildAnnotatedString {
+-        withStyle(SpanStyle(color = pastColor)) { append(doc.text.substring(0, cursor)) }
+-        withStyle(SpanStyle(color = activeColor)) { append(doc.text.substring(cursor, activeEnd)) }
+-        withStyle(SpanStyle(color = futureColor)) { append(doc.text.substring(activeEnd)) }
+-    }
+-
+-    Column(
+-        modifier = Modifier
+-            .fillMaxSize()
+-            .background(Color.Black)
+-            .padding(20.dp),
+-        horizontalAlignment = Alignment.CenterHorizontally
+-    ) {
+-        Text(
+-            annotated,
+-            fontSize = 22.sp,
+-            fontFamily = FontFamily.Serif,
+-            fontWeight = FontWeight.SemiBold,
+-            lineHeight = 30.sp,
+-            textAlign = TextAlign.Center
+-        )
+-    }
++    KaraokeText(doc.text, progress, 22, activeColor, pastColor, futureColor)
+ }
+diff --git a/android/app/src/main/java/agilelens/understudy/teleprompter/TeleprompterDocument.kt b/android/app/src/main/java/agilelens/understudy/teleprompter/TeleprompterDocument.kt
+index 43055b8..88cce88 100644
+--- a/android/app/src/main/java/agilelens/understudy/teleprompter/TeleprompterDocument.kt
++++ b/android/app/src/main/java/agilelens/understudy/teleprompter/TeleprompterDocument.kt
+@@ -18,7 +18,14 @@ data class TeleprompterDocument(
+     val lowercasedText: String,
+     val markOffsets: List<MarkOffset>,
+     val lineCueEnds: List<LineCueMarker>,
++    val spokenLines: List<SpokenLine> = emptyList(),
+ ) {
++    data class SpokenLine(
++        val character: String?,
++        val text: String,
++        val startOffset: Int,
++        val endOffset: Int,
++    )
+     data class MarkOffset(
+         val markId: Id,
+         val name: String,
+@@ -69,6 +76,7 @@ data class TeleprompterDocument(
+             val builder = StringBuilder()
+             val markOffsets = mutableListOf<MarkOffset>()
+             val lineCueEnds = mutableListOf<LineCueMarker>()
++            val spokenLines = mutableListOf<SpokenLine>()
+ 
+             for ((i, mark) in ordered.withIndex()) {
+                 val headerStart = builder.length
+@@ -85,6 +93,9 @@ data class TeleprompterDocument(
+                     val spokenStart = builder.length
+                     builder.append(cue.text)
+                     val spokenEnd = builder.length
++                    if (cue.text.isNotBlank()) {
++                        spokenLines.add(SpokenLine(cue.character, cue.text, spokenStart, spokenEnd))
++                    }
+                     lineCueEnds.add(LineCueMarker(mark.id, cue.id, spokenEnd))
+                     builder.append("\n")
+                 }
+@@ -105,6 +116,7 @@ data class TeleprompterDocument(
+                 lowercasedText = text.lowercase(),
+                 markOffsets = markOffsets,
+                 lineCueEnds = lineCueEnds,
++                spokenLines = spokenLines,
+             )
+         }
+     }
+diff --git a/android/app/src/main/java/agilelens/understudy/teleprompter/TeleprompterScreen.kt b/android/app/src/main/java/agilelens/understudy/teleprompter/TeleprompterScreen.kt
+index 73a99c5..36d564f 100644
+--- a/android/app/src/main/java/agilelens/understudy/teleprompter/TeleprompterScreen.kt
++++ b/android/app/src/main/java/agilelens/understudy/teleprompter/TeleprompterScreen.kt
+@@ -4,18 +4,15 @@ import agilelens.understudy.cuefx.CueFXEngine
+ import agilelens.understudy.cuefx.FlashOverlay
+ import agilelens.understudy.store.BlockingStore
+ import android.Manifest
+-import android.content.Context
+-import android.os.Handler
+-import android.os.Looper
++import android.os.SystemClock
++import android.widget.Toast
+ import androidx.activity.compose.rememberLauncherForActivityResult
+ import androidx.activity.result.contract.ActivityResultContracts
+ import androidx.compose.foundation.background
+ import androidx.compose.foundation.gestures.detectVerticalDragGestures
+ import androidx.compose.foundation.layout.*
+-import androidx.compose.foundation.rememberScrollState
+ import androidx.compose.foundation.shape.CircleShape
+ import androidx.compose.foundation.shape.RoundedCornerShape
+-import androidx.compose.foundation.verticalScroll
+ import androidx.compose.material.icons.Icons
+ import androidx.compose.material.icons.filled.Close
+ import androidx.compose.material.icons.filled.Mic
+@@ -41,23 +38,19 @@ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.graphics.Color
+ import androidx.compose.ui.input.pointer.pointerInput
+ import androidx.compose.ui.platform.LocalContext
+-import androidx.compose.ui.text.AnnotatedString
+-import androidx.compose.ui.text.SpanStyle
+-import androidx.compose.ui.text.buildAnnotatedString
+ import androidx.compose.ui.text.font.FontFamily
+ import androidx.compose.ui.text.font.FontWeight
+ import androidx.compose.ui.text.style.TextAlign
+-import androidx.compose.ui.text.withStyle
+ import androidx.compose.ui.unit.dp
+ import androidx.compose.ui.unit.sp
+ import androidx.compose.ui.window.Dialog
+ import androidx.compose.ui.window.DialogProperties
+-import kotlinx.coroutines.flow.MutableStateFlow
+ import kotlinx.coroutines.flow.collectLatest
+-import kotlinx.coroutines.flow.StateFlow
+ import kotlinx.coroutines.launch
+-import kotlin.math.max
+-import kotlin.math.min
++import kotlinx.coroutines.delay
++import kotlinx.coroutines.isActive
++import kotlinx.coroutines.flow.map
++import kotlinx.coroutines.flow.distinctUntilChanged
+ 
+ /**
+  * Cross-platform-equivalent of the Swift TeleprompterView. Four scroll inputs:
+@@ -74,8 +67,8 @@ fun TeleprompterScreen(
+     autoAdvanceOnLastLine: Boolean = false,
+ ) {
+     val context = LocalContext.current
+-    val scope = rememberCoroutineScope()
+ 
++    var lastManualAt by remember { mutableStateOf(-3000L) }
+     var document by remember { mutableStateOf(TeleprompterDocument.from(store.blocking.value)) }
+     var scrollProgress by rememberSaveable { mutableStateOf(0.0) }
+     var textSize by rememberSaveable { mutableStateOf(28) }
+@@ -109,6 +102,10 @@ fun TeleprompterScreen(
+         if (granted) {
+             isVoiceMode = true
+             speech.start()
++            isVoiceMode = speech.isRunning
++            if (!isVoiceMode) Toast.makeText(context, "Speech recognition is unavailable. Use Play or drag to read.", Toast.LENGTH_LONG).show()
++        } else {
++            Toast.makeText(context, "Microphone access was denied. Use Play or drag to read.", Toast.LENGTH_LONG).show()
+         }
+     }
+ 
+@@ -134,36 +131,31 @@ fun TeleprompterScreen(
+         }
+     }
+ 
+-    // Mark-follow — snap scroll when performer walks into a new mark.
+-    LaunchedEffect(Unit) {
+-        store.localPerformer.collectLatest { p ->
+-            val markId = p?.currentMarkID ?: return@collectLatest
+-            val target = document.progressForMark(markId) ?: return@collectLatest
+-            // Only snap if user hasn't been manually interacting in the last
+-            // 3 seconds. We approximate that here by always following — the
+-            // iOS version has a real timestamp check; Android keeps it simple.
+-            scrollProgress = target
++    // Follow mark transitions, not every pose update. Preserve a restored cursor.
++    LaunchedEffect(store) {
++        var initial = true
++        store.localPerformer.map { it?.currentMarkID }.distinctUntilChanged().collect { markId ->
++            val restoring = initial && scrollProgress > 0.0
++            initial = false
++            if (markId != null && !restoring &&
++                PromptPlayback.canFollowMark(SystemClock.elapsedRealtime(), lastManualAt)) {
++                document.progressForMark(markId)?.let { scrollProgress = it }
++            }
+         }
+     }
+ 
+-    // Auto-scroll timer.
+-    LaunchedEffect(isAutoScrolling, speed) {
++    // The effect owns its timer: pause, speed changes and dismissal cancel it.
++    LaunchedEffect(isAutoScrolling, speed, document.text) {
+         if (!isAutoScrolling) return@LaunchedEffect
+-        val totalLen = document.text.length
+-        if (totalLen == 0) { isAutoScrolling = false; return@LaunchedEffect }
+-        val handler = Handler(Looper.getMainLooper())
+-        val runnable = object : Runnable {
+-            override fun run() {
+-                if (!isAutoScrolling) return
+-                val charsPerFrame = speed / 30.0
+-                val progressStep = charsPerFrame / totalLen.toDouble()
+-                val newP = (scrollProgress + progressStep).coerceIn(0.0, 1.0)
+-                scrollProgress = newP
+-                if (newP >= 1.0) isAutoScrolling = false
+-                else handler.postDelayed(this, 33)
+-            }
++        if (document.text.isEmpty()) { isAutoScrolling = false; return@LaunchedEffect }
++        var previous = SystemClock.elapsedRealtime()
++        while (isActive && isAutoScrolling) {
++            delay(33)
++            val now = SystemClock.elapsedRealtime()
++            scrollProgress = PromptPlayback.advance(scrollProgress, speed, now - previous, document.text.length)
++            previous = now
++            if (scrollProgress >= 1.0) isAutoScrolling = false
+         }
+-        handler.post(runnable)
+     }
+ 
+     // Wire speech → voice matcher → scroll + auto-fire + (optional) auto-advance.
+@@ -221,6 +213,7 @@ fun TeleprompterScreen(
+                     .fillMaxSize()
+                     .pointerInput(Unit) {
+                         detectVerticalDragGestures { _, dragAmount ->
++                            lastManualAt = SystemClock.elapsedRealtime()
+                             val delta = -dragAmount / 1200f
+                             scrollProgress = (scrollProgress + delta).coerceIn(0.0, 1.0)
+                             isAutoScrolling = false
+@@ -254,6 +247,7 @@ fun TeleprompterScreen(
+                         fireFlashAt = fireFlashAt,
+                         isGlassesConnected = isGlassesConnected,
+                         onResetTop = {
++                            lastManualAt = SystemClock.elapsedRealtime()
+                             scrollProgress = 0.0
+                         },
+                         onPlayPause = { isAutoScrolling = !isAutoScrolling },
+@@ -266,6 +260,8 @@ fun TeleprompterScreen(
+                             } else if (speech.hasAudioPermission()) {
+                                 isVoiceMode = true
+                                 speech.start()
++                                isVoiceMode = speech.isRunning
++                                if (!isVoiceMode) Toast.makeText(context, "Speech recognition is unavailable. Use Play or drag to read.", Toast.LENGTH_LONG).show()
+                             } else {
+                                 permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                             }
+@@ -278,7 +274,9 @@ fun TeleprompterScreen(
+                         },
+                         onGlassesLaunch = {
+                             val host = context.findActivity()
+-                            if (host != null) GlassesLauncher.launch(host)
++                            if (host == null || !GlassesLauncher.launch(host)) {
++                                Toast.makeText(context, "Could not open on glasses. Check the connection, then tap Open on Glasses again.", Toast.LENGTH_LONG).show()
++                            }
+                         },
+                         onGlassesModeToggle = {
+                             GlassesTeleprompterState.renderMode =
+@@ -321,9 +319,11 @@ private fun glassesConnectedState(): Boolean {
+             try {
+                 ProjectedContext.isProjectedDeviceConnected(context, coroutineContext)
+                     .collect { connected = it }
+-            } catch (_: Throwable) { /* API not present — stay false */ }
++            } catch (cancelled: kotlinx.coroutines.CancellationException) {
++                throw cancelled
++            } catch (_: Exception) { connected = false }
+         }
+-        onDispose { job.cancel() }
++        onDispose { job.cancel(); scope.coroutineContext[kotlinx.coroutines.Job]?.cancel() }
+     }
+     return connected
+ }
+@@ -350,62 +350,14 @@ private fun ScrollingText(
+     if (text.isEmpty()) {
+         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+             Text(
+-                "No lines on this blocking yet.\nAuthor mode → tap a mark → Pick from Hamlet…",
++                "No lines on this blocking yet.\nAuthor mode → tap a mark → Pick from script…",
+                 color = Color.White.copy(alpha = 0.55f),
+                 textAlign = TextAlign.Center
+             )
+         }
+         return
+     }
+-    val totalLen = text.length
+-    val cursor = (totalLen * scrollProgress).toInt().coerceIn(0, totalLen - 1)
+-    val activeEnd = min(cursor + 30, totalLen)
+-
+-    val annotated = buildAnnotatedString {
+-        withStyle(SpanStyle(color = Color.White.copy(alpha = 0.35f))) {
+-            append(text.substring(0, cursor))
+-        }
+-        withStyle(SpanStyle(color = Color.Cyan)) {
+-            append(text.substring(cursor, activeEnd))
+-        }
+-        withStyle(SpanStyle(color = Color.White)) {
+-            append(text.substring(activeEnd))
+-        }
+-    }
+-
+-    val estimatedLineHeight = textSize * 1.4
+-    val estimatedContentHeight = (totalLen / 60.0) * estimatedLineHeight
+-    val scrollState = rememberScrollState()
+-
+-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+-        Column(
+-            modifier = Modifier
+-                .fillMaxSize()
+-                .padding(horizontal = 24.dp)
+-                .verticalScroll(scrollState),
+-            horizontalAlignment = Alignment.CenterHorizontally
+-        ) {
+-            Spacer(modifier = Modifier.height((estimatedContentHeight.toInt()).dp * 0 + 180.dp))
+-            Text(
+-                annotated,
+-                fontSize = textSize.sp,
+-                fontWeight = FontWeight.SemiBold,
+-                fontFamily = FontFamily.Serif,
+-                lineHeight = (textSize * 1.4).sp,
+-                textAlign = TextAlign.Center,
+-                color = Color.Unspecified
+-            )
+-            Spacer(modifier = Modifier.height(600.dp))
+-        }
+-    }
+-
+-    // Best-effort auto-center: scroll by progress * contentHeight. We don't
+-    // have TextLayoutResult per-line control as iOS lacks it too; good
+-    // enough for theatrical pacing.
+-    LaunchedEffect(scrollProgress) {
+-        val target = (scrollProgress * max(1, scrollState.maxValue)).toInt()
+-        scrollState.animateScrollTo(target)
+-    }
++    KaraokeText(text, scrollProgress, textSize)
+ }
+ 
+ @Composable
+@@ -434,6 +386,7 @@ private fun TopBar(title: String, currentMark: String?, onClose: () -> Unit) {
+     }
+ }
+ 
++@OptIn(ExperimentalLayoutApi::class)
+ @Composable
+ private fun Controls(
+     isAutoScrolling: Boolean,
+@@ -483,9 +436,10 @@ private fun Controls(
+             color = Color.Black.copy(alpha = 0.75f),
+             shape = RoundedCornerShape(16.dp),
+         ) {
+-            Row(
++            FlowRow(
+                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+-                verticalAlignment = Alignment.CenterVertically
++                horizontalArrangement = Arrangement.Center,
++                verticalArrangement = Arrangement.spacedBy(4.dp)
+             ) {
+                 IconButton(onClick = onResetTop) {
+                     Icon(Icons.Filled.SkipPrevious, "Back to top", tint = Color.White)
+@@ -552,8 +506,7 @@ private fun Controls(
+                 }
+ 
+                 // AI Glasses companion — enabled only when paired glasses are
+-                // detected (API 36+). Long-press toggles between single-line
+-                // prompt and flowing-script render modes on the glasses side.
++                // detected (API 36+). The adjacent button changes display mode.
+                 IconButton(
+                     onClick = onGlassesLaunch,
+                     enabled = isGlassesConnected,
+diff --git a/android/app/src/main/java/agilelens/understudy/teleprompter/KaraokeText.kt b/android/app/src/main/java/agilelens/understudy/teleprompter/KaraokeText.kt
+new file mode 100644
+index 0000000..6cadc0e
+--- /dev/null
++++ b/android/app/src/main/java/agilelens/understudy/teleprompter/KaraokeText.kt
+@@ -0,0 +1,68 @@
++package agilelens.understudy.teleprompter
++
++import androidx.compose.foundation.layout.*
++import androidx.compose.foundation.rememberScrollState
++import androidx.compose.foundation.verticalScroll
++import androidx.compose.material3.Text
++import androidx.compose.runtime.*
++import androidx.compose.ui.Alignment
++import androidx.compose.ui.Modifier
++import androidx.compose.ui.graphics.Color
++import androidx.compose.ui.text.SpanStyle
++import androidx.compose.ui.text.TextLayoutResult
++import androidx.compose.ui.text.buildAnnotatedString
++import androidx.compose.ui.text.font.FontFamily
++import androidx.compose.ui.text.font.FontWeight
++import androidx.compose.ui.text.style.TextAlign
++import androidx.compose.ui.text.withStyle
++import androidx.compose.ui.unit.dp
++import androidx.compose.ui.unit.sp
++
++/** Track the actual wrapped line, rather than estimating height from character count. */
++@Composable
++fun KaraokeText(
++    text: String,
++    progress: Double,
++    textSize: Int,
++    activeColor: Color = Color.Cyan,
++    pastColor: Color = Color.White.copy(alpha = 0.35f),
++    futureColor: Color = Color.White,
++) {
++    val window = PromptPlayback.window(text, progress)
++    val annotated = remember(text, window, activeColor, pastColor, futureColor) {
++        buildAnnotatedString {
++            withStyle(SpanStyle(color = pastColor)) { append(text.substring(0, window.start)) }
++            withStyle(SpanStyle(color = activeColor)) { append(text.substring(window.start, window.end)) }
++            withStyle(SpanStyle(color = futureColor)) { append(text.substring(window.end)) }
++        }
++    }
++    var layout by remember(text, textSize) { mutableStateOf<TextLayoutResult?>(null) }
++    val scroll = rememberScrollState()
++    BoxWithConstraints(Modifier.fillMaxSize()) {
++        // Half a viewport on either side lets the first and last line reach center.
++        val inset = maxHeight / 2
++        Column(
++            Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = 24.dp),
++            horizontalAlignment = Alignment.CenterHorizontally,
++        ) {
++            Spacer(Modifier.height(inset))
++            Text(
++                annotated,
++                fontSize = textSize.sp,
++                lineHeight = (textSize * 1.4).sp,
++                fontWeight = FontWeight.SemiBold,
++                fontFamily = FontFamily.SansSerif,
++                textAlign = TextAlign.Center,
++                onTextLayout = { layout = it },
++            )
++            Spacer(Modifier.height(inset))
++        }
++        LaunchedEffect(text, window.start, layout, scroll.maxValue) {
++            val measured = layout ?: return@LaunchedEffect
++            if (text.isEmpty()) return@LaunchedEffect
++            val line = measured.getLineForOffset(window.start.coerceAtMost(text.lastIndex))
++            val center = (measured.getLineTop(line) + measured.getLineBottom(line)) / 2f
++            scroll.scrollTo(center.toInt().coerceIn(0, scroll.maxValue))
++        }
++    }
++}
+diff --git a/android/app/src/main/java/agilelens/understudy/teleprompter/PromptPlayback.kt b/android/app/src/main/java/agilelens/understudy/teleprompter/PromptPlayback.kt
+new file mode 100644
+index 0000000..920ea7b
+--- /dev/null
++++ b/android/app/src/main/java/agilelens/understudy/teleprompter/PromptPlayback.kt
+@@ -0,0 +1,59 @@
++package agilelens.understudy.teleprompter
++
++/** Pure cursor math shared by the phone and projected display. Offsets are UTF-16. */
++object PromptPlayback {
++    data class Window(val start: Int, val end: Int)
++    data class Prompt(val character: String?, val text: String, val page: Int, val pages: Int)
++
++    fun normalized(progress: Double): Double =
++        if (progress.isFinite()) progress.coerceIn(0.0, 1.0) else 0.0
++
++    fun window(text: String, progress: Double, width: Int = 30): Window {
++        val start = safeBoundary(text, (text.length * normalized(progress)).toInt())
++        val end = safeBoundary(text, (start + width.coerceAtLeast(0)).coerceAtMost(text.length))
++        return Window(start, end)
++    }
++
++    // Never split a surrogate pair when highlighting or paginating an imported script.
++    private fun safeBoundary(text: String, offset: Int): Int =
++        if (offset in 1 until text.length && text[offset].isLowSurrogate() &&
++            text[offset - 1].isHighSurrogate()) offset - 1 else offset
++
++    /** Bounded pages preserve every character, including whitespace and very long words. */
++    fun chunks(text: String, maxChars: Int = 100): List<Window> {
++        require(maxChars >= 2)
++        val result = mutableListOf<Window>()
++        var start = 0
++        while (start < text.length) {
++            var end = safeBoundary(text, (start + maxChars).coerceAtMost(text.length))
++            if (end < text.length) {
++                val space = (end - 1 downTo start + maxChars / 2)
++                    .firstOrNull { text[it].isWhitespace() }
++                if (space != null) end = space + 1
++            }
++            result.add(Window(start, end))
++            start = end
++        }
++        return result
++    }
++
++    /** Headers/gaps preview the next spoken line; crossing its end advances the cue. */
++    fun prompt(document: TeleprompterDocument, progress: Double, maxChars: Int = 100): Prompt? {
++        val cursor = window(document.text, progress).start
++        val line = document.spokenLines.firstOrNull { it.endOffset > cursor } ?: return null
++        val pages = chunks(line.text, maxChars)
++        val local = (cursor - line.startOffset).coerceIn(0, line.text.length)
++        val index = pages.indexOfFirst { it.end > local }.coerceAtLeast(0)
++        val page = pages[index]
++        return Prompt(line.character, line.text.substring(page.start, page.end), index + 1, pages.size)
++    }
++
++    fun advance(progress: Double, charsPerSecond: Int, elapsedMillis: Long, length: Int): Double {
++        if (length <= 0) return normalized(progress)
++        return normalized(normalized(progress) + charsPerSecond.coerceAtLeast(0) *
++            elapsedMillis.coerceAtLeast(0).toDouble() / 1000.0 / length)
++    }
++
++    fun canFollowMark(nowMillis: Long, lastManualMillis: Long): Boolean =
++        nowMillis - lastManualMillis >= 3000L
++}
+diff --git a/android/app/src/test/java/agilelens/understudy/teleprompter/PromptPlaybackTest.kt b/android/app/src/test/java/agilelens/understudy/teleprompter/PromptPlaybackTest.kt
+new file mode 100644
+index 0000000..3e495d1
+--- /dev/null
++++ b/android/app/src/test/java/agilelens/understudy/teleprompter/PromptPlaybackTest.kt
+@@ -0,0 +1,106 @@
++package agilelens.understudy.teleprompter
++
++import agilelens.understudy.model.*
++import org.junit.Assert.*
++import org.junit.Test
++
++class PromptPlaybackTest {
++    private fun document(vararg lines: String): TeleprompterDocument = TeleprompterDocument.from(
++        Blocking(Id("script"), createdAt = "", modifiedAt = "", marks = listOf(
++            Mark(Id("mark"), "Opening", Pose(), sequenceIndex = 0,
++                cues = lines.mapIndexed { index, text -> Cue.Line(Id("line-$index"), text, "ALEX") })
++        ))
++    )
++
++    @Test fun singleLineAdvancesAtCueEndAndPreviewsBeforeFirstLine() {
++        val doc = document("First cue.", "Second cue.")
++        assertEquals("First cue.", PromptPlayback.prompt(doc, 0.0)?.text)
++        val boundary = doc.spokenLines.first().endOffset.toDouble() / doc.text.length
++        assertEquals("Second cue.", PromptPlayback.prompt(doc, boundary)?.text)
++        assertEquals("ALEX", PromptPlayback.prompt(doc, boundary)?.character)
++        assertNull(PromptPlayback.prompt(doc, 1.0))
++    }
++
++    @Test fun longCuePagesAdvanceAndPreserveAllText() {
++        val text = "Keep every word, even when a speech goes beyond four visible lines. ".repeat(8)
++        val doc = document(text)
++        val chunks = PromptPlayback.chunks(text)
++        assertTrue(chunks.size > 1)
++        assertEquals(text, chunks.joinToString("") { text.substring(it.start, it.end) })
++        chunks.forEachIndexed { index, page ->
++            assertTrue(page.end - page.start <= 100)
++            val progress = (doc.spokenLines.first().startOffset + page.start + 1).toDouble() / doc.text.length
++            val prompt = PromptPlayback.prompt(doc, progress)!!
++            assertEquals(index + 1, prompt.page)
++            assertEquals(chunks.size, prompt.pages)
++            assertEquals(text.substring(page.start, page.end), prompt.text)
++        }
++    }
++
++    @Test fun chunksHandleLongWordsNewlinesAndSurrogatePairs() {
++        val text = "Pneumonoultramicroscopicsilicovolcanoconiosis\n" + "a".repeat(49) + "😀".repeat(70)
++        for (size in listOf(2, 16, 31, 100)) {
++            val chunks = PromptPlayback.chunks(text, size)
++            assertEquals(text, chunks.joinToString("") { text.substring(it.start, it.end) })
++            for (chunk in chunks) {
++                assertTrue(chunk.end > chunk.start)
++                assertTrue(chunk.end - chunk.start <= size)
++                assertFalse(text[chunk.start].isLowSurrogate())
++                assertFalse(text[chunk.end - 1].isHighSurrogate())
++            }
++        }
++    }
++
++    @Test fun karaokeWindowHandlesEmptyEndAndInvalidRestoredProgress() {
++        assertEquals(PromptPlayback.Window(0, 0), PromptPlayback.window("", 0.5))
++        assertEquals(PromptPlayback.Window(3, 3), PromptPlayback.window("abc", 1.0))
++        assertEquals(PromptPlayback.Window(3, 3), PromptPlayback.window("abc", 2.0))
++        for (value in listOf(-1.0, Double.NaN, Double.POSITIVE_INFINITY)) {
++            assertEquals(0, PromptPlayback.window("abc", value).start)
++        }
++        val text = "a😀b"
++        assertEquals(1, PromptPlayback.window(text, 0.5).start)
++        assertEquals(1, PromptPlayback.window(text, 0.0, 2).end)
++        assertEquals(3, PromptPlayback.window(text, 0.0, 3).end)
++    }
++
++    @Test fun elapsedTimingSurvivesFrameJitterAndSpeedChange() {
++        val oneStep = PromptPlayback.advance(0.2, 20, 1000, 100)
++        var manySteps = 0.2
++        for (elapsed in listOf(33L, 167L, 300L, 500L)) {
++            manySteps = PromptPlayback.advance(manySteps, 20, elapsed, 100)
++        }
++        assertEquals(0.4, oneStep, 0.00001)
++        assertEquals(oneStep, manySteps, 0.00001)
++        assertEquals(0.6, PromptPlayback.advance(oneStep, 40, 500, 100), 0.00001)
++        assertEquals(1.0, PromptPlayback.advance(0.9, 40, 500, 100), 0.0)
++        assertEquals(0.5, PromptPlayback.advance(0.5, 20, 1000, 0), 0.0)
++        assertEquals(0.5, PromptPlayback.advance(0.5, 20, -20, 100), 0.0)
++    }
++
++    @Test fun manualDragSuppressesMarkFollowForThreeSeconds() {
++        assertFalse(PromptPlayback.canFollowMark(3999, 1000))
++        assertTrue(PromptPlayback.canFollowMark(4000, 1000))
++    }
++
++    @Test fun restoredProgressSelectsTheSamePageWithoutResumingPlayback() {
++        val doc = document("Opening.", "Restored cue.")
++        val savedProgress = (doc.spokenLines[1].startOffset + 2).toDouble() / doc.text.length
++        val rebuilt = document("Opening.", "Restored cue.")
++        assertEquals(PromptPlayback.prompt(doc, savedProgress), PromptPlayback.prompt(rebuilt, savedProgress))
++        assertEquals("Restored cue.", PromptPlayback.prompt(rebuilt, savedProgress)?.text)
++    }
++
++    @Test fun documentExcludesCamerasUnsequencedMarksAndBlankCues() {
++        val base = Mark(Id("actor"), "Start", Pose(), sequenceIndex = 0,
++            cues = listOf(Cue.Line(Id("blank"), "  ", null), Cue.Line(Id("spoken"), "Say this.", null)))
++        val doc = TeleprompterDocument.from(Blocking(Id(), createdAt = "", modifiedAt = "",
++            marks = listOf(base.copy(id = Id("camera"), kind = MarkKind.camera),
++                base.copy(id = Id("draft"), sequenceIndex = -1), base)))
++        assertEquals(1, doc.spokenLines.size)
++        assertEquals("Say this.", doc.spokenLines.single().text)
++        assertEquals("Say this.", doc.text.substring(doc.spokenLines.single().startOffset, doc.spokenLines.single().endOffset))
++        assertEquals(1, doc.markOffsets.size)
++        assertEquals(2, doc.lineCueEnds.size)
++    }
++}

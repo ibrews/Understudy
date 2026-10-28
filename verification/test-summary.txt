@@ -1,0 +1,4 @@
+agilelens.understudy.model.WireCompatTest: 9 tests, 0 failures, 0 errors
+agilelens.understudy.teleprompter.PromptPlaybackTest: 8 tests, 0 failures, 0 errors
+agilelens.understudy.teleprompter.ScriptSamplesTest: 4 tests, 0 failures, 0 errors
+TOTAL: 21 tests; 0 failures; 0 errors

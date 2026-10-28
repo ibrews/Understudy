@@ -1,0 +1,1070 @@
+diff --git a/android/app/src/main/java/agilelens/understudy/teleprompter/Scripts.kt b/android/app/src/main/java/agilelens/understudy/teleprompter/Scripts.kt
+index 1ba8f12..c5c5140 100644
+--- a/android/app/src/main/java/agilelens/understudy/teleprompter/Scripts.kt
++++ b/android/app/src/main/java/agilelens/understudy/teleprompter/Scripts.kt
+@@ -8,9 +8,8 @@ import kotlinx.serialization.json.Json
+  * Loads the bundled play-script JSON assets lazily — one per play, cached
+  * after first read. Mirror of Swift's `Scripts` enum.
+  *
+- * Assets live at `app/src/main/assets/<name>.json`. They are byte-for-byte
+- * copies of `Understudy/Resources/<name>.json` (the iOS bundle), regenerated
+- * via `scripts/parse_hamlet.py` + `scripts/parse_modern.py`.
++ * Assets live at `app/src/main/assets/<name>.json`. Classic plays mirror the
++ * iOS bundle; original practice samples use the same PlayScript JSON format.
+  */
+ object Scripts {
+     /** Tolerant JSON config — plays use their own shape, not the Understudy
+@@ -24,6 +23,21 @@ object Scripts {
+         val displayName: String,
+         val assetName: String,   // e.g. "hamlet.json"
+         val author: String,
++        val isSample: Boolean = false,
++    )
++
++    val samples: List<PlayRef> = listOf(
++        PlayRef("The Last Work Light — monologue", "sample-stage-monologue.json", "Agile Lens", true),
++        PlayRef("Start With the Room — keynote", "sample-keynote-opener.json", "Agile Lens", true),
++        PlayRef("Platform Nine Minutes Late — film", "sample-film-scene.json", "Agile Lens", true),
++        PlayRef("Community Desk — news read", "sample-news-read.json", "Agile Lens", true),
++        PlayRef("To the People Who Stay — toast", "sample-toast.json", "Agile Lens", true),
++        PlayRef("A Cue Without Looking Down — demo", "sample-product-demo.json", "Agile Lens", true),
++        PlayRef("Why a Pause Carries Meaning — lecture", "sample-lecture.json", "Agile Lens", true),
++        PlayRef("Keep the Rehearsal Moving — 60-second pitch", "sample-sixty-second-pitch.json", "Agile Lens", true),
++        PlayRef("Readable Under Pressure — accessibility", "sample-accessibility.json", "Agile Lens", true),
++        PlayRef("The Spare Chair — multi-speaker", "sample-multi-speaker.json", "Agile Lens", true),
++        PlayRef("Alex: Android XR in Three Minutes", "sample-aura-walkthrough.json", "Agile Lens", true),
+     )
+ 
+     val all: List<PlayRef> = listOf(
+@@ -34,24 +48,28 @@ object Scripts {
+         PlayRef("The Importance of Being Earnest", "earnest.json", "Wilde"),
+         PlayRef("The Cherry Orchard", "cherry-orchard.json", "Chekhov"),
+         PlayRef("Three Sisters", "three-sisters.json", "Chekhov"),
+-    )
++    ) + samples
+ 
+     private val cache = mutableMapOf<String, PlayScript>()
+ 
+     /** Load and parse a script. Cached after first call. */
++    @Synchronized
+     fun load(context: Context, assetName: String): PlayScript? {
+         cache[assetName]?.let { return it }
+         return try {
+             val json = context.assets.open(assetName)
+                 .bufferedReader().use { it.readText() }
+-            val script = scriptJson.decodeFromString<PlayScript>(json)
++            val script = parse(json)
+             cache[assetName] = script
+             script
+-        } catch (t: Throwable) {
++        } catch (_: Exception) {
+             null
+         }
+     }
+ 
++    /** Same decoder for bundled assets and JVM import validation. */
++    fun parse(json: String): PlayScript = scriptJson.decodeFromString(json)
++
+     /** Load the default (first listed) script — Hamlet. */
+     fun defaultScript(context: Context): PlayScript? =
+         load(context, all.first().assetName)
+diff --git a/android/app/src/main/java/agilelens/understudy/teleprompter/ScriptImport.kt b/android/app/src/main/java/agilelens/understudy/teleprompter/ScriptImport.kt
+new file mode 100644
+index 0000000..4bb1845
+--- /dev/null
++++ b/android/app/src/main/java/agilelens/understudy/teleprompter/ScriptImport.kt
+@@ -0,0 +1,12 @@
++package agilelens.understudy.teleprompter
++
++import agilelens.understudy.model.Cue
++import agilelens.understudy.model.Id
++import agilelens.understudy.model.Mark
++
++/** Add a complete practice script without replacing existing cues or spatial settings. */
++fun Mark.withAppendedScript(script: PlayScript): Mark = copy(
++    cues = cues + script.allLines.map { line ->
++        Cue.Line(Id(), line.text, line.character)
++    }
++)
+diff --git a/android/app/src/main/java/agilelens/understudy/ui/ScriptBrowser.kt b/android/app/src/main/java/agilelens/understudy/ui/ScriptBrowser.kt
+index bc02957..4fd2b48 100644
+--- a/android/app/src/main/java/agilelens/understudy/ui/ScriptBrowser.kt
++++ b/android/app/src/main/java/agilelens/understudy/ui/ScriptBrowser.kt
+@@ -7,6 +7,12 @@ import agilelens.understudy.model.Pose
+ import agilelens.understudy.teleprompter.PlayScript
+ import agilelens.understudy.teleprompter.ScenePlacer
+ import agilelens.understudy.teleprompter.Scripts
++import agilelens.understudy.teleprompter.withAppendedScript
++import android.widget.Toast
++import kotlinx.coroutines.Dispatchers
++import kotlinx.coroutines.launch
++import kotlinx.coroutines.withContext
++import androidx.compose.foundation.lazy.LazyRow
+ import androidx.compose.foundation.background
+ import androidx.compose.ui.draw.clip
+ import androidx.compose.foundation.layout.*
+@@ -57,9 +63,13 @@ fun ScriptBrowserDialog(
+     onDismiss: () -> Unit,
+ ) {
+     val context = LocalContext.current
++    val scope = rememberCoroutineScope()
+ 
+     var playRef by remember { mutableStateOf(Scripts.all.first()) }
+     var script by remember { mutableStateOf<PlayScript?>(null) }
++    var loading by remember { mutableStateOf(true) }
++    var loadAttempt by remember { mutableStateOf(0) }
++    var addingSample by remember { mutableStateOf(false) }
+     var query by remember { mutableStateOf("") }
+     var sceneFilter by remember { mutableStateOf<SceneFilter>(SceneFilter.All) }
+     var showPlayMenu by remember { mutableStateOf(false) }
+@@ -67,8 +77,11 @@ fun ScriptBrowserDialog(
+     var dropSceneConfirm by remember { mutableStateOf<PlayScript.Scene?>(null) }
+ 
+     // Load the script whenever the play changes.
+-    LaunchedEffect(playRef) {
+-        script = Scripts.load(context, playRef.assetName)
++    LaunchedEffect(playRef, loadAttempt) {
++        loading = true
++        script = null
++        script = withContext(Dispatchers.IO) { Scripts.load(context, playRef.assetName) }
++        loading = false
+     }
+ 
+     Dialog(
+@@ -147,6 +160,27 @@ fun ScriptBrowserDialog(
+                     )
+                 }
+ 
++                Text("Add a sample to this mark", color = Color.White,
++                    fontSize = 12.sp, modifier = Modifier.padding(horizontal = 16.dp))
++                LazyRow(contentPadding = PaddingValues(horizontal = 12.dp),
++                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
++                    items(Scripts.samples, key = { it.assetName }) { sample ->
++                        OutlinedButton(enabled = !addingSample, onClick = {
++                            addingSample = true
++                            scope.launch {
++                                val loaded = withContext(Dispatchers.IO) { Scripts.load(context, sample.assetName) }
++                                if (loaded != null) {
++                                    onMarkChange(currentMark.withAppendedScript(loaded))
++                                    onDismiss()
++                                } else {
++                                    Toast.makeText(context, "Could not load this sample. Try another script.", Toast.LENGTH_LONG).show()
++                                }
++                                addingSample = false
++                            }
++                        }) { Text(sample.displayName, fontSize = 12.sp) }
++                    }
++                }
++
+                 // Search bar
+                 Row(
+                     modifier = Modifier
+@@ -214,8 +248,13 @@ fun ScriptBrowserDialog(
+                 }
+                 Divider(color = Color.White.copy(alpha = 0.1f), thickness = 1.dp)
+ 
+-                // List of lines
+-                LineList(
++                // A failed asset load is an error, not an endless loading spinner.
++                if (!loading && script == null) {
++                    Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
++                        Text("Could not load this script. Try again or choose another script.", color = Color.White)
++                        TextButton(onClick = { loadAttempt++ }) { Text("Try again") }
++                    }
++                } else LineList(
+                     script = script,
+                     query = query,
+                     sceneFilter = sceneFilter,
+diff --git a/android/app/src/test/java/agilelens/understudy/teleprompter/ScriptSamplesTest.kt b/android/app/src/test/java/agilelens/understudy/teleprompter/ScriptSamplesTest.kt
+new file mode 100644
+index 0000000..11645bc
+--- /dev/null
++++ b/android/app/src/test/java/agilelens/understudy/teleprompter/ScriptSamplesTest.kt
+@@ -0,0 +1,65 @@
++package agilelens.understudy.teleprompter
++
++import agilelens.understudy.model.*
++import kotlinx.serialization.encodeToString
++import kotlinx.serialization.json.Json
++import org.junit.Assert.*
++import org.junit.Test
++import java.io.File
++
++class ScriptSamplesTest {
++    private val assets = File("src/main/assets")
++
++    @Test fun allBundledScriptsUseTheProductionDecoderAndRoundTrip() {
++        assertEquals("hamlet.json", Scripts.all.first().assetName)
++        assertTrue(Scripts.samples.size >= 11)
++        assertEquals(Scripts.all.size, Scripts.all.map { it.assetName }.toSet().size)
++        for (ref in Scripts.all) {
++            val script = Scripts.parse(File(assets, ref.assetName).readText())
++            assertTrue(ref.assetName, script.allLines.isNotEmpty())
++            assertEquals(script, Scripts.parse(Json.encodeToString(script)))
++            assertTrue(script.allLines.all { it.text.isNotBlank() && it.character.isNotBlank() })
++            assertEquals(script.allLines.size, script.allLines.map { it.lineID }.toSet().size)
++            assertTrue(script.allLines.all { it.lineID.matches(Regex("[0-9]+\\.[0-9]+\\.[0-9]+")) })
++        }
++    }
++
++    @Test fun oneTapImportPreservesExistingCuesAndAppendsInReadingOrder() {
++        val note = Cue.Note(Id("note"), "Keep the existing stage direction")
++        val original = Mark(Id("mark"), "Opening", Pose(x = 2f), sequenceIndex = 4, cues = listOf(note))
++        for (sample in Scripts.samples) {
++            val script = Scripts.parse(File(assets, sample.assetName).readText())
++            val loaded = original.withAppendedScript(script)
++            assertEquals(original.id, loaded.id)
++            assertEquals(original.pose, loaded.pose)
++            assertEquals(original.sequenceIndex, loaded.sequenceIndex)
++            assertEquals(note, loaded.cues.first())
++            val lines = loaded.cues.filterIsInstance<Cue.Line>()
++            assertEquals(script.allLines.map { it.text }, lines.map { it.text })
++            assertEquals(script.allLines.map { it.character }, lines.map { it.character })
++            assertEquals(lines.size, lines.map { it.id }.toSet().size)
++            assertEquals(listOf(note), original.cues)
++            val doc = TeleprompterDocument.from(Blocking(Id(), createdAt = "", modifiedAt = "", marks = listOf(loaded)))
++            assertEquals(lines.size, doc.spokenLines.size)
++            assertEquals(lines.first().text.take(20), PromptPlayback.prompt(doc, 0.0)!!.text.take(20))
++        }
++    }
++
++    @Test fun demoIsAboutThreeMinutesAndDoesNotAssertDeviceReadiness() {
++        val demo = Scripts.parse(File(assets, "sample-aura-walkthrough.json").readText())
++        val text = demo.allLines.joinToString(" ") { it.text }
++        val words = text.split(Regex("\\s+")).size
++        assertTrue("$words words", words in 350..430)
++        for (topic in listOf("XREAL Aura", "AuraColocate", "Unreal 5.8.4", "foveation", "hands", "splat", "Stage Presence", "Understudy")) {
++            assertTrue(topic, text.contains(topic))
++        }
++        assertTrue(text.contains("If"))
++        assertTrue(text.contains("separate glasses companion"))
++    }
++
++    @Test fun malformedAndUnknownEntryKindsFailInsteadOfSilentlyDroppingDialogue() {
++        for (json in listOf("not JSON", "{}", """{"title":"Bad","author":"Test","acts":[{"number":1,"roman":"I","scenes":[{"number":1,"roman":"I","location":"","entries":[{"kind":"unknown","text":"Keep me"}]}]}]}""")) {
++            assertTrue(runCatching { Scripts.parse(json) }.isFailure)
++        }
++    }
++}
+diff --git a/android/app/src/main/assets/sample-accessibility.json b/android/app/src/main/assets/sample-accessibility.json
+new file mode 100644
+index 0000000..378cb24
+--- /dev/null
++++ b/android/app/src/main/assets/sample-accessibility.json
+@@ -0,0 +1,72 @@
++{
++  "title": "Readable Under Pressure",
++  "author": "Agile Lens",
++  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
++  "acts": [
++    {
++      "number": 1,
++      "roman": "I",
++      "scenes": [
++        {
++          "number": 1,
++          "roman": "I",
++          "location": "Accessibility and long-word test",
++          "entries": [
++            {
++              "kind": "stage",
++              "text": "Original rehearsal text. Pause and resume at your own pace."
++            },
++            {
++              "kind": "line",
++              "character": "READER",
++              "text": "Start slowly. Pause. Resume. Return to the beginning, then find this sentence again.",
++              "lineID": "1.1.1"
++            },
++            {
++              "kind": "line",
++              "character": "READER",
++              "text": "Distinguish these characters: capital I, lowercase l, and the number 1. Read zero, capital O, eight, capital B, five, and capital S.",
++              "lineID": "1.1.2"
++            },
++            {
++              "kind": "line",
++              "character": "READER",
++              "text": "Read these numbers: 14:50, 15:10, 2026, 0.05, 1,250, and negative forty-two.",
++              "lineID": "1.1.3"
++            },
++            {
++              "kind": "line",
++              "character": "READER",
++              "text": "Long words follow: internationalization, counterrevolutionaries, electroencephalographically, pneumonoultramicroscopicsilicovolcanoconiosis.",
++              "lineID": "1.1.4"
++            },
++            {
++              "kind": "line",
++              "character": "READER",
++              "text": "Now read a deliberately unbroken token: antidisestablishmentarianismantidisestablishmentarianismantidisestablishmentarianism.",
++              "lineID": "1.1.5"
++            },
++            {
++              "kind": "line",
++              "character": "READER",
++              "text": "Quotation marks matter: “Hold,” she said. Apostrophes matter: we’re ready; don’t rush. An em dash can hold a thought—then release it.",
++              "lineID": "1.1.6"
++            },
++            {
++              "kind": "line",
++              "character": "READER",
++              "text": "Unicode check: café, naïve, résumé, and a smiling face 😀. A line break follows.\nThis sentence begins on a new line.",
++              "lineID": "1.1.7"
++            },
++            {
++              "kind": "line",
++              "character": "READER",
++              "text": "Look away for one breath. Find the cyan words. Check whether the last sentence is still visible when the script finishes.",
++              "lineID": "1.1.8"
++            }
++          ]
++        }
++      ]
++    }
++  ]
++}
+diff --git a/android/app/src/main/assets/sample-aura-walkthrough.json b/android/app/src/main/assets/sample-aura-walkthrough.json
+new file mode 100644
+index 0000000..c34c60a
+--- /dev/null
++++ b/android/app/src/main/assets/sample-aura-walkthrough.json
+@@ -0,0 +1,72 @@
++{
++  "title": "Alex: Android XR in Three Minutes",
++  "author": "Agile Lens",
++  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
++  "acts": [
++    {
++      "number": 1,
++      "roman": "I",
++      "scenes": [
++        {
++          "number": 1,
++          "roman": "I",
++          "location": "Demo walkthrough, about three minutes at 130 words per minute",
++          "entries": [
++            {
++              "kind": "stage",
++              "text": "Original rehearsal text. Pause and resume at your own pace."
++            },
++            {
++              "kind": "line",
++              "character": "ALEX",
++              "text": "Hi, I’m Alex. I make spatial tools for people who work with performance, film, and real spaces. I want to show you a few things we are testing on Android XR. I’ll keep the working pieces separate from the pieces that still need work.",
++              "lineID": "1.1.1"
++            },
++            {
++              "kind": "line",
++              "character": "ALEX",
++              "text": "I’ll start with the XREAL Aura. The first thing to look for is presence: does the character feel like it is sharing this room? If the MetaHuman build is ready, I’ll use that. Watch the head, the hands, and the response when I move.",
++              "lineID": "1.1.2"
++            },
++            {
++              "kind": "line",
++              "character": "ALEX",
++              "text": "The next part is AuraColocate. The point is a shared space. Two people should agree about where the character is. If we have a second device ready, I’ll show that agreement directly. If we don’t, I’ll tell you what we have actually tested.",
++              "lineID": "1.1.3"
++            },
++            {
++              "kind": "line",
++              "character": "ALEX",
++              "text": "Underneath this work is our Unreal 5.8.4 fork. We have been working on foveation, live controls, and hands. I’m interested in what those changes let us do in a scene, and what the device measurements say. I’ll use the numbers from this build rather than guess.",
++              "lineID": "1.1.4"
++            },
++            {
++              "kind": "line",
++              "character": "ALEX",
++              "text": "I also want to show the splat work from the UOXR showcase. A captured place gives us a different starting point from a modeled set. Look at the edges and what happens when I change my viewpoint. If that build is not ready, I’ll skip it and show you the next working piece.",
++              "lineID": "1.1.5"
++            },
++            {
++              "kind": "line",
++              "character": "ALEX",
++              "text": "Stage Presence is another way into the same question: how do you feel another person in a space? I’ll show the Aura version if it has passed its device check. I’m not going to turn a build that merely compiles into a claim that it works.",
++              "lineID": "1.1.6"
++            },
++            {
++              "kind": "line",
++              "character": "ALEX",
++              "text": "Now for a smaller display. This is the Teleprompter inside Understudy. The phone holds the controls, and the AI glasses show my next words. This is a separate glasses companion demonstration. It is not proof that the Aura runs this projected-display path.",
++              "lineID": "1.1.7"
++            },
++            {
++              "kind": "line",
++              "character": "ALEX",
++              "text": "I can pause, look at you, and pick up the thought again. I can use a short prompt or a flowing script. For an actor, teacher, or presenter, that is the test: does the tool help me stay with the person in front of me? Tell me where your attention went.",
++              "lineID": "1.1.8"
++            }
++          ]
++        }
++      ]
++    }
++  ]
++}
+diff --git a/android/app/src/main/assets/sample-film-scene.json b/android/app/src/main/assets/sample-film-scene.json
+new file mode 100644
+index 0000000..e434cb0
+--- /dev/null
++++ b/android/app/src/main/assets/sample-film-scene.json
+@@ -0,0 +1,84 @@
++{
++  "title": "Platform Nine Minutes Late",
++  "author": "Agile Lens",
++  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
++  "acts": [
++    {
++      "number": 1,
++      "roman": "I",
++      "scenes": [
++        {
++          "number": 1,
++          "roman": "I",
++          "location": "Film scene",
++          "entries": [
++            {
++              "kind": "stage",
++              "text": "Original rehearsal text. Pause and resume at your own pace."
++            },
++            {
++              "kind": "line",
++              "character": "LEAH",
++              "text": "The board says nine minutes. It said nine minutes when we got here.",
++              "lineID": "1.1.1"
++            },
++            {
++              "kind": "line",
++              "character": "DEV",
++              "text": "Maybe it is a very consistent train.",
++              "lineID": "1.1.2"
++            },
++            {
++              "kind": "line",
++              "character": "LEAH",
++              "text": "Did you bring the envelope?",
++              "lineID": "1.1.3"
++            },
++            {
++              "kind": "line",
++              "character": "DEV",
++              "text": "I brought a photograph of the envelope. The envelope is on the kitchen table.",
++              "lineID": "1.1.4"
++            },
++            {
++              "kind": "line",
++              "character": "LEAH",
++              "text": "Tell me there is a useful second half to that sentence.",
++              "lineID": "1.1.5"
++            },
++            {
++              "kind": "line",
++              "character": "DEV",
++              "text": "The address is in the photograph. We could go there and ask the question ourselves.",
++              "lineID": "1.1.6"
++            },
++            {
++              "kind": "line",
++              "character": "LEAH",
++              "text": "We rehearsed a quiet delivery. Put it through the slot. Walk away.",
++              "lineID": "1.1.7"
++            },
++            {
++              "kind": "line",
++              "character": "DEV",
++              "text": "We have been rehearsing walking away for six years.",
++              "lineID": "1.1.8"
++            },
++            {
++              "kind": "line",
++              "character": "LEAH",
++              "text": "The board says eight minutes.",
++              "lineID": "1.1.9"
++            },
++            {
++              "kind": "line",
++              "character": "DEV",
++              "text": "Then we have time to decide.",
++              "lineID": "1.1.10"
++            }
++          ]
++        }
++      ]
++    }
++  ]
++}
+diff --git a/android/app/src/main/assets/sample-keynote-opener.json b/android/app/src/main/assets/sample-keynote-opener.json
+new file mode 100644
+index 0000000..6c117a1
+--- /dev/null
++++ b/android/app/src/main/assets/sample-keynote-opener.json
+@@ -0,0 +1,54 @@
++{
++  "title": "Start With the Room",
++  "author": "Agile Lens",
++  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
++  "acts": [
++    {
++      "number": 1,
++      "roman": "I",
++      "scenes": [
++        {
++          "number": 1,
++          "roman": "I",
++          "location": "Keynote opener",
++          "entries": [
++            {
++              "kind": "stage",
++              "text": "Original rehearsal text. Pause and resume at your own pace."
++            },
++            {
++              "kind": "line",
++              "character": "SPEAKER",
++              "text": "Before we talk about a new tool, look at the room. People found seats. Someone moved a cable. Someone made sure the door would open.",
++              "lineID": "1.1.1"
++            },
++            {
++              "kind": "line",
++              "character": "SPEAKER",
++              "text": "That work is easy to miss because it worked. Good tools have a similar problem. When they help, the task becomes the story.",
++              "lineID": "1.1.2"
++            },
++            {
++              "kind": "line",
++              "character": "SPEAKER",
++              "text": "Today I want to show three small tasks. We will try each one, look at what happened, and say where it still breaks.",
++              "lineID": "1.1.3"
++            },
++            {
++              "kind": "line",
++              "character": "SPEAKER",
++              "text": "You do not need to agree with my conclusions. Watch for the moment when you would reach for a different tool.",
++              "lineID": "1.1.4"
++            },
++            {
++              "kind": "line",
++              "character": "SPEAKER",
++              "text": "If we can name that moment clearly, this hour will have been useful. Let us start with something we can test together.",
++              "lineID": "1.1.5"
++            }
++          ]
++        }
++      ]
++    }
++  ]
++}
+diff --git a/android/app/src/main/assets/sample-lecture.json b/android/app/src/main/assets/sample-lecture.json
+new file mode 100644
+index 0000000..b3ec35d
+--- /dev/null
++++ b/android/app/src/main/assets/sample-lecture.json
+@@ -0,0 +1,66 @@
++{
++  "title": "Why a Pause Carries Meaning",
++  "author": "Agile Lens",
++  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
++  "acts": [
++    {
++      "number": 1,
++      "roman": "I",
++      "scenes": [
++        {
++          "number": 1,
++          "roman": "I",
++          "location": "Short lecture",
++          "entries": [
++            {
++              "kind": "stage",
++              "text": "Original rehearsal text. Pause and resume at your own pace."
++            },
++            {
++              "kind": "line",
++              "character": "LECTURER",
++              "text": "A pause is part of a sentence, even though it leaves no word on the page.",
++              "lineID": "1.1.1"
++            },
++            {
++              "kind": "line",
++              "character": "LECTURER",
++              "text": "Consider this instruction: wait, then cross. The pause separates noticing from moving. Remove it, and the instruction feels different.",
++              "lineID": "1.1.2"
++            },
++            {
++              "kind": "line",
++              "character": "LECTURER",
++              "text": "An actor uses that space to let a thought change. A teacher uses it to let a question land. A reader uses it to breathe.",
++              "lineID": "1.1.3"
++            },
++            {
++              "kind": "line",
++              "character": "LECTURER",
++              "text": "A teleprompter can offer timing, but it cannot decide what the silence means. That choice belongs to the person speaking.",
++              "lineID": "1.1.4"
++            },
++            {
++              "kind": "line",
++              "character": "LECTURER",
++              "text": "Try this experiment. Read the next sentence once quickly, then once with a pause after the first phrase.",
++              "lineID": "1.1.5"
++            },
++            {
++              "kind": "line",
++              "character": "LECTURER",
++              "text": "When the door opened, nobody moved.",
++              "lineID": "1.1.6"
++            },
++            {
++              "kind": "line",
++              "character": "LECTURER",
++              "text": "The words stayed the same. The attention shifted. That is why a useful reading tool must let you stop without losing your place.",
++              "lineID": "1.1.7"
++            }
++          ]
++        }
++      ]
++    }
++  ]
++}
+diff --git a/android/app/src/main/assets/sample-multi-speaker.json b/android/app/src/main/assets/sample-multi-speaker.json
+new file mode 100644
+index 0000000..e794a1f
+--- /dev/null
++++ b/android/app/src/main/assets/sample-multi-speaker.json
+@@ -0,0 +1,96 @@
++{
++  "title": "The Spare Chair",
++  "author": "Agile Lens",
++  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
++  "acts": [
++    {
++      "number": 1,
++      "roman": "I",
++      "scenes": [
++        {
++          "number": 1,
++          "roman": "I",
++          "location": "Multi-speaker rehearsal",
++          "entries": [
++            {
++              "kind": "stage",
++              "text": "Original rehearsal text. Pause and resume at your own pace."
++            },
++            {
++              "kind": "line",
++              "character": "AVA",
++              "text": "We have five people and four chairs.",
++              "lineID": "1.1.1"
++            },
++            {
++              "kind": "line",
++              "character": "BEN",
++              "text": "I can stand.",
++              "lineID": "1.1.2"
++            },
++            {
++              "kind": "line",
++              "character": "CHRIS",
++              "text": "You stood through the last meeting. Take mine.",
++              "lineID": "1.1.3"
++            },
++            {
++              "kind": "line",
++              "character": "DANA",
++              "text": "There is a spare chair in the hall.",
++              "lineID": "1.1.4"
++            },
++            {
++              "kind": "line",
++              "character": "AVA",
++              "text": "Then why are we negotiating?",
++              "lineID": "1.1.5"
++            },
++            {
++              "kind": "line",
++              "character": "BEN",
++              "text": "Because the spare chair has a sign on it.",
++              "lineID": "1.1.6"
++            },
++            {
++              "kind": "line",
++              "character": "CHRIS",
++              "text": "What does it say?",
++              "lineID": "1.1.7"
++            },
++            {
++              "kind": "line",
++              "character": "DANA",
++              "text": "Please do not move this chair.",
++              "lineID": "1.1.8"
++            },
++            {
++              "kind": "line",
++              "character": "AVA",
++              "text": "Who wrote it?",
++              "lineID": "1.1.9"
++            },
++            {
++              "kind": "line",
++              "character": "BEN",
++              "text": "I did. Last week. We needed it for this meeting.",
++              "lineID": "1.1.10"
++            },
++            {
++              "kind": "line",
++              "character": "CHRIS",
++              "text": "Good planning.",
++              "lineID": "1.1.11"
++            },
++            {
++              "kind": "line",
++              "character": "DANA",
++              "text": "I will get the chair.",
++              "lineID": "1.1.12"
++            }
++          ]
++        }
++      ]
++    }
++  ]
++}
+diff --git a/android/app/src/main/assets/sample-news-read.json b/android/app/src/main/assets/sample-news-read.json
+new file mode 100644
+index 0000000..ff013f2
+--- /dev/null
++++ b/android/app/src/main/assets/sample-news-read.json
+@@ -0,0 +1,60 @@
++{
++  "title": "Community Desk Practice Read",
++  "author": "Agile Lens",
++  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
++  "acts": [
++    {
++      "number": 1,
++      "roman": "I",
++      "scenes": [
++        {
++          "number": 1,
++          "roman": "I",
++          "location": "Fictional news read",
++          "entries": [
++            {
++              "kind": "stage",
++              "text": "Original rehearsal text. Pause and resume at your own pace."
++            },
++            {
++              "kind": "line",
++              "character": "ANCHOR",
++              "text": "This is a fictional practice bulletin. In our imagined town of Harbor Junction, the public library is opening a tool lending desk.",
++              "lineID": "1.1.1"
++            },
++            {
++              "kind": "line",
++              "character": "ANCHOR",
++              "text": "Residents in this exercise can borrow a drill, a measuring tape, or a small repair kit. The fictional program begins on Saturday at ten.",
++              "lineID": "1.1.2"
++            },
++            {
++              "kind": "line",
++              "character": "ANCHOR",
++              "text": "The practice announcement asks borrowers to return each item clean and report any damage. Staff will offer a short safety orientation.",
++              "lineID": "1.1.3"
++            },
++            {
++              "kind": "line",
++              "character": "ANCHOR",
++              "text": "In other imaginary local news, volunteers have finished repainting the footbridge beside the community garden.",
++              "lineID": "1.1.4"
++            },
++            {
++              "kind": "line",
++              "character": "ANCHOR",
++              "text": "For this reading exercise, pause here, look up, and return to the next sentence without rushing.",
++              "lineID": "1.1.5"
++            },
++            {
++              "kind": "line",
++              "character": "ANCHOR",
++              "text": "That concludes our fictional community desk bulletin. No real opening hours, weather conditions, or public service instructions are being reported.",
++              "lineID": "1.1.6"
++            }
++          ]
++        }
++      ]
++    }
++  ]
++}
+diff --git a/android/app/src/main/assets/sample-product-demo.json b/android/app/src/main/assets/sample-product-demo.json
+new file mode 100644
+index 0000000..9de3546
+--- /dev/null
++++ b/android/app/src/main/assets/sample-product-demo.json
+@@ -0,0 +1,66 @@
++{
++  "title": "A Cue Without Looking Down",
++  "author": "Agile Lens",
++  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
++  "acts": [
++    {
++      "number": 1,
++      "roman": "I",
++      "scenes": [
++        {
++          "number": 1,
++          "roman": "I",
++          "location": "Product demo",
++          "entries": [
++            {
++              "kind": "stage",
++              "text": "Original rehearsal text. Pause and resume at your own pace."
++            },
++            {
++              "kind": "line",
++              "character": "DEMO",
++              "text": "I am going to read a short scene while keeping my eyes up. The phone controls the script. The glasses show the words.",
++              "lineID": "1.1.1"
++            },
++            {
++              "kind": "line",
++              "character": "DEMO",
++              "text": "First I will use the single-line view. Watch the cue change as I move through the text. A long cue is divided into smaller pages.",
++              "lineID": "1.1.2"
++            },
++            {
++              "kind": "line",
++              "character": "DEMO",
++              "text": "Now I will switch to the flowing view. The active words are cyan. Earlier words dim, and the next words stay white.",
++              "lineID": "1.1.3"
++            },
++            {
++              "kind": "line",
++              "character": "DEMO",
++              "text": "I can pause here. Nothing should keep moving while I explain what you are seeing.",
++              "lineID": "1.1.4"
++            },
++            {
++              "kind": "line",
++              "character": "DEMO",
++              "text": "I can change the speed, resume, or drag back to a place I want to rehearse. Those controls stay on the phone.",
++              "lineID": "1.1.5"
++            },
++            {
++              "kind": "line",
++              "character": "DEMO",
++              "text": "This is a rehearsal aid. If I lose the connection, I will check it and reopen the glasses display from the phone.",
++              "lineID": "1.1.6"
++            },
++            {
++              "kind": "line",
++              "character": "DEMO",
++              "text": "The useful test is simple: can I keep the thought, find the next line, and keep looking at the person in front of me?",
++              "lineID": "1.1.7"
++            }
++          ]
++        }
++      ]
++    }
++  ]
++}
+diff --git a/android/app/src/main/assets/sample-sixty-second-pitch.json b/android/app/src/main/assets/sample-sixty-second-pitch.json
+new file mode 100644
+index 0000000..52cd031
+--- /dev/null
++++ b/android/app/src/main/assets/sample-sixty-second-pitch.json
+@@ -0,0 +1,54 @@
++{
++  "title": "Keep the Rehearsal Moving",
++  "author": "Agile Lens",
++  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
++  "acts": [
++    {
++      "number": 1,
++      "roman": "I",
++      "scenes": [
++        {
++          "number": 1,
++          "roman": "I",
++          "location": "60-second pitch at about 135 words per minute",
++          "entries": [
++            {
++              "kind": "stage",
++              "text": "Original rehearsal text. Pause and resume at your own pace."
++            },
++            {
++              "kind": "line",
++              "character": "PITCH",
++              "text": "A performer should not have to choose between remembering a line and looking at another person. Understudy explores a simple way to keep the next words nearby.",
++              "lineID": "1.1.1"
++            },
++            {
++              "kind": "line",
++              "character": "PITCH",
++              "text": "A director arranges marks and dialogue. A phone drives the reading position. A connected glasses display shows a short prompt or a flowing script.",
++              "lineID": "1.1.2"
++            },
++            {
++              "kind": "line",
++              "character": "PITCH",
++              "text": "The point is not to replace rehearsal. It is to remove a small interruption so people can spend more time working on the scene.",
++              "lineID": "1.1.3"
++            },
++            {
++              "kind": "line",
++              "character": "PITCH",
++              "text": "We can test that directly. Load a short script, read it with a partner, pause in the middle, and find the next line again.",
++              "lineID": "1.1.4"
++            },
++            {
++              "kind": "line",
++              "character": "PITCH",
++              "text": "Then tell us where the display helped and where it pulled your attention away. That answer is more useful than a polished claim. We want a tool that earns its place in the room.",
++              "lineID": "1.1.5"
++            }
++          ]
++        }
++      ]
++    }
++  ]
++}
+diff --git a/android/app/src/main/assets/sample-stage-monologue.json b/android/app/src/main/assets/sample-stage-monologue.json
+new file mode 100644
+index 0000000..7a582cc
+--- /dev/null
++++ b/android/app/src/main/assets/sample-stage-monologue.json
+@@ -0,0 +1,72 @@
++{
++  "title": "The Last Work Light",
++  "author": "Agile Lens",
++  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
++  "acts": [
++    {
++      "number": 1,
++      "roman": "I",
++      "scenes": [
++        {
++          "number": 1,
++          "roman": "I",
++          "location": "Stage monologue",
++          "entries": [
++            {
++              "kind": "stage",
++              "text": "Original rehearsal text. Pause and resume at your own pace."
++            },
++            {
++              "kind": "line",
++              "character": "MARA",
++              "text": "Leave that light on for a minute. I know the room is empty. That is why I can finally hear it.",
++              "lineID": "1.1.1"
++            },
++            {
++              "kind": "line",
++              "character": "MARA",
++              "text": "Yesterday there were twelve people here telling me where to stand. Tonight the floor has stopped giving orders.",
++              "lineID": "1.1.2"
++            },
++            {
++              "kind": "line",
++              "character": "MARA",
++              "text": "This mark is where I said goodbye. Two feet to the left is where I meant it. That is a small distance until you have to cross it.",
++              "lineID": "1.1.3"
++            },
++            {
++              "kind": "line",
++              "character": "MARA",
++              "text": "My father built sets. He could make a painted door sound like oak, but he could never leave a real door without checking the latch.",
++              "lineID": "1.1.4"
++            },
++            {
++              "kind": "line",
++              "character": "MARA",
++              "text": "I used to think that was fear. Now I think it was care. Someone had to know the room would hold after everyone went home.",
++              "lineID": "1.1.5"
++            },
++            {
++              "kind": "line",
++              "character": "MARA",
++              "text": "Tomorrow I will walk out there and say the line. I will probably put the emphasis in the wrong place. People survive that.",
++              "lineID": "1.1.6"
++            },
++            {
++              "kind": "line",
++              "character": "MARA",
++              "text": "What I cannot do is wait until I am certain. Certainty has missed every rehearsal we invited it to.",
++              "lineID": "1.1.7"
++            },
++            {
++              "kind": "line",
++              "character": "MARA",
++              "text": "All right. Turn it off. I know where the door is now.",
++              "lineID": "1.1.8"
++            }
++          ]
++        }
++      ]
++    }
++  ]
++}
+diff --git a/android/app/src/main/assets/sample-toast.json b/android/app/src/main/assets/sample-toast.json
+new file mode 100644
+index 0000000..0248ec9
+--- /dev/null
++++ b/android/app/src/main/assets/sample-toast.json
+@@ -0,0 +1,60 @@
++{
++  "title": "To the People Who Stay",
++  "author": "Agile Lens",
++  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
++  "acts": [
++    {
++      "number": 1,
++      "roman": "I",
++      "scenes": [
++        {
++          "number": 1,
++          "roman": "I",
++          "location": "Toast",
++          "entries": [
++            {
++              "kind": "stage",
++              "text": "Original rehearsal text. Pause and resume at your own pace."
++            },
++            {
++              "kind": "line",
++              "character": "HOST",
++              "text": "I will keep this short enough that the ice can survive it.",
++              "lineID": "1.1.1"
++            },
++            {
++              "kind": "line",
++              "character": "HOST",
++              "text": "We often celebrate the person who has the idea. Tonight I want to celebrate the people who stay when the idea becomes work.",
++              "lineID": "1.1.2"
++            },
++            {
++              "kind": "line",
++              "character": "HOST",
++              "text": "The people who bring another chair. The people who ask whether you ate. The people who can tell that your cheerful message means you need help.",
++              "lineID": "1.1.3"
++            },
++            {
++              "kind": "line",
++              "character": "HOST",
++              "text": "You have done that for us, in ways large enough to change a year and small enough that you probably forgot them.",
++              "lineID": "1.1.4"
++            },
++            {
++              "kind": "line",
++              "character": "HOST",
++              "text": "We did not forget. Raise a glass to the time you gave, the room you made, and the next ordinary evening we get to share.",
++              "lineID": "1.1.5"
++            },
++            {
++              "kind": "line",
++              "character": "HOST",
++              "text": "To all of you. Thank you for staying.",
++              "lineID": "1.1.6"
++            }
++          ]
++        }
++      ]
++    }
++  ]
++}

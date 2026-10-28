@@ -1,0 +1,72 @@
+{
+  "title": "Readable Under Pressure",
+  "author": "Agile Lens",
+  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
+  "acts": [
+    {
+      "number": 1,
+      "roman": "I",
+      "scenes": [
+        {
+          "number": 1,
+          "roman": "I",
+          "location": "Accessibility and long-word test",
+          "entries": [
+            {
+              "kind": "stage",
+              "text": "Original rehearsal text. Pause and resume at your own pace."
+            },
+            {
+              "kind": "line",
+              "character": "READER",
+              "text": "Start slowly. Pause. Resume. Return to the beginning, then find this sentence again.",
+              "lineID": "1.1.1"
+            },
+            {
+              "kind": "line",
+              "character": "READER",
+              "text": "Distinguish these characters: capital I, lowercase l, and the number 1. Read zero, capital O, eight, capital B, five, and capital S.",
+              "lineID": "1.1.2"
+            },
+            {
+              "kind": "line",
+              "character": "READER",
+              "text": "Read these numbers: 14:50, 15:10, 2026, 0.05, 1,250, and negative forty-two.",
+              "lineID": "1.1.3"
+            },
+            {
+              "kind": "line",
+              "character": "READER",
+              "text": "Long words follow: internationalization, counterrevolutionaries, electroencephalographically, pneumonoultramicroscopicsilicovolcanoconiosis.",
+              "lineID": "1.1.4"
+            },
+            {
+              "kind": "line",
+              "character": "READER",
+              "text": "Now read a deliberately unbroken token: antidisestablishmentarianismantidisestablishmentarianismantidisestablishmentarianism.",
+              "lineID": "1.1.5"
+            },
+            {
+              "kind": "line",
+              "character": "READER",
+              "text": "Quotation marks matter: “Hold,” she said. Apostrophes matter: we’re ready; don’t rush. An em dash can hold a thought—then release it.",
+              "lineID": "1.1.6"
+            },
+            {
+              "kind": "line",
+              "character": "READER",
+              "text": "Unicode check: café, naïve, résumé, and a smiling face 😀. A line break follows.\nThis sentence begins on a new line.",
+              "lineID": "1.1.7"
+            },
+            {
+              "kind": "line",
+              "character": "READER",
+              "text": "Look away for one breath. Find the cyan words. Check whether the last sentence is still visible when the script finishes.",
+              "lineID": "1.1.8"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

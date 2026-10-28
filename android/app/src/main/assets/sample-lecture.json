@@ -1,0 +1,66 @@
+{
+  "title": "Why a Pause Carries Meaning",
+  "author": "Agile Lens",
+  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
+  "acts": [
+    {
+      "number": 1,
+      "roman": "I",
+      "scenes": [
+        {
+          "number": 1,
+          "roman": "I",
+          "location": "Short lecture",
+          "entries": [
+            {
+              "kind": "stage",
+              "text": "Original rehearsal text. Pause and resume at your own pace."
+            },
+            {
+              "kind": "line",
+              "character": "LECTURER",
+              "text": "A pause is part of a sentence, even though it leaves no word on the page.",
+              "lineID": "1.1.1"
+            },
+            {
+              "kind": "line",
+              "character": "LECTURER",
+              "text": "Consider this instruction: wait, then cross. The pause separates noticing from moving. Remove it, and the instruction feels different.",
+              "lineID": "1.1.2"
+            },
+            {
+              "kind": "line",
+              "character": "LECTURER",
+              "text": "An actor uses that space to let a thought change. A teacher uses it to let a question land. A reader uses it to breathe.",
+              "lineID": "1.1.3"
+            },
+            {
+              "kind": "line",
+              "character": "LECTURER",
+              "text": "A teleprompter can offer timing, but it cannot decide what the silence means. That choice belongs to the person speaking.",
+              "lineID": "1.1.4"
+            },
+            {
+              "kind": "line",
+              "character": "LECTURER",
+              "text": "Try this experiment. Read the next sentence once quickly, then once with a pause after the first phrase.",
+              "lineID": "1.1.5"
+            },
+            {
+              "kind": "line",
+              "character": "LECTURER",
+              "text": "When the door opened, nobody moved.",
+              "lineID": "1.1.6"
+            },
+            {
+              "kind": "line",
+              "character": "LECTURER",
+              "text": "The words stayed the same. The attention shifted. That is why a useful reading tool must let you stop without losing your place.",
+              "lineID": "1.1.7"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

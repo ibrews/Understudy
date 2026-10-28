@@ -1,0 +1,15 @@
+{
+  "project": "Understudy Android",
+  "lane": "T1 teleprompter pass",
+  "application_id": "agilelens.understudy",
+  "version_code": 39,
+  "version_name": "0.36",
+  "artifact": "/Users/alex/Archives/overnight-androidxr-2026-10/out/t1-teleprompter/wt/android/app/build/outputs/apk/debug/app-debug.apk",
+  "sha256": "3fee70b0fda6ef8976637696337d28a000d8f4746353f6c910c31a914674830b",
+  "bytes": 20846337,
+  "source_head": "38d197dbe6d24d12ab863563f1ac97c5c0ee89bb",
+  "source_state": "uncommitted T1 changes; see two patches",
+  "bundled_sample_count": 11,
+  "bundled_samples_match_source": true,
+  "evidence_stage": "assembled; not installed or device tested"
+}

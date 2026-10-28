@@ -1,0 +1,60 @@
+{
+  "title": "To the People Who Stay",
+  "author": "Agile Lens",
+  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
+  "acts": [
+    {
+      "number": 1,
+      "roman": "I",
+      "scenes": [
+        {
+          "number": 1,
+          "roman": "I",
+          "location": "Toast",
+          "entries": [
+            {
+              "kind": "stage",
+              "text": "Original rehearsal text. Pause and resume at your own pace."
+            },
+            {
+              "kind": "line",
+              "character": "HOST",
+              "text": "I will keep this short enough that the ice can survive it.",
+              "lineID": "1.1.1"
+            },
+            {
+              "kind": "line",
+              "character": "HOST",
+              "text": "We often celebrate the person who has the idea. Tonight I want to celebrate the people who stay when the idea becomes work.",
+              "lineID": "1.1.2"
+            },
+            {
+              "kind": "line",
+              "character": "HOST",
+              "text": "The people who bring another chair. The people who ask whether you ate. The people who can tell that your cheerful message means you need help.",
+              "lineID": "1.1.3"
+            },
+            {
+              "kind": "line",
+              "character": "HOST",
+              "text": "You have done that for us, in ways large enough to change a year and small enough that you probably forgot them.",
+              "lineID": "1.1.4"
+            },
+            {
+              "kind": "line",
+              "character": "HOST",
+              "text": "We did not forget. Raise a glass to the time you gave, the room you made, and the next ordinary evening we get to share.",
+              "lineID": "1.1.5"
+            },
+            {
+              "kind": "line",
+              "character": "HOST",
+              "text": "To all of you. Thank you for staying.",
+              "lineID": "1.1.6"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

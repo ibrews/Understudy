@@ -1,0 +1,84 @@
+{
+  "title": "Platform Nine Minutes Late",
+  "author": "Agile Lens",
+  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
+  "acts": [
+    {
+      "number": 1,
+      "roman": "I",
+      "scenes": [
+        {
+          "number": 1,
+          "roman": "I",
+          "location": "Film scene",
+          "entries": [
+            {
+              "kind": "stage",
+              "text": "Original rehearsal text. Pause and resume at your own pace."
+            },
+            {
+              "kind": "line",
+              "character": "LEAH",
+              "text": "The board says nine minutes. It said nine minutes when we got here.",
+              "lineID": "1.1.1"
+            },
+            {
+              "kind": "line",
+              "character": "DEV",
+              "text": "Maybe it is a very consistent train.",
+              "lineID": "1.1.2"
+            },
+            {
+              "kind": "line",
+              "character": "LEAH",
+              "text": "Did you bring the envelope?",
+              "lineID": "1.1.3"
+            },
+            {
+              "kind": "line",
+              "character": "DEV",
+              "text": "I brought a photograph of the envelope. The envelope is on the kitchen table.",
+              "lineID": "1.1.4"
+            },
+            {
+              "kind": "line",
+              "character": "LEAH",
+              "text": "Tell me there is a useful second half to that sentence.",
+              "lineID": "1.1.5"
+            },
+            {
+              "kind": "line",
+              "character": "DEV",
+              "text": "The address is in the photograph. We could go there and ask the question ourselves.",
+              "lineID": "1.1.6"
+            },
+            {
+              "kind": "line",
+              "character": "LEAH",
+              "text": "We rehearsed a quiet delivery. Put it through the slot. Walk away.",
+              "lineID": "1.1.7"
+            },
+            {
+              "kind": "line",
+              "character": "DEV",
+              "text": "We have been rehearsing walking away for six years.",
+              "lineID": "1.1.8"
+            },
+            {
+              "kind": "line",
+              "character": "LEAH",
+              "text": "The board says eight minutes.",
+              "lineID": "1.1.9"
+            },
+            {
+              "kind": "line",
+              "character": "DEV",
+              "text": "Then we have time to decide.",
+              "lineID": "1.1.10"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

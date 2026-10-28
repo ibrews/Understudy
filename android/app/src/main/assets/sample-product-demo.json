@@ -1,0 +1,66 @@
+{
+  "title": "A Cue Without Looking Down",
+  "author": "Agile Lens",
+  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
+  "acts": [
+    {
+      "number": 1,
+      "roman": "I",
+      "scenes": [
+        {
+          "number": 1,
+          "roman": "I",
+          "location": "Product demo",
+          "entries": [
+            {
+              "kind": "stage",
+              "text": "Original rehearsal text. Pause and resume at your own pace."
+            },
+            {
+              "kind": "line",
+              "character": "DEMO",
+              "text": "I am going to read a short scene while keeping my eyes up. The phone controls the script. The glasses show the words.",
+              "lineID": "1.1.1"
+            },
+            {
+              "kind": "line",
+              "character": "DEMO",
+              "text": "First I will use the single-line view. Watch the cue change as I move through the text. A long cue is divided into smaller pages.",
+              "lineID": "1.1.2"
+            },
+            {
+              "kind": "line",
+              "character": "DEMO",
+              "text": "Now I will switch to the flowing view. The active words are cyan. Earlier words dim, and the next words stay white.",
+              "lineID": "1.1.3"
+            },
+            {
+              "kind": "line",
+              "character": "DEMO",
+              "text": "I can pause here. Nothing should keep moving while I explain what you are seeing.",
+              "lineID": "1.1.4"
+            },
+            {
+              "kind": "line",
+              "character": "DEMO",
+              "text": "I can change the speed, resume, or drag back to a place I want to rehearse. Those controls stay on the phone.",
+              "lineID": "1.1.5"
+            },
+            {
+              "kind": "line",
+              "character": "DEMO",
+              "text": "This is a rehearsal aid. If I lose the connection, I will check it and reopen the glasses display from the phone.",
+              "lineID": "1.1.6"
+            },
+            {
+              "kind": "line",
+              "character": "DEMO",
+              "text": "The useful test is simple: can I keep the thought, find the next line, and keep looking at the person in front of me?",
+              "lineID": "1.1.7"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

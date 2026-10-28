@@ -4,18 +4,15 @@ import agilelens.understudy.cuefx.CueFXEngine
 import agilelens.understudy.cuefx.FlashOverlay
 import agilelens.understudy.store.BlockingStore
 import android.Manifest
-import android.content.Context
-import android.os.Handler
-import android.os.Looper
+import android.os.SystemClock
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Mic
@@ -41,23 +38,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlin.math.max
-import kotlin.math.min
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
  * Cross-platform-equivalent of the Swift TeleprompterView. Four scroll inputs:
@@ -74,8 +67,8 @@ fun TeleprompterScreen(
     autoAdvanceOnLastLine: Boolean = false,
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
+    var lastManualAt by remember { mutableStateOf(-3000L) }
     var document by remember { mutableStateOf(TeleprompterDocument.from(store.blocking.value)) }
     var scrollProgress by rememberSaveable { mutableStateOf(0.0) }
     var textSize by rememberSaveable { mutableStateOf(28) }
@@ -109,6 +102,10 @@ fun TeleprompterScreen(
         if (granted) {
             isVoiceMode = true
             speech.start()
+            isVoiceMode = speech.isRunning
+            if (!isVoiceMode) Toast.makeText(context, "Speech recognition is unavailable. Use Play or drag to read.", Toast.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(context, "Microphone access was denied. Use Play or drag to read.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -134,36 +131,31 @@ fun TeleprompterScreen(
         }
     }
 
-    // Mark-follow — snap scroll when performer walks into a new mark.
-    LaunchedEffect(Unit) {
-        store.localPerformer.collectLatest { p ->
-            val markId = p?.currentMarkID ?: return@collectLatest
-            val target = document.progressForMark(markId) ?: return@collectLatest
-            // Only snap if user hasn't been manually interacting in the last
-            // 3 seconds. We approximate that here by always following — the
-            // iOS version has a real timestamp check; Android keeps it simple.
-            scrollProgress = target
+    // Follow mark transitions, not every pose update. Preserve a restored cursor.
+    LaunchedEffect(store) {
+        var initial = true
+        store.localPerformer.map { it?.currentMarkID }.distinctUntilChanged().collect { markId ->
+            val restoring = initial && scrollProgress > 0.0
+            initial = false
+            if (markId != null && !restoring &&
+                PromptPlayback.canFollowMark(SystemClock.elapsedRealtime(), lastManualAt)) {
+                document.progressForMark(markId)?.let { scrollProgress = it }
+            }
         }
     }
 
-    // Auto-scroll timer.
-    LaunchedEffect(isAutoScrolling, speed) {
+    // The effect owns its timer: pause, speed changes and dismissal cancel it.
+    LaunchedEffect(isAutoScrolling, speed, document.text) {
         if (!isAutoScrolling) return@LaunchedEffect
-        val totalLen = document.text.length
-        if (totalLen == 0) { isAutoScrolling = false; return@LaunchedEffect }
-        val handler = Handler(Looper.getMainLooper())
-        val runnable = object : Runnable {
-            override fun run() {
-                if (!isAutoScrolling) return
-                val charsPerFrame = speed / 30.0
-                val progressStep = charsPerFrame / totalLen.toDouble()
-                val newP = (scrollProgress + progressStep).coerceIn(0.0, 1.0)
-                scrollProgress = newP
-                if (newP >= 1.0) isAutoScrolling = false
-                else handler.postDelayed(this, 33)
-            }
+        if (document.text.isEmpty()) { isAutoScrolling = false; return@LaunchedEffect }
+        var previous = SystemClock.elapsedRealtime()
+        while (isActive && isAutoScrolling) {
+            delay(33)
+            val now = SystemClock.elapsedRealtime()
+            scrollProgress = PromptPlayback.advance(scrollProgress, speed, now - previous, document.text.length)
+            previous = now
+            if (scrollProgress >= 1.0) isAutoScrolling = false
         }
-        handler.post(runnable)
     }
 
     // Wire speech → voice matcher → scroll + auto-fire + (optional) auto-advance.
@@ -221,6 +213,7 @@ fun TeleprompterScreen(
                     .fillMaxSize()
                     .pointerInput(Unit) {
                         detectVerticalDragGestures { _, dragAmount ->
+                            lastManualAt = SystemClock.elapsedRealtime()
                             val delta = -dragAmount / 1200f
                             scrollProgress = (scrollProgress + delta).coerceIn(0.0, 1.0)
                             isAutoScrolling = false
@@ -254,6 +247,7 @@ fun TeleprompterScreen(
                         fireFlashAt = fireFlashAt,
                         isGlassesConnected = isGlassesConnected,
                         onResetTop = {
+                            lastManualAt = SystemClock.elapsedRealtime()
                             scrollProgress = 0.0
                         },
                         onPlayPause = { isAutoScrolling = !isAutoScrolling },
@@ -266,6 +260,8 @@ fun TeleprompterScreen(
                             } else if (speech.hasAudioPermission()) {
                                 isVoiceMode = true
                                 speech.start()
+                                isVoiceMode = speech.isRunning
+                                if (!isVoiceMode) Toast.makeText(context, "Speech recognition is unavailable. Use Play or drag to read.", Toast.LENGTH_LONG).show()
                             } else {
                                 permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                             }
@@ -278,7 +274,9 @@ fun TeleprompterScreen(
                         },
                         onGlassesLaunch = {
                             val host = context.findActivity()
-                            if (host != null) GlassesLauncher.launch(host)
+                            if (host == null || !GlassesLauncher.launch(host)) {
+                                Toast.makeText(context, "Could not open on glasses. Check the connection, then tap Open on Glasses again.", Toast.LENGTH_LONG).show()
+                            }
                         },
                         onGlassesModeToggle = {
                             GlassesTeleprompterState.renderMode =
@@ -321,9 +319,11 @@ private fun glassesConnectedState(): Boolean {
             try {
                 ProjectedContext.isProjectedDeviceConnected(context, coroutineContext)
                     .collect { connected = it }
-            } catch (_: Throwable) { /* API not present — stay false */ }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (_: Exception) { connected = false }
         }
-        onDispose { job.cancel() }
+        onDispose { job.cancel(); scope.coroutineContext[kotlinx.coroutines.Job]?.cancel() }
     }
     return connected
 }
@@ -350,62 +350,14 @@ private fun ScrollingText(
     if (text.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
-                "No lines on this blocking yet.\nAuthor mode → tap a mark → Pick from Hamlet…",
+                "No lines on this blocking yet.\nAuthor mode → tap a mark → Pick from script…",
                 color = Color.White.copy(alpha = 0.55f),
                 textAlign = TextAlign.Center
             )
         }
         return
     }
-    val totalLen = text.length
-    val cursor = (totalLen * scrollProgress).toInt().coerceIn(0, totalLen - 1)
-    val activeEnd = min(cursor + 30, totalLen)
-
-    val annotated = buildAnnotatedString {
-        withStyle(SpanStyle(color = Color.White.copy(alpha = 0.35f))) {
-            append(text.substring(0, cursor))
-        }
-        withStyle(SpanStyle(color = Color.Cyan)) {
-            append(text.substring(cursor, activeEnd))
-        }
-        withStyle(SpanStyle(color = Color.White)) {
-            append(text.substring(activeEnd))
-        }
-    }
-
-    val estimatedLineHeight = textSize * 1.4
-    val estimatedContentHeight = (totalLen / 60.0) * estimatedLineHeight
-    val scrollState = rememberScrollState()
-
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp)
-                .verticalScroll(scrollState),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height((estimatedContentHeight.toInt()).dp * 0 + 180.dp))
-            Text(
-                annotated,
-                fontSize = textSize.sp,
-                fontWeight = FontWeight.SemiBold,
-                fontFamily = FontFamily.Serif,
-                lineHeight = (textSize * 1.4).sp,
-                textAlign = TextAlign.Center,
-                color = Color.Unspecified
-            )
-            Spacer(modifier = Modifier.height(600.dp))
-        }
-    }
-
-    // Best-effort auto-center: scroll by progress * contentHeight. We don't
-    // have TextLayoutResult per-line control as iOS lacks it too; good
-    // enough for theatrical pacing.
-    LaunchedEffect(scrollProgress) {
-        val target = (scrollProgress * max(1, scrollState.maxValue)).toInt()
-        scrollState.animateScrollTo(target)
-    }
+    KaraokeText(text, scrollProgress, textSize)
 }
 
 @Composable
@@ -434,6 +386,7 @@ private fun TopBar(title: String, currentMark: String?, onClose: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Controls(
     isAutoScrolling: Boolean,
@@ -483,9 +436,10 @@ private fun Controls(
             color = Color.Black.copy(alpha = 0.75f),
             shape = RoundedCornerShape(16.dp),
         ) {
-            Row(
+            FlowRow(
                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.Center,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 IconButton(onClick = onResetTop) {
                     Icon(Icons.Filled.SkipPrevious, "Back to top", tint = Color.White)
@@ -552,8 +506,7 @@ private fun Controls(
                 }
 
                 // AI Glasses companion — enabled only when paired glasses are
-                // detected (API 36+). Long-press toggles between single-line
-                // prompt and flowing-script render modes on the glasses side.
+                // detected (API 36+). The adjacent button changes display mode.
                 IconButton(
                     onClick = onGlassesLaunch,
                     enabled = isGlassesConnected,

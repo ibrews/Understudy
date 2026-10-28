@@ -7,6 +7,12 @@ import agilelens.understudy.model.Pose
 import agilelens.understudy.teleprompter.PlayScript
 import agilelens.understudy.teleprompter.ScenePlacer
 import agilelens.understudy.teleprompter.Scripts
+import agilelens.understudy.teleprompter.withAppendedScript
+import android.widget.Toast
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.*
@@ -57,9 +63,13 @@ fun ScriptBrowserDialog(
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     var playRef by remember { mutableStateOf(Scripts.all.first()) }
     var script by remember { mutableStateOf<PlayScript?>(null) }
+    var loading by remember { mutableStateOf(true) }
+    var loadAttempt by remember { mutableStateOf(0) }
+    var addingSample by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var sceneFilter by remember { mutableStateOf<SceneFilter>(SceneFilter.All) }
     var showPlayMenu by remember { mutableStateOf(false) }
@@ -67,8 +77,11 @@ fun ScriptBrowserDialog(
     var dropSceneConfirm by remember { mutableStateOf<PlayScript.Scene?>(null) }
 
     // Load the script whenever the play changes.
-    LaunchedEffect(playRef) {
-        script = Scripts.load(context, playRef.assetName)
+    LaunchedEffect(playRef, loadAttempt) {
+        loading = true
+        script = null
+        script = withContext(Dispatchers.IO) { Scripts.load(context, playRef.assetName) }
+        loading = false
     }
 
     Dialog(
@@ -147,6 +160,27 @@ fun ScriptBrowserDialog(
                     )
                 }
 
+                Text("Add a sample to this mark", color = Color.White,
+                    fontSize = 12.sp, modifier = Modifier.padding(horizontal = 16.dp))
+                LazyRow(contentPadding = PaddingValues(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(Scripts.samples, key = { it.assetName }) { sample ->
+                        OutlinedButton(enabled = !addingSample, onClick = {
+                            addingSample = true
+                            scope.launch {
+                                val loaded = withContext(Dispatchers.IO) { Scripts.load(context, sample.assetName) }
+                                if (loaded != null) {
+                                    onMarkChange(currentMark.withAppendedScript(loaded))
+                                    onDismiss()
+                                } else {
+                                    Toast.makeText(context, "Could not load this sample. Try another script.", Toast.LENGTH_LONG).show()
+                                }
+                                addingSample = false
+                            }
+                        }) { Text(sample.displayName, fontSize = 12.sp) }
+                    }
+                }
+
                 // Search bar
                 Row(
                     modifier = Modifier
@@ -214,8 +248,13 @@ fun ScriptBrowserDialog(
                 }
                 Divider(color = Color.White.copy(alpha = 0.1f), thickness = 1.dp)
 
-                // List of lines
-                LineList(
+                // A failed asset load is an error, not an endless loading spinner.
+                if (!loading && script == null) {
+                    Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Could not load this script. Try again or choose another script.", color = Color.White)
+                        TextButton(onClick = { loadAttempt++ }) { Text("Try again") }
+                    }
+                } else LineList(
                     script = script,
                     query = query,
                     sceneFilter = sceneFilter,

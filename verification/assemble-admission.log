@@ -1,0 +1,8 @@
+sysctl: sysctl fmt -1 1024 1: Operation not permitted
+sysctl: sysctl fmt -1 1024 1: Operation not permitted
+sysctl: sysctl fmt -1 1024 1: Operation not permitted
+/Users/alex/knowledge/scripts/fleet-load-guard.sh: line 49: /bin/ps: Operation not permitted
+/Users/alex/knowledge/scripts/fleet-load-guard.sh: line 51: /bin/ps: Operation not permitted
+/Users/alex/knowledge/scripts/fleet-load-guard.sh: line 58: /bin/ps: Operation not permitted
+/Users/alex/knowledge/scripts/fleet-load-guard.sh: line 59: /bin/ps: Operation not permitted
+ADMIT build (YELLOW)

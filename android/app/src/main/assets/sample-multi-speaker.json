@@ -1,0 +1,96 @@
+{
+  "title": "The Spare Chair",
+  "author": "Agile Lens",
+  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
+  "acts": [
+    {
+      "number": 1,
+      "roman": "I",
+      "scenes": [
+        {
+          "number": 1,
+          "roman": "I",
+          "location": "Multi-speaker rehearsal",
+          "entries": [
+            {
+              "kind": "stage",
+              "text": "Original rehearsal text. Pause and resume at your own pace."
+            },
+            {
+              "kind": "line",
+              "character": "AVA",
+              "text": "We have five people and four chairs.",
+              "lineID": "1.1.1"
+            },
+            {
+              "kind": "line",
+              "character": "BEN",
+              "text": "I can stand.",
+              "lineID": "1.1.2"
+            },
+            {
+              "kind": "line",
+              "character": "CHRIS",
+              "text": "You stood through the last meeting. Take mine.",
+              "lineID": "1.1.3"
+            },
+            {
+              "kind": "line",
+              "character": "DANA",
+              "text": "There is a spare chair in the hall.",
+              "lineID": "1.1.4"
+            },
+            {
+              "kind": "line",
+              "character": "AVA",
+              "text": "Then why are we negotiating?",
+              "lineID": "1.1.5"
+            },
+            {
+              "kind": "line",
+              "character": "BEN",
+              "text": "Because the spare chair has a sign on it.",
+              "lineID": "1.1.6"
+            },
+            {
+              "kind": "line",
+              "character": "CHRIS",
+              "text": "What does it say?",
+              "lineID": "1.1.7"
+            },
+            {
+              "kind": "line",
+              "character": "DANA",
+              "text": "Please do not move this chair.",
+              "lineID": "1.1.8"
+            },
+            {
+              "kind": "line",
+              "character": "AVA",
+              "text": "Who wrote it?",
+              "lineID": "1.1.9"
+            },
+            {
+              "kind": "line",
+              "character": "BEN",
+              "text": "I did. Last week. We needed it for this meeting.",
+              "lineID": "1.1.10"
+            },
+            {
+              "kind": "line",
+              "character": "CHRIS",
+              "text": "Good planning.",
+              "lineID": "1.1.11"
+            },
+            {
+              "kind": "line",
+              "character": "DANA",
+              "text": "I will get the chair.",
+              "lineID": "1.1.12"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

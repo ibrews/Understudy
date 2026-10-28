@@ -1,0 +1,54 @@
+{
+  "title": "Start With the Room",
+  "author": "Agile Lens",
+  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
+  "acts": [
+    {
+      "number": 1,
+      "roman": "I",
+      "scenes": [
+        {
+          "number": 1,
+          "roman": "I",
+          "location": "Keynote opener",
+          "entries": [
+            {
+              "kind": "stage",
+              "text": "Original rehearsal text. Pause and resume at your own pace."
+            },
+            {
+              "kind": "line",
+              "character": "SPEAKER",
+              "text": "Before we talk about a new tool, look at the room. People found seats. Someone moved a cable. Someone made sure the door would open.",
+              "lineID": "1.1.1"
+            },
+            {
+              "kind": "line",
+              "character": "SPEAKER",
+              "text": "That work is easy to miss because it worked. Good tools have a similar problem. When they help, the task becomes the story.",
+              "lineID": "1.1.2"
+            },
+            {
+              "kind": "line",
+              "character": "SPEAKER",
+              "text": "Today I want to show three small tasks. We will try each one, look at what happened, and say where it still breaks.",
+              "lineID": "1.1.3"
+            },
+            {
+              "kind": "line",
+              "character": "SPEAKER",
+              "text": "You do not need to agree with my conclusions. Watch for the moment when you would reach for a different tool.",
+              "lineID": "1.1.4"
+            },
+            {
+              "kind": "line",
+              "character": "SPEAKER",
+              "text": "If we can name that moment clearly, this hour will have been useful. Let us start with something we can test together.",
+              "lineID": "1.1.5"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

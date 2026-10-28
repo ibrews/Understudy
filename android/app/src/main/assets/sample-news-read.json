@@ -1,0 +1,60 @@
+{
+  "title": "Community Desk Practice Read",
+  "author": "Agile Lens",
+  "source": "Original text created for the Understudy sample pack, October 28, 2026. Not a quotation or a device-readiness claim.",
+  "acts": [
+    {
+      "number": 1,
+      "roman": "I",
+      "scenes": [
+        {
+          "number": 1,
+          "roman": "I",
+          "location": "Fictional news read",
+          "entries": [
+            {
+              "kind": "stage",
+              "text": "Original rehearsal text. Pause and resume at your own pace."
+            },
+            {
+              "kind": "line",
+              "character": "ANCHOR",
+              "text": "This is a fictional practice bulletin. In our imagined town of Harbor Junction, the public library is opening a tool lending desk.",
+              "lineID": "1.1.1"
+            },
+            {
+              "kind": "line",
+              "character": "ANCHOR",
+              "text": "Residents in this exercise can borrow a drill, a measuring tape, or a small repair kit. The fictional program begins on Saturday at ten.",
+              "lineID": "1.1.2"
+            },
+            {
+              "kind": "line",
+              "character": "ANCHOR",
+              "text": "The practice announcement asks borrowers to return each item clean and report any damage. Staff will offer a short safety orientation.",
+              "lineID": "1.1.3"
+            },
+            {
+              "kind": "line",
+              "character": "ANCHOR",
+              "text": "In other imaginary local news, volunteers have finished repainting the footbridge beside the community garden.",
+              "lineID": "1.1.4"
+            },
+            {
+              "kind": "line",
+              "character": "ANCHOR",
+              "text": "For this reading exercise, pause here, look up, and return to the next sentence without rushing.",
+              "lineID": "1.1.5"
+            },
+            {
+              "kind": "line",
+              "character": "ANCHOR",
+              "text": "That concludes our fictional community desk bulletin. No real opening hours, weather conditions, or public service instructions are being reported.",
+              "lineID": "1.1.6"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+git apply --reverse --check verification/01-display-and-timing.patch -> exit 0
+git apply --reverse --check verification/02-sample-pack-and-import.patch -> exit 0
+git diff --check -> exit 0

@@ -1,36 +1,32 @@
 package agilelens.understudy.glasses
 
-import agilelens.understudy.model.Cue
-import androidx.compose.foundation.background
+import agilelens.understudy.teleprompter.KaraokeText
+import agilelens.understudy.teleprompter.PromptPlayback
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.math.min
 
 /**
  * The pixel-tight renderer that goes on the glasses display. Identical
- * logic as the phone TeleprompterScreen's ScrollingText, but sized for a
- * 480×480 canvas and with two modes (single-line prompt vs flowing script).
+ * cursor logic as the phone TeleprompterScreen. Fits the available projected
+ * viewport up to 480 dp, with paged single-line and measured flowing modes.
  *
  * Inputs come entirely from GlassesTeleprompterState — no store access here
  * so this composable is cheap and can run inside the projected-display
@@ -44,7 +40,7 @@ fun GlassesTeleprompterRenderer(
     futureColor: Color = Color.White,
 ) {
     Surface(
-        modifier = Modifier.size(canvasSize.dp),
+        modifier = Modifier.sizeIn(maxWidth = canvasSize.dp, maxHeight = canvasSize.dp).fillMaxSize(),
         color = Color.Black
     ) {
         val mode = GlassesTeleprompterState.renderMode
@@ -71,59 +67,40 @@ fun GlassesTeleprompterRenderer(
 
 /**
  * Big character label + line at screen center. Reads as a teleprompter.
- * When there's no current mark (performer hasn't entered one yet), shows
- * the next expected line as a pre-view in dimmer color.
+ * Uses the shared document cursor, so reading also works before entering a mark.
  */
 @Composable
 private fun SingleLinePrompt(activeColor: Color) {
-    val mark = GlassesTeleprompterState.currentMark
-    if (mark == null) {
-        Text(
-            "Waiting…",
-            color = Color.White.copy(alpha = 0.45f),
-            fontSize = 28.sp,
-            fontFamily = FontFamily.Serif
-        )
-        return
-    }
-    // Find the first unspoken line cue — currently defined as the first
-    // Line on the mark. (Once Android has a CueFXEngine with firedCueIDs,
-    // we'll track per-cue state here too.)
-    val line = mark.cues.filterIsInstance<Cue.Line>().firstOrNull()
-    if (line == null) {
-        Text(
-            mark.name,
-            color = Color.White.copy(alpha = 0.7f),
-            fontSize = 32.sp,
-            fontFamily = FontFamily.Serif,
-            fontWeight = FontWeight.SemiBold
-        )
-        return
-    }
-    Column(
-        modifier = Modifier.padding(horizontal = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        if (!line.character.isNullOrEmpty()) {
+    val doc = GlassesTeleprompterState.document
+    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        val fontScale = LocalDensity.current.fontScale
+        val pageSize = (((maxWidth.value - 40) / (28 * fontScale * 0.7f)).toInt() * 3)
+            .coerceIn(16, 100)
+        val prompt = PromptPlayback.prompt(doc, GlassesTeleprompterState.scrollProgress, pageSize)
+        if (prompt == null) {
             Text(
-                line.character.uppercase(),
-                color = Color.Red.copy(alpha = 0.85f),
-                fontSize = 14.sp,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold
+                if (doc.spokenLines.isEmpty()) "Open a script on your phone" else "End of script",
+                color = Color.White,
+                fontSize = 24.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(20.dp),
             )
-            Spacer(modifier = Modifier.height(8.dp))
+        } else {
+            Column(Modifier.padding(horizontal = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                if (!prompt.character.isNullOrEmpty()) {
+                    Text(prompt.character.uppercase(), color = Color.White,
+                        fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(8.dp))
+                }
+                Text(prompt.text, color = activeColor, fontSize = 28.sp,
+                    fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center, lineHeight = 36.sp)
+                if (prompt.pages > 1) {
+                    Spacer(Modifier.height(8.dp))
+                    Text("${prompt.page} / ${prompt.pages}", color = Color.White, fontSize = 14.sp)
+                }
+            }
         }
-        Text(
-            line.text,
-            color = activeColor,
-            fontSize = 28.sp,
-            fontFamily = FontFamily.Serif,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Center,
-            lineHeight = 36.sp,
-            maxLines = 4
-        )
     }
 }
 
@@ -149,30 +126,5 @@ private fun FlowingScript(
         )
         return
     }
-    val totalLen = doc.text.length
-    val cursor = (totalLen * progress).toInt().coerceIn(0, totalLen - 1)
-    val activeEnd = min(cursor + 30, totalLen)
-
-    val annotated: AnnotatedString = buildAnnotatedString {
-        withStyle(SpanStyle(color = pastColor)) { append(doc.text.substring(0, cursor)) }
-        withStyle(SpanStyle(color = activeColor)) { append(doc.text.substring(cursor, activeEnd)) }
-        withStyle(SpanStyle(color = futureColor)) { append(doc.text.substring(activeEnd)) }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .padding(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            annotated,
-            fontSize = 22.sp,
-            fontFamily = FontFamily.Serif,
-            fontWeight = FontWeight.SemiBold,
-            lineHeight = 30.sp,
-            textAlign = TextAlign.Center
-        )
-    }
+    KaraokeText(doc.text, progress, 22, activeColor, pastColor, futureColor)
 }
